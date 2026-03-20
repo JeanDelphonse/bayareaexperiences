@@ -1,0 +1,24 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Edit Staff{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('admin.staff') }}" class="btn btn-outline-secondary me-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h1 class="fw-bold mb-0">Edit Staff Member</h1>
+</div>
+
+<div class="card border-0 shadow-sm" style="max-width: 600px;">
+  <div class="card-body p-4">
+    <form method="POST" action="{{ url_for('admin.edit_staff', staff_id=member.staff_id) }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% include "admin/_staff_fields.html" %}
+      <div class="mt-4 d-flex gap-2">
+        <button type="submit" class="btn btn-warning fw-semibold">Save Changes</button>
+        <a href="{{ url_for('admin.staff') }}" class="btn btn-outline-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

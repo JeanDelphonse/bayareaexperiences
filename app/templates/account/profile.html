@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}My Account — Bay Area Experiences{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <h1 class="fw-bold mb-4">My Account</h1>
+
+      <!-- Profile Form -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+          <h5 class="fw-bold mb-3">Personal Information</h5>
+          <form method="POST" action="{{ url_for('account.profile') }}" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">First Name</label>
+                <input type="text" class="form-control" name="first_name"
+                       value="{{ current_user.first_name }}" required autocomplete="given-name">
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Last Name</label>
+                <input type="text" class="form-control" name="last_name"
+                       value="{{ current_user.last_name }}" required autocomplete="family-name">
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Email</label>
+                <input type="email" class="form-control" value="{{ current_user.email }}"
+                       readonly disabled>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Phone</label>
+                <input type="tel" class="form-control" name="phone"
+                       value="{{ current_user.phone or '' }}" autocomplete="tel">
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold">Street Address</label>
+                <input type="text" class="form-control" name="address"
+                       value="{{ current_user.address or '' }}" autocomplete="street-address">
+              </div>
+              <div class="col-sm-5">
+                <label class="form-label fw-semibold">City</label>
+                <input type="text" class="form-control" name="city"
+                       value="{{ current_user.city or '' }}" autocomplete="address-level2">
+              </div>
+              <div class="col-sm-3">
+                <label class="form-label fw-semibold">State</label>
+                <input type="text" class="form-control" name="state"
+                       value="{{ current_user.state or '' }}" autocomplete="address-level1">
+              </div>
+              <div class="col-sm-4">
+                <label class="form-label fw-semibold">ZIP Code</label>
+                <input type="text" class="form-control" name="postal_zip"
+                       value="{{ current_user.postal_zip or '' }}" autocomplete="postal-code">
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold">Notes <span class="text-muted fw-normal">(personal)</span></label>
+                <textarea class="form-control" name="notes" rows="3">{{ current_user.notes or '' }}</textarea>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-warning mt-3 fw-semibold">Save Changes</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Password Change -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <h5 class="fw-bold mb-3">Change Password</h5>
+          <form method="POST" action="{{ url_for('account.change_password') }}" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label fw-semibold">Current Password</label>
+                <input type="password" class="form-control" name="current_password"
+                       required autocomplete="current-password">
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">New Password</label>
+                <input type="password" class="form-control" name="new_password"
+                       required minlength="8" autocomplete="new-password">
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Confirm New Password</label>
+                <input type="password" class="form-control" name="confirm_password"
+                       required autocomplete="new-password">
+              </div>
+            </div>
+            <button type="submit" class="btn btn-outline-dark mt-3 fw-semibold">Update Password</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4 text-center">
+          <div class="bg-warning rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+               style="width: 70px; height: 70px;">
+            <span class="fw-bold fs-3">{{ current_user.first_name[0] }}{{ current_user.last_name[0] }}</span>
+          </div>
+          <h5 class="fw-bold">{{ current_user.full_name }}</h5>
+          <p class="text-muted small">{{ current_user.email }}</p>
+          <a href="{{ url_for('account.bookings') }}" class="btn btn-outline-warning w-100">
+            <i class="bi bi-calendar2-check me-2"></i>View My Bookings
+          </a>
+          <hr>
+          <a href="{{ url_for('auth.logout') }}" class="text-muted small">Sign Out</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

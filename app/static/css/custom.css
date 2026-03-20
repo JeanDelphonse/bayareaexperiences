@@ -1,0 +1,110 @@
+/* ── Bay Area Experiences — Custom Styles ─────────────────────────────────── */
+
+/* Hero Banner */
+.hero-banner {
+  position: relative;
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.hero-banner > .container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Experience Cards */
+.experience-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.experience-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.experience-card-img {
+  height: 200px;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Brand Colors */
+:root {
+  --bae-gold: #ffc107;
+  --bae-dark: #212529;
+}
+
+/* Navbar */
+.navbar-brand img {
+  max-height: 40px;
+  width: auto;
+}
+
+/* Sticky booking card offset (below sticky nav) */
+.sticky-top {
+  top: 80px;
+}
+
+/* Admin drag handle */
+#experienceList tr {
+  cursor: grab;
+}
+#experienceList tr:active {
+  cursor: grabbing;
+}
+#experienceList tr.sortable-ghost {
+  opacity: 0.4;
+  background: #fff3cd;
+}
+
+/* Booking flow step badges */
+.booking-step-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+/* Timeslot selector buttons */
+#timeslotList .btn {
+  min-width: 120px;
+}
+
+/* Footer */
+footer {
+  margin-top: auto;
+}
+
+/* Accessibility: focus outlines */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--bae-gold);
+  outline-offset: 2px;
+}
+
+/* Mobile responsive tweaks */
+@media (max-width: 576px) {
+  .hero-banner {
+    min-height: 60vh;
+  }
+  .hero-banner h1 {
+    font-size: 2rem;
+  }
+  .display-3 {
+    font-size: 2.2rem;
+  }
+}

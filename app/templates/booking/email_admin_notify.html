@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>New Booking</title></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <h2 style="color: #212529;">New Booking Received</h2>
+  <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+    <tr style="background: #f8f9fa;">
+      <td style="padding: 10px; font-weight: bold;">Booking ID</td>
+      <td style="padding: 10px; font-family: monospace;">{{ booking.booking_id }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; font-weight: bold;">Experience</td>
+      <td style="padding: 10px;">{{ experience.name }}</td>
+    </tr>
+    <tr style="background: #f8f9fa;">
+      <td style="padding: 10px; font-weight: bold;">Guest</td>
+      <td style="padding: 10px;">{{ booking.guest_first_name }} {{ booking.guest_last_name }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; font-weight: bold;">Email</td>
+      <td style="padding: 10px;">{{ booking.guest_email }}</td>
+    </tr>
+    <tr style="background: #f8f9fa;">
+      <td style="padding: 10px; font-weight: bold;">Phone</td>
+      <td style="padding: 10px;">{{ booking.guest_phone or '—' }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; font-weight: bold;">Date</td>
+      <td style="padding: 10px;">{{ booking.timeslot.slot_date }} at {{ booking.timeslot.start_time.strftime('%I:%M %p') }}</td>
+    </tr>
+    <tr style="background: #f8f9fa;">
+      <td style="padding: 10px; font-weight: bold;">Guests</td>
+      <td style="padding: 10px;">{{ booking.guest_count }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; font-weight: bold;">Pickup</td>
+      <td style="padding: 10px;">{{ booking.pickup_city }}</td>
+    </tr>
+    <tr style="background: #f8f9fa;">
+      <td style="padding: 10px; font-weight: bold;">Total</td>
+      <td style="padding: 10px;">${{ "%.2f"|format(booking.amount_total) }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; font-weight: bold;">Staff Assigned</td>
+      <td style="padding: 10px;">{{ booking.staff.full_name if booking.staff else 'NOT ASSIGNED' }}</td>
+    </tr>
+  </table>
+</body>
+</html>

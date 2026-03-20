@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Allow: /experiences
+Allow: /experience/
+Disallow: /admin
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /checkout
+Disallow: /cart

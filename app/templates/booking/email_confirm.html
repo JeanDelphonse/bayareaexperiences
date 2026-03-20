@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Booking Confirmed</title></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <h2 style="color: #212529;">Your Booking is Confirmed!</h2>
+  <p>Hi {{ booking.guest_first_name }}, your Bay Area Experiences reservation is confirmed.</p>
+  <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+    <tr style="background: #f8f9fa;">
+      <td style="padding: 10px; font-weight: bold;">Booking Reference</td>
+      <td style="padding: 10px; font-family: monospace; font-size: 1.1em;">{{ booking.booking_id }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; font-weight: bold;">Experience</td>
+      <td style="padding: 10px;">{{ experience.name }}</td>
+    </tr>
+    <tr style="background: #f8f9fa;">
+      <td style="padding: 10px; font-weight: bold;">Date</td>
+      <td style="padding: 10px;">{{ booking.timeslot.slot_date.strftime('%A, %B %d, %Y') }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; font-weight: bold;">Time</td>
+      <td style="padding: 10px;">{{ booking.timeslot.start_time.strftime('%I:%M %p') }} – {{ booking.timeslot.end_time.strftime('%I:%M %p') }}</td>
+    </tr>
+    <tr style="background: #f8f9fa;">
+      <td style="padding: 10px; font-weight: bold;">Guests</td>
+      <td style="padding: 10px;">{{ booking.guest_count }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; font-weight: bold;">Pickup</td>
+      <td style="padding: 10px;">{{ booking.pickup_city }}{% if booking.pickup_address %} — {{ booking.pickup_address }}{% endif %}</td>
+    </tr>
+    <tr style="background: #f8f9fa;">
+      <td style="padding: 10px; font-weight: bold;">Amount Paid</td>
+      <td style="padding: 10px;">${{ "%.2f"|format(booking.amount_paid) }}</td>
+    </tr>
+    {% if booking.amount_due > 0 %}
+    <tr>
+      <td style="padding: 10px; font-weight: bold; color: #dc3545;">Amount Due</td>
+      <td style="padding: 10px; color: #dc3545;">${{ "%.2f"|format(booking.amount_due) }}</td>
+    </tr>
+    {% endif %}
+  </table>
+  <p style="color: #6c757d; font-size: 14px;">All payments are final. If you have questions, reply to this email.</p>
+  <hr>
+  <p style="color: #6c757d; font-size: 12px;">Bay Area Experiences &bull; bayareaexperiences.com</p>
+</body>
+</html>

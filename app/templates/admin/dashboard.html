@@ -1,0 +1,106 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<h1 class="fw-bold mb-4">Dashboard</h1>
+
+{% if null_staff_count > 0 %}
+<div class="alert alert-warning d-flex align-items-center" role="alert">
+  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+  <span>
+    <strong>{{ null_staff_count }} confirmed booking{% if null_staff_count > 1 %}s{% endif %}</strong>
+    have no staff assigned.
+    <a href="{{ url_for('admin.bookings') }}?status=confirmed" class="alert-link ms-1">Review now</a>
+  </span>
+</div>
+{% endif %}
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">Total Bookings</div>
+      <div class="display-6 fw-bold">{{ total_bookings }}</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">Today</div>
+      <div class="display-6 fw-bold text-primary">{{ today_bookings }}</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">This Week</div>
+      <div class="display-6 fw-bold text-info">{{ week_bookings }}</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">Total Revenue</div>
+      <div class="display-6 fw-bold text-success">${{ "%.0f"|format(total_revenue) }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Nav -->
+<div class="row g-3 mb-4">
+  <div class="col-auto">
+    <a href="{{ url_for('admin.experiences') }}" class="btn btn-outline-warning">
+      <i class="bi bi-compass me-1"></i>Experiences
+    </a>
+  </div>
+  <div class="col-auto">
+    <a href="{{ url_for('admin.timeslots') }}" class="btn btn-outline-info">
+      <i class="bi bi-clock me-1"></i>Timeslots
+    </a>
+  </div>
+  <div class="col-auto">
+    <a href="{{ url_for('admin.bookings') }}" class="btn btn-outline-primary">
+      <i class="bi bi-calendar-check me-1"></i>All Bookings
+    </a>
+  </div>
+  <div class="col-auto">
+    <a href="{{ url_for('admin.staff') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-people me-1"></i>Staff
+    </a>
+  </div>
+</div>
+
+<!-- Recent Bookings -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white fw-bold">Recent Bookings (Last 10)</div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Ref</th><th>Experience</th><th>Guest</th><th>Date</th>
+          <th>Guests</th><th>Total</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in recent_bookings %}
+        <tr>
+          <td><a href="{{ url_for('admin.booking_detail', booking_id=b.booking_id) }}"
+                 class="font-monospace small text-decoration-none">{{ b.booking_id }}</a></td>
+          <td>{{ b.experience.name[:35] }}{% if b.experience.name|length > 35 %}...{% endif %}</td>
+          <td>{{ b.guest_first_name }} {{ b.guest_last_name }}</td>
+          <td>{{ b.timeslot.slot_date.strftime('%b %-d, %Y') }}</td>
+          <td>{{ b.guest_count }}</td>
+          <td>${{ "%.2f"|format(b.amount_total) }}</td>
+          <td>
+            {% if b.booking_status == 'confirmed' %}<span class="badge bg-success">Confirmed</span>
+            {% elif b.booking_status == 'completed' %}<span class="badge bg-secondary">Completed</span>
+            {% elif b.booking_status == 'cancelled' %}<span class="badge bg-danger">Cancelled</span>
+            {% elif b.booking_status == 'rescheduled' %}<span class="badge bg-warning text-dark">Rescheduled</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">No bookings yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

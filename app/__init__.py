@@ -1,0 +1,59 @@
+import logging
+from logging.handlers import RotatingFileHandler
+import os
+from flask import Flask, session, g
+from config import config
+from app.extensions import db, login_manager, bcrypt, mail, csrf
+from app.models import CartItem
+
+
+def create_app(config_name='default'):
+    app = Flask(__name__, template_folder='templates', static_folder='static')
+    app.config.from_object(config[config_name])
+
+    # Extensions
+    db.init_app(app)
+    login_manager.init_app(app)
+    bcrypt.init_app(app)
+    mail.init_app(app)
+    csrf.init_app(app)
+
+    # Blueprints
+    from app.blueprints.main   import main_bp
+    from app.blueprints.auth   import auth_bp
+    from app.blueprints.booking import booking_bp
+    from app.blueprints.cart   import cart_bp
+    from app.blueprints.checkout import checkout_bp
+    from app.blueprints.account import account_bp
+    from app.blueprints.admin  import admin_bp
+
+    app.register_blueprint(main_bp)
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(booking_bp)
+    app.register_blueprint(cart_bp)
+    app.register_blueprint(checkout_bp)
+    app.register_blueprint(account_bp)
+    app.register_blueprint(admin_bp)
+
+    # Cart count context processor
+    @app.context_processor
+    def inject_cart_count():
+        from flask_login import current_user
+        count = 0
+        if current_user.is_authenticated:
+            count = CartItem.query.filter_by(user_id=current_user.user_id).count()
+        else:
+            count = len(session.get('cart', []))
+        return dict(cart_count=count)
+
+    # Logging
+    os.makedirs('logs', exist_ok=True)
+    file_handler = RotatingFileHandler('logs/bae_app.log', maxBytes=1_000_000, backupCount=5)
+    file_handler.setLevel(logging.INFO)
+    app.logger.addHandler(file_handler)
+    app.logger.setLevel(logging.INFO)
+
+    with app.app_context():
+        db.create_all()
+
+    return app

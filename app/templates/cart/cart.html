@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Cart — Bay Area Experiences{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <h1 class="fw-bold mb-4">Your Cart</h1>
+
+  {% if not cart_items %}
+    <div class="text-center py-5">
+      <i class="bi bi-cart3 text-muted" style="font-size: 4rem;"></i>
+      <p class="lead text-muted mt-3">Your cart is empty.</p>
+      <a href="{{ url_for('main.experiences') }}" class="btn btn-warning btn-lg">Explore Experiences</a>
+    </div>
+  {% else %}
+    <div class="row g-4">
+      <div class="col-lg-8">
+        {% for item in cart_items %}
+        <div class="card border-0 shadow-sm mb-3">
+          <div class="card-body p-3">
+            <div class="row align-items-center g-3">
+              <div class="col-auto">
+                <img src="{{ item.experience.photo_url or url_for('static', filename='images/jeepWrangler.webp') }}"
+                     style="width: 80px; height: 60px; object-fit: cover; border-radius: 8px;"
+                     alt="{{ item.experience.name }}"
+                     onerror="this.src='{{ url_for('static', filename='images/jeepWrangler.webp') }}'">
+              </div>
+              <div class="col">
+                <h6 class="fw-bold mb-1">{{ item.experience.name }}</h6>
+                <div class="text-muted small">
+                  <i class="bi bi-calendar me-1"></i>{{ item.timeslot.slot_date.strftime('%b %-d, %Y') }}
+                  &bull; {{ item.timeslot.start_time.strftime('%I:%M %p') }}
+                  &bull; {{ item.guest_count }} guest{% if item.guest_count > 1 %}s{% endif %}
+                  &bull; {{ item.pickup_city }}
+                </div>
+              </div>
+              <div class="col-auto text-end">
+                <div class="fw-bold fs-5 mb-2">${{ "%.0f"|format(item.price) }}</div>
+                <form method="POST" action="{{ url_for('cart.remove', item_id=item.cart_item_id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-trash"></i> Remove
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card border-0 shadow sticky-top" style="top: 80px;">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-3">Order Summary</h5>
+            {% for item in cart_items %}
+            <div class="d-flex justify-content-between mb-2 small">
+              <span class="text-muted">{{ item.experience.name[:30] }}{% if item.experience.name|length > 30 %}...{% endif %}</span>
+              <span>${{ "%.0f"|format(item.price) }}</span>
+            </div>
+            {% endfor %}
+            <hr>
+            <div class="d-flex justify-content-between fw-bold fs-5 mb-4">
+              <span>Total</span>
+              <span>${{ "%.0f"|format(total) }}</span>
+            </div>
+            <a href="{{ url_for('checkout.checkout') }}" class="btn btn-warning w-100 btn-lg fw-bold">
+              Proceed to Checkout
+            </a>
+            <div class="text-center mt-2">
+              <a href="{{ url_for('main.experiences') }}" class="text-muted small">
+                &larr; Continue exploring
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

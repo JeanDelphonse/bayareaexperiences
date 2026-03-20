@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}My Bookings — Bay Area Experiences{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <h1 class="fw-bold mb-4">My Bookings</h1>
+
+  {% if not bookings %}
+    <div class="text-center py-5">
+      <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
+      <p class="lead text-muted mt-3">No bookings yet.</p>
+      <a href="{{ url_for('main.experiences') }}" class="btn btn-warning">Explore Experiences</a>
+    </div>
+  {% else %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>Ref</th>
+            <th>Experience</th>
+            <th>Date & Time</th>
+            <th>Guests</th>
+            <th>Total</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in bookings %}
+          <tr>
+            <td><span class="font-monospace small">{{ b.booking_id }}</span></td>
+            <td>{{ b.experience.name }}</td>
+            <td>
+              {{ b.timeslot.slot_date.strftime('%b %-d, %Y') }}<br>
+              <small class="text-muted">{{ b.timeslot.start_time.strftime('%I:%M %p') }}</small>
+            </td>
+            <td>{{ b.guest_count }}</td>
+            <td>${{ "%.2f"|format(b.amount_total) }}</td>
+            <td>
+              {% if b.booking_status == 'confirmed' %}
+                <span class="badge bg-success">Confirmed</span>
+              {% elif b.booking_status == 'completed' %}
+                <span class="badge bg-secondary">Completed</span>
+              {% elif b.booking_status == 'cancelled' %}
+                <span class="badge bg-danger">Cancelled</span>
+              {% elif b.booking_status == 'rescheduled' %}
+                <span class="badge bg-warning text-dark">Rescheduled</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

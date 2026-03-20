@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Verify Your Email</title></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <h2 style="color: #212529;">Welcome to Bay Area Experiences, {{ user.first_name }}!</h2>
+  <p>Thanks for creating an account. Please verify your email address by clicking the link below:</p>
+  <p style="text-align: center; margin: 30px 0;">
+    <a href="{{ verify_url }}" style="background-color: #ffc107; color: #212529; padding: 14px 28px;
+       text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+      Verify Email Address
+    </a>
+  </p>
+  <p style="color: #6c757d; font-size: 14px;">This link expires in 24 hours. If you didn't create an account, you can ignore this email.</p>
+  <hr>
+  <p style="color: #6c757d; font-size: 12px;">Bay Area Experiences &bull; bayareaexperiences.com</p>
+</body>
+</html>

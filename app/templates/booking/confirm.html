@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Booking Confirmed — Bay Area Experiences{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-7 text-center">
+      <div class="mb-4">
+        <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+      </div>
+      <h1 class="fw-bold mb-2">Booking Confirmed!</h1>
+      <p class="lead text-muted mb-4">Your reservation is confirmed. Check your email for details.</p>
+
+      <div class="card border-0 shadow mb-4 text-start">
+        <div class="card-body p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0">Booking Reference</h5>
+            <span class="badge bg-dark fs-6 font-monospace">{{ booking.booking_id }}</span>
+          </div>
+          <hr>
+          <dl class="row mb-0">
+            <dt class="col-sm-4">Experience</dt>
+            <dd class="col-sm-8">{{ booking.experience.name }}</dd>
+            <dt class="col-sm-4">Date</dt>
+            <dd class="col-sm-8">{{ booking.timeslot.slot_date.strftime('%A, %B %-d, %Y') }}</dd>
+            <dt class="col-sm-4">Time</dt>
+            <dd class="col-sm-8">
+              {{ booking.timeslot.start_time.strftime('%I:%M %p') }} –
+              {{ booking.timeslot.end_time.strftime('%I:%M %p') }}
+            </dd>
+            <dt class="col-sm-4">Guests</dt>
+            <dd class="col-sm-8">{{ booking.guest_count }}</dd>
+            <dt class="col-sm-4">Pickup</dt>
+            <dd class="col-sm-8">
+              {{ booking.pickup_city }}
+              {% if booking.pickup_address %}<br><small class="text-muted">{{ booking.pickup_address }}</small>{% endif %}
+            </dd>
+            <dt class="col-sm-4">Amount Paid</dt>
+            <dd class="col-sm-8">${{ "%.2f"|format(booking.amount_paid) }}</dd>
+            {% if booking.amount_due > 0 %}
+            <dt class="col-sm-4">Amount Due</dt>
+            <dd class="col-sm-8 text-danger">${{ "%.2f"|format(booking.amount_due) }}</dd>
+            {% endif %}
+          </dl>
+        </div>
+      </div>
+
+      <div class="d-flex gap-3 justify-content-center flex-wrap">
+        <a href="{{ url_for('booking.booking_ics', booking_id=booking.booking_id) }}"
+           class="btn btn-outline-dark">
+          <i class="bi bi-calendar-plus me-2"></i>Add to Calendar
+        </a>
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('account.bookings') }}" class="btn btn-warning">
+          View My Bookings
+        </a>
+        {% else %}
+        <a href="{{ url_for('main.index') }}" class="btn btn-warning">Back to Home</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

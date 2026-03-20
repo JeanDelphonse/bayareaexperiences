@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}{{ experience.name }} — Bay Area Experiences{% endblock %}
+
+{% block meta_description %}
+<meta name="description" content="{{ experience.description[:160] if experience.description else 'Book this Bay Area experience today.' }}">
+{% endblock %}
+
+{% block canonical %}
+<link rel="canonical" href="{{ request.url_root.rstrip('/') }}/experience/{{ experience.slug }}">
+{% endblock %}
+
+{% block content %}
+<!-- Hero Image -->
+<div class="position-relative" style="height: 400px; overflow: hidden;">
+  <img src="{{ experience.photo_url or url_for('static', filename='images/jeepWrangler.webp') }}"
+       class="w-100 h-100"
+       style="object-fit: cover; object-position: center;"
+       alt="{{ experience.name }}"
+       onerror="this.src='{{ url_for('static', filename='images/jeepWrangler.webp') }}'">
+  <div class="position-absolute top-0 start-0 w-100 h-100" style="background: rgba(0,0,0,0.40);"></div>
+  <div class="position-absolute bottom-0 start-0 p-4 text-white">
+    <span class="badge bg-warning text-dark mb-2 fs-6">{{ experience.category }}</span>
+    <h1 class="fw-bold display-5">{{ experience.name }}</h1>
+  </div>
+</div>
+
+<section class="py-5">
+  <div class="container">
+    <div class="row g-5">
+      <!-- Details Column -->
+      <div class="col-lg-8">
+        <h2 class="fw-bold mb-3">About This Experience</h2>
+        <p class="lead">{{ experience.description }}</p>
+
+        <hr class="my-4">
+
+        <div class="row g-3 mb-4">
+          <div class="col-sm-6">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-clock text-warning fs-4"></i>
+              <div>
+                <div class="text-muted small">Duration</div>
+                <div class="fw-semibold">{{ experience.duration_hours }} hours</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-people text-warning fs-4"></i>
+              <div>
+                <div class="text-muted small">Group Size</div>
+                <div class="fw-semibold">Up to {{ experience.max_guests }} guests</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-geo-alt text-warning fs-4"></i>
+              <div>
+                <div class="text-muted small">Pickup Cities</div>
+                <div class="fw-semibold">
+                  {% for loc in experience.pickup_locations %}
+                    {{ loc.pickup_city }}{% if not loop.last %}, {% endif %}
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-cup text-warning fs-4"></i>
+              <div>
+                <div class="text-muted small">Includes</div>
+                <div class="fw-semibold">Refreshments & water</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Booking Card -->
+      <div class="col-lg-4">
+        <div class="card border-0 shadow-lg sticky-top" style="top: 80px;">
+          <div class="card-body p-4">
+            <div class="text-center mb-3">
+              <div class="text-muted small">Price per booking</div>
+              <div class="display-5 fw-bold text-dark">${{ "%.0f"|format(experience.price) }}</div>
+              <div class="text-muted small">Up to {{ experience.max_guests }} guests</div>
+            </div>
+            {% if experience.payment_mode == 'full' %}
+              <div class="alert alert-info py-2 text-center small">
+                <i class="bi bi-shield-check me-1"></i>Full payment required at checkout
+              </div>
+            {% elif experience.payment_mode == 'deposit' %}
+              <div class="alert alert-info py-2 text-center small">
+                Deposit ${{ "%.0f"|format(experience.deposit_amount) }} now, remainder on the day
+              </div>
+            {% else %}
+              <div class="alert alert-secondary py-2 text-center small">Pay offline — reserve your spot today</div>
+            {% endif %}
+            <a href="{{ url_for('booking.book', experience_id=experience.experience_id) }}"
+               class="btn btn-warning w-100 btn-lg fw-bold">
+              Book This Experience
+            </a>
+            <hr>
+            <ul class="list-unstyled small text-muted">
+              <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>All payments are final</li>
+              <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Door-to-door pickup</li>
+              <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Private group only</li>
+              <li><i class="bi bi-check-circle-fill text-success me-2"></i>Refreshments included</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Checkout — Bay Area Experiences{% endblock %}
+
+{% block head_extra %}
+<script src="https://js.stripe.com/v3/"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <h1 class="fw-bold mb-4">Checkout</h1>
+  <div class="row g-4">
+    <!-- Payment Form -->
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <h5 class="fw-bold mb-3">Payment Details</h5>
+          <form id="paymentForm" method="POST" action="{{ url_for('booking.confirm_booking') }}" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="payment_intent_id" id="paymentIntentId" value="">
+            <!-- Cart items encoded for server -->
+            {% for item in cart_items %}
+            <input type="hidden" name="experience_id" value="{{ item.experience.experience_id }}">
+            <input type="hidden" name="timeslot_id" value="{{ item.timeslot.timeslot_id }}">
+            <input type="hidden" name="guest_count" value="{{ item.guest_count }}">
+            <input type="hidden" name="pickup_city" value="{{ item.pickup_city }}">
+            {% endfor %}
+
+            <!-- Guest info (prefilled if logged in) -->
+            <div class="row g-3 mb-4">
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">First Name</label>
+                <input type="text" class="form-control" name="first_name"
+                       value="{{ current_user.first_name if current_user.is_authenticated else '' }}"
+                       required aria-required="true" autocomplete="given-name">
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Last Name</label>
+                <input type="text" class="form-control" name="last_name"
+                       value="{{ current_user.last_name if current_user.is_authenticated else '' }}"
+                       required aria-required="true" autocomplete="family-name">
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Email</label>
+                <input type="email" class="form-control" name="email"
+                       value="{{ current_user.email if current_user.is_authenticated else '' }}"
+                       required aria-required="true" autocomplete="email">
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Phone</label>
+                <input type="tel" class="form-control" name="phone"
+                       value="{{ current_user.phone if current_user.is_authenticated else '' }}"
+                       autocomplete="tel">
+              </div>
+            </div>
+
+            <!-- Stripe Payment Element -->
+            {% if stripe_key %}
+            <div id="payment-element" class="mb-4"></div>
+            <div id="payment-message" class="text-danger mb-3" style="display:none;"></div>
+            {% else %}
+            <div class="alert alert-warning">
+              Payment gateway not configured. Contact admin to enable online payments.
+            </div>
+            {% endif %}
+
+            <button type="submit" class="btn btn-warning btn-lg w-100 fw-bold" id="payBtn">
+              <span id="payBtnText">Pay ${{ "%.2f"|format(total) }}</span>
+              <span id="payBtnSpinner" class="spinner-border spinner-border-sm ms-2" style="display:none;" role="status">
+                <span class="visually-hidden">Processing...</span>
+              </span>
+            </button>
+            <p class="text-center text-muted small mt-2">
+              <i class="bi bi-lock-fill me-1"></i>Secured by Stripe &bull; All payments are final
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Order Summary Sidebar -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <h5 class="fw-bold mb-3">Order Summary</h5>
+          {% for item in cart_items %}
+          <div class="mb-3 pb-3 border-bottom">
+            <div class="fw-semibold">{{ item.experience.name }}</div>
+            <div class="text-muted small">
+              {{ item.timeslot.slot_date.strftime('%b %-d, %Y') }}
+              &bull; {{ item.timeslot.start_time.strftime('%I:%M %p') }}
+              &bull; {{ item.guest_count }} guest{% if item.guest_count > 1 %}s{% endif %}
+            </div>
+            <div class="text-muted small">Pickup: {{ item.pickup_city }}</div>
+            <div class="fw-bold mt-1">${{ "%.2f"|format(item.price) }}</div>
+          </div>
+          {% endfor %}
+          <div class="d-flex justify-content-between fw-bold fs-5">
+            <span>Total</span>
+            <span>${{ "%.2f"|format(total) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if stripe_key %}
+<script>
+const stripe = Stripe('{{ stripe_key }}');
+let elements;
+
+fetch('/checkout/create-payment-intent', {
+  method: 'POST',
+  headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
+  body: JSON.stringify({amount: {{ total }}})
+})
+.then(r => r.json())
+.then(data => {
+  if (data.error) { document.getElementById('payment-message').textContent = data.error; return; }
+  elements = stripe.elements({clientSecret: data.clientSecret});
+  const paymentElement = elements.create('payment');
+  paymentElement.mount('#payment-element');
+});
+
+document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  document.getElementById('payBtn').disabled = true;
+  document.getElementById('payBtnSpinner').style.display = 'inline-block';
+
+  const {error, paymentIntent} = await stripe.confirmPayment({
+    elements,
+    redirect: 'if_required',
+  });
+
+  if (error) {
+    document.getElementById('payment-message').textContent = error.message;
+    document.getElementById('payment-message').style.display = 'block';
+    document.getElementById('payBtn').disabled = false;
+    document.getElementById('payBtnSpinner').style.display = 'none';
+  } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+    document.getElementById('paymentIntentId').value = paymentIntent.id;
+    document.getElementById('paymentForm').submit();
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

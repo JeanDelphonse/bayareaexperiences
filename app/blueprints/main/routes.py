@@ -1,0 +1,32 @@
+from flask import render_template, redirect, url_for
+from app.blueprints.main import main_bp
+from app.models import Experience
+
+
+@main_bp.route('/')
+def index():
+    experiences = (Experience.query
+                   .filter_by(is_active=True)
+                   .order_by(Experience.sort_order)
+                   .all())
+    return render_template('main/index.html', experiences=experiences)
+
+
+@main_bp.route('/experiences')
+def experiences():
+    experiences = (Experience.query
+                   .filter_by(is_active=True)
+                   .order_by(Experience.sort_order)
+                   .all())
+    return render_template('main/experiences.html', experiences=experiences)
+
+
+@main_bp.route('/ride')
+def ride_redirect():
+    return redirect(url_for('main.experiences'), 301)
+
+
+@main_bp.route('/experience/<slug>')
+def experience_detail(slug):
+    exp = Experience.query.filter_by(slug=slug, is_active=True).first_or_404()
+    return render_template('main/experience_detail.html', experience=exp)

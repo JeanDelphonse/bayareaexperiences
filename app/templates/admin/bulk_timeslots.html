@@ -1,0 +1,69 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Bulk Create Timeslots{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('admin.timeslots') }}" class="btn btn-outline-secondary me-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h1 class="fw-bold mb-0">Bulk Create Timeslots</h1>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-4">
+    <form method="POST" action="{{ url_for('admin.bulk_timeslots') }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label fw-semibold">Experience</label>
+          <select class="form-select" name="experience_id" required>
+            <option value="">— Select —</option>
+            {% for exp in experiences %}
+            <option value="{{ exp.experience_id }}">{{ exp.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold">Date Range — From</label>
+          <input type="date" class="form-control" name="start_date" required>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold">Date Range — To</label>
+          <input type="date" class="form-control" name="end_date" required>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Repeat On</label>
+          <div class="d-flex flex-wrap gap-3">
+            {% for i, day in [(0,'Mon'),(1,'Tue'),(2,'Wed'),(3,'Thu'),(4,'Fri'),(5,'Sat'),(6,'Sun')] %}
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="repeat_days"
+                     value="{{ i }}" id="day{{ i }}" checked>
+              <label class="form-check-label" for="day{{ i }}">{{ day }}</label>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="form-text">Leave all checked to create for every day in range.</div>
+        </div>
+        <div class="col-sm-4">
+          <label class="form-label fw-semibold">Start Time</label>
+          <input type="time" class="form-control" name="start_time" value="09:00" required>
+        </div>
+        <div class="col-sm-4">
+          <label class="form-label fw-semibold">End Time</label>
+          <input type="time" class="form-control" name="end_time" value="14:00" required>
+        </div>
+        <div class="col-sm-4">
+          <label class="form-label fw-semibold">Capacity per Slot</label>
+          <input type="number" class="form-control" name="capacity" min="1" max="4" value="4">
+        </div>
+      </div>
+      <div class="mt-4 d-flex gap-2">
+        <button type="submit" class="btn btn-warning fw-semibold">
+          <i class="bi bi-calendar-plus me-1"></i>Create Timeslots
+        </button>
+        <a href="{{ url_for('admin.timeslots') }}" class="btn btn-outline-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

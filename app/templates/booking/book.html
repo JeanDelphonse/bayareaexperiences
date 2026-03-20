@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block title %}Book {{ experience.name }} — Bay Area Experiences{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <h1 class="fw-bold mb-1">{{ experience.name }}</h1>
+      <p class="text-muted mb-4">
+        <span class="badge bg-warning text-dark me-2">{{ experience.category }}</span>
+        {{ experience.duration_hours }} hours &bull; Up to {{ experience.max_guests }} guests &bull;
+        ${{ "%.0f"|format(experience.price) }} per booking
+      </p>
+
+      <form method="POST" action="{{ url_for('booking.confirm_booking') }}" id="bookingForm" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="experience_id" value="{{ experience.experience_id }}">
+        <input type="hidden" name="timeslot_id" id="timeslot_id" value="">
+
+        <!-- Step 1: Date & Timeslot -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-3"><span class="badge bg-warning text-dark me-2">1</span>Select Date & Time</h5>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="slot_date" class="form-label fw-semibold">Date</label>
+                <input type="text" class="form-control" id="slot_date" name="slot_date"
+                       placeholder="Select a date" required aria-required="true"
+                       readonly>
+              </div>
+              <div class="col-md-6">
+                <label for="guest_count" class="form-label fw-semibold">Guests</label>
+                <select class="form-select" id="guest_count" name="guest_count" required aria-required="true">
+                  {% for i in range(1, experience.max_guests + 1) %}
+                  <option value="{{ i }}">{{ i }} guest{% if i > 1 %}s{% endif %}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div id="timeslotContainer" class="mt-3" style="display:none;">
+              <label class="form-label fw-semibold">Available Times</label>
+              <div id="timeslotList" class="d-flex flex-wrap gap-2"></div>
+              <div id="noSlots" class="text-muted small mt-2" style="display:none;">
+                No available timeslots for this date. Please choose another day.
+              </div>
+            </div>
+            <div id="loadingSlots" class="mt-3" style="display:none;">
+              <div class="spinner-border spinner-border-sm text-warning" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <span class="ms-2 text-muted small">Checking availability...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Pickup Location -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-3"><span class="badge bg-warning text-dark me-2">2</span>Pickup Location</h5>
+            <div class="mb-3">
+              <label for="pickup_city" class="form-label fw-semibold">Pickup City</label>
+              <select class="form-select" id="pickup_city" name="pickup_city" required aria-required="true">
+                <option value="">— Select a city —</option>
+                {% for loc in experience.pickup_locations %}
+                <option value="{{ loc.pickup_city }}">{{ loc.pickup_city }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="pickup_address" class="form-label fw-semibold">Street Address</label>
+              <input type="text" class="form-control" id="pickup_address" name="pickup_address"
+                     placeholder="e.g., 123 Market St, San Francisco, CA"
+                     autocomplete="street-address" aria-label="Pickup street address">
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Guest Information -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-3"><span class="badge bg-warning text-dark me-2">3</span>Guest Information</h5>
+            <div class="row g-3">
+              <div class="col-sm-6">
+                <label for="first_name" class="form-label fw-semibold">First Name</label>
+                <input type="text" class="form-control" id="first_name" name="first_name"
+                       value="{{ current_user.first_name if current_user.is_authenticated else '' }}"
+                       required autocomplete="given-name" aria-required="true">
+              </div>
+              <div class="col-sm-6">
+                <label for="last_name" class="form-label fw-semibold">Last Name</label>
+                <input type="text" class="form-control" id="last_name" name="last_name"
+                       value="{{ current_user.last_name if current_user.is_authenticated else '' }}"
+                       required autocomplete="family-name" aria-required="true">
+              </div>
+              <div class="col-sm-6">
+                <label for="email" class="form-label fw-semibold">Email</label>
+                <input type="email" class="form-control" id="email" name="email"
+                       value="{{ current_user.email if current_user.is_authenticated else '' }}"
+                       required autocomplete="email" aria-required="true">
+              </div>
+              <div class="col-sm-6">
+                <label for="phone" class="form-label fw-semibold">Phone</label>
+                <input type="tel" class="form-control" id="phone" name="phone"
+                       value="{{ current_user.phone if current_user.is_authenticated else '' }}"
+                       autocomplete="tel" aria-label="Phone number">
+              </div>
+              <div class="col-12">
+                <label for="special_requests" class="form-label fw-semibold">
+                  Special Requests <span class="fw-normal text-muted">(optional)</span>
+                </label>
+                <textarea class="form-control" id="special_requests" name="special_requests"
+                          rows="3" aria-label="Special requests or notes"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="card border-warning border-2 mb-4">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-3">Order Summary</h5>
+            <div class="d-flex justify-content-between mb-2">
+              <span>{{ experience.name }}</span>
+              <span class="fw-bold">${{ "%.0f"|format(experience.price) }}</span>
+            </div>
+            <div class="d-flex justify-content-between text-muted small mb-3">
+              <span>Up to {{ experience.max_guests }} guests included</span>
+              <span>All payments are final</span>
+            </div>
+            <hr>
+            <div class="d-flex justify-content-between fw-bold fs-5">
+              <span>Total</span>
+              <span>${{ "%.0f"|format(experience.price) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-warning btn-lg w-100 fw-bold" id="submitBtn" disabled>
+          Continue to Checkout
+        </button>
+        <p class="text-center text-muted small mt-2">
+          <i class="bi bi-lock-fill me-1"></i>Secure booking &bull; All payments are final
+        </p>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+const experienceId = "{{ experience.experience_id }}";
+const minDate = "{{ min_date }}";
+let selectedTimeslotId = null;
+
+// Date picker
+flatpickr('#slot_date', {
+  minDate: minDate,
+  dateFormat: 'Y-m-d',
+  onChange: function(selectedDates, dateStr) {
+    fetchTimeslots(dateStr);
+  }
+});
+
+document.getElementById('guest_count').addEventListener('change', function() {
+  const dateVal = document.getElementById('slot_date').value;
+  if (dateVal) fetchTimeslots(dateVal);
+});
+
+function fetchTimeslots(dateStr) {
+  const guestCount = document.getElementById('guest_count').value;
+  document.getElementById('timeslotContainer').style.display = 'none';
+  document.getElementById('loadingSlots').style.display = 'block';
+  document.getElementById('submitBtn').disabled = true;
+  selectedTimeslotId = null;
+  document.getElementById('timeslot_id').value = '';
+
+  fetch('/book/timeslot', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
+    body: JSON.stringify({experience_id: experienceId, date: dateStr, guest_count: guestCount})
+  })
+  .then(r => r.json())
+  .then(slots => {
+    document.getElementById('loadingSlots').style.display = 'none';
+    document.getElementById('timeslotContainer').style.display = 'block';
+    const list = document.getElementById('timeslotList');
+    const noSlots = document.getElementById('noSlots');
+    list.innerHTML = '';
+    if (!slots.length) {
+      noSlots.style.display = 'block';
+      return;
+    }
+    noSlots.style.display = 'none';
+    slots.forEach(slot => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-outline-dark';
+      btn.textContent = slot.start_time + ' – ' + slot.end_time;
+      btn.dataset.id = slot.timeslot_id;
+      btn.addEventListener('click', function() {
+        list.querySelectorAll('button').forEach(b => b.classList.remove('btn-warning', 'btn-outline-dark'));
+        this.classList.add('btn-warning');
+        this.classList.remove('btn-outline-dark');
+        selectedTimeslotId = slot.timeslot_id;
+        document.getElementById('timeslot_id').value = slot.timeslot_id;
+        document.getElementById('submitBtn').disabled = false;
+      });
+      list.appendChild(btn);
+    });
+  })
+  .catch(() => {
+    document.getElementById('loadingSlots').style.display = 'none';
+  });
+}
+</script>
+{% endblock %}

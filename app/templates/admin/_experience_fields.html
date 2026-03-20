@@ -1,0 +1,109 @@
+{# Reusable experience form fields — included in create modal & edit page #}
+<div class="row g-3">
+  <div class="col-12">
+    <label class="form-label fw-semibold">Experience Name <span class="text-danger">*</span></label>
+    <input type="text" class="form-control" name="name"
+           value="{{ experience.name if experience else '' }}" required aria-required="true">
+  </div>
+  <div class="col-sm-6">
+    <label class="form-label fw-semibold">URL Slug <span class="text-danger">*</span></label>
+    <input type="text" class="form-control" name="slug"
+           value="{{ experience.slug if experience else '' }}" required
+           placeholder="e.g., sf-city-icons" aria-required="true">
+  </div>
+  <div class="col-sm-6">
+    <label class="form-label fw-semibold">Category</label>
+    <input type="text" class="form-control" name="category"
+           value="{{ experience.category if experience else '' }}"
+           placeholder="e.g., City Tour">
+  </div>
+  <div class="col-12">
+    <label class="form-label fw-semibold">Description</label>
+    <textarea class="form-control" name="description" rows="4">{{ experience.description if experience else '' }}</textarea>
+  </div>
+  <div class="col-sm-4">
+    <label class="form-label fw-semibold">Duration (hours)</label>
+    <input type="number" class="form-control" name="duration_hours" step="0.5" min="0.5"
+           value="{{ experience.duration_hours if experience else '' }}" required>
+  </div>
+  <div class="col-sm-4">
+    <label class="form-label fw-semibold">Price ($)</label>
+    <input type="number" class="form-control" name="price" step="0.01" min="0"
+           value="{{ experience.price if experience else '' }}" required>
+  </div>
+  <div class="col-sm-4">
+    <label class="form-label fw-semibold">Max Guests</label>
+    <input type="number" class="form-control" name="max_guests" min="1" max="4"
+           value="{{ experience.max_guests if experience else 4 }}">
+  </div>
+  <div class="col-sm-6">
+    <label class="form-label fw-semibold">Payment Mode</label>
+    <select class="form-select" name="payment_mode">
+      <option value="full" {% if not experience or experience.payment_mode == 'full' %}selected{% endif %}>
+        Require Full Payment</option>
+      <option value="deposit" {% if experience and experience.payment_mode == 'deposit' %}selected{% endif %}>
+        Require Deposit</option>
+      <option value="offline" {% if experience and experience.payment_mode == 'offline' %}selected{% endif %}>
+        Pay Offline</option>
+    </select>
+  </div>
+  <div class="col-sm-6">
+    <label class="form-label fw-semibold">Deposit Amount ($) <span class="text-muted fw-normal">(if deposit mode)</span></label>
+    <input type="number" class="form-control" name="deposit_amount" step="0.01" min="0"
+           value="{{ experience.deposit_amount if experience and experience.deposit_amount else '' }}">
+  </div>
+  <div class="col-sm-6">
+    <label class="form-label fw-semibold">Advance Booking (days)</label>
+    <select class="form-select" name="advance_booking_days">
+      {% for d in [1,2,3,4,5] %}
+      <option value="{{ d }}" {% if experience and experience.advance_booking_days == d %}selected{% endif %}>
+        {{ d }} day{% if d > 1 %}s{% endif %}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-sm-6">
+    <label class="form-label fw-semibold">Assigned Staff</label>
+    <select class="form-select" name="staff_id">
+      <option value="">— Unassigned —</option>
+      {% for s in staff %}
+      <option value="{{ s.staff_id }}"
+              {% if experience and experience.staff_id == s.staff_id %}selected{% endif %}>
+        {{ s.full_name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-12">
+    <label class="form-label fw-semibold">Hero Photo URL</label>
+    <input type="text" class="form-control" name="photo_url"
+           value="{{ experience.photo_url if experience else '' }}"
+           placeholder="/static/images/sf_city_icons.jpg">
+  </div>
+  <div class="col-12">
+    <label class="form-label fw-semibold d-block">Pickup Locations</label>
+    <div class="d-flex flex-wrap gap-3">
+      {% for city in pickup_cities %}
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="pickup_cities"
+               value="{{ city }}" id="city_{{ loop.index }}"
+               {% if experience and city in existing_cities %}checked
+               {% elif not experience %}checked{% endif %}>
+        <label class="form-check-label" for="city_{{ loop.index }}">{{ city }}</label>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="col-sm-6">
+    <div class="form-check form-switch">
+      <input class="form-check-input" type="checkbox" name="is_active" id="is_active"
+             {% if not experience or experience.is_active %}checked{% endif %}>
+      <label class="form-check-label fw-semibold" for="is_active">Active (visible to public)</label>
+    </div>
+  </div>
+  <div class="col-sm-6">
+    <div class="form-check form-switch">
+      <input class="form-check-input" type="checkbox" name="allow_online_reschedule" id="allow_reschedule"
+             {% if experience and experience.allow_online_reschedule %}checked{% endif %}>
+      <label class="form-check-label fw-semibold" for="allow_reschedule">Allow Online Reschedule</label>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,107 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Booking {{ booking.booking_id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('admin.bookings') }}" class="btn btn-outline-secondary me-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h1 class="fw-bold mb-0">Booking <span class="font-monospace">{{ booking.booking_id }}</span></h1>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <!-- Booking Details -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white fw-bold">Booking Details</div>
+      <div class="card-body">
+        <dl class="row">
+          <dt class="col-sm-4">Experience</dt>
+          <dd class="col-sm-8">{{ booking.experience.name }}</dd>
+          <dt class="col-sm-4">Date & Time</dt>
+          <dd class="col-sm-8">{{ booking.timeslot.slot_date.strftime('%A, %B %-d, %Y') }}
+            at {{ booking.timeslot.start_time.strftime('%I:%M %p') }}</dd>
+          <dt class="col-sm-4">Guest</dt>
+          <dd class="col-sm-8">{{ booking.guest_first_name }} {{ booking.guest_last_name }}</dd>
+          <dt class="col-sm-4">Email</dt>
+          <dd class="col-sm-8">{{ booking.guest_email }}</dd>
+          <dt class="col-sm-4">Phone</dt>
+          <dd class="col-sm-8">{{ booking.guest_phone or '—' }}</dd>
+          <dt class="col-sm-4">Guests</dt>
+          <dd class="col-sm-8">{{ booking.guest_count }}</dd>
+          <dt class="col-sm-4">Pickup City</dt>
+          <dd class="col-sm-8">{{ booking.pickup_city }}</dd>
+          <dt class="col-sm-4">Pickup Address</dt>
+          <dd class="col-sm-8">{{ booking.pickup_address or '—' }}</dd>
+          <dt class="col-sm-4">Special Requests</dt>
+          <dd class="col-sm-8">{{ booking.special_requests or '—' }}</dd>
+          <dt class="col-sm-4">Staff Assigned</dt>
+          <dd class="col-sm-8">
+            {% if booking.staff %}
+              {{ booking.staff.full_name }}
+            {% else %}
+              <span class="text-danger fw-semibold">NOT ASSIGNED</span>
+            {% endif %}
+          </dd>
+        </dl>
+      </div>
+    </div>
+
+    <!-- Payment Details -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white fw-bold">Payment</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Payment Mode</dt>
+          <dd class="col-sm-8">{{ booking.payment_mode|capitalize }}</dd>
+          <dt class="col-sm-4">Total</dt>
+          <dd class="col-sm-8">${{ "%.2f"|format(booking.amount_total) }}</dd>
+          <dt class="col-sm-4">Amount Paid</dt>
+          <dd class="col-sm-8">${{ "%.2f"|format(booking.amount_paid) }}</dd>
+          <dt class="col-sm-4">Amount Due</dt>
+          <dd class="col-sm-8">${{ "%.2f"|format(booking.amount_due) }}</dd>
+          <dt class="col-sm-4">Payment Status</dt>
+          <dd class="col-sm-8">{{ booking.payment_status|capitalize }}</dd>
+          {% if booking.stripe_payment_intent_id %}
+          <dt class="col-sm-4">Stripe PI</dt>
+          <dd class="col-sm-8"><span class="font-monospace small">{{ booking.stripe_payment_intent_id }}</span></dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <!-- Update Status -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white fw-bold">Update Status</div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('admin.booking_detail', booking_id=booking.booking_id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="update_status">
+          <select class="form-select mb-3" name="booking_status">
+            {% for s in ['confirmed','completed','cancelled','rescheduled'] %}
+            <option value="{{ s }}" {% if booking.booking_status == s %}selected{% endif %}>
+              {{ s|capitalize }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn btn-warning w-100">Update Status</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Internal Notes -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-bold">Internal Notes</div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('admin.booking_detail', booking_id=booking.booking_id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="update_notes">
+          <textarea class="form-control mb-3" name="notes" rows="5">{{ booking.notes or '' }}</textarea>
+          <button type="submit" class="btn btn-outline-dark w-100">Save Notes</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

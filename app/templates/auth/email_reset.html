@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Reset Your Password</title></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <h2 style="color: #212529;">Password Reset Request</h2>
+  <p>Hi {{ user.first_name }}, we received a request to reset your Bay Area Experiences password.</p>
+  <p style="text-align: center; margin: 30px 0;">
+    <a href="{{ reset_url }}" style="background-color: #ffc107; color: #212529; padding: 14px 28px;
+       text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+      Reset Password
+    </a>
+  </p>
+  <p style="color: #6c757d; font-size: 14px;">This link expires in 1 hour. If you didn't request a reset, you can safely ignore this email.</p>
+  <hr>
+  <p style="color: #6c757d; font-size: 12px;">Bay Area Experiences &bull; bayareaexperiences.com</p>
+</body>
+</html>

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Create Account — Bay Area Experiences{% endblock %}
+
+{% block head_extra %}
+{% if recaptcha_site_key %}
+<script src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_site_key }}"></script>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card border-0 shadow">
+        <div class="card-body p-4">
+          <h2 class="fw-bold text-center mb-4">Create Account</h2>
+          <form method="POST" action="{{ url_for('auth.register') }}" id="registerForm" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="g-recaptcha-response" id="recaptchaToken">
+            <div class="row g-3 mb-3">
+              <div class="col-sm-6">
+                <label for="first_name" class="form-label fw-semibold">First Name</label>
+                <input type="text" class="form-control" id="first_name" name="first_name"
+                       required autocomplete="given-name" aria-required="true">
+              </div>
+              <div class="col-sm-6">
+                <label for="last_name" class="form-label fw-semibold">Last Name</label>
+                <input type="text" class="form-control" id="last_name" name="last_name"
+                       required autocomplete="family-name" aria-required="true">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="email" class="form-label fw-semibold">Email address</label>
+              <input type="email" class="form-control" id="email" name="email"
+                     required autocomplete="email" aria-required="true">
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label fw-semibold">Password</label>
+              <input type="password" class="form-control" id="password" name="password"
+                     required minlength="8" autocomplete="new-password" aria-required="true">
+              <div class="form-text">At least 8 characters.</div>
+            </div>
+            <div class="mb-4">
+              <label for="confirm_password" class="form-label fw-semibold">Confirm Password</label>
+              <input type="password" class="form-control" id="confirm_password" name="confirm_password"
+                     required autocomplete="new-password" aria-required="true">
+            </div>
+            <button type="submit" class="btn btn-warning w-100 fw-bold" id="registerBtn">
+              Create Account
+            </button>
+          </form>
+          <hr>
+          <p class="text-center mb-0">
+            Already have an account?
+            <a href="{{ url_for('auth.login') }}" class="fw-semibold text-warning">Sign In</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if recaptcha_site_key %}
+<script>
+  document.getElementById('registerForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    grecaptcha.ready(function() {
+      grecaptcha.execute('{{ recaptcha_site_key }}', {action: 'register'}).then(function(token) {
+        document.getElementById('recaptchaToken').value = token;
+        document.getElementById('registerForm').submit();
+      });
+    });
+  });
+</script>
+{% endif %}
+{% endblock %}

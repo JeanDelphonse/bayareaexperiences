@@ -1,0 +1,30 @@
+{# Reusable staff form fields #}
+<div class="mb-3">
+  <label class="form-label fw-semibold">Full Name <span class="text-danger">*</span></label>
+  <input type="text" class="form-control" name="full_name"
+         value="{{ member.full_name if member else '' }}" required aria-required="true">
+</div>
+<div class="mb-3">
+  <label class="form-label fw-semibold">Title</label>
+  <input type="text" class="form-control" name="title"
+         value="{{ member.title if member else '' }}" placeholder="e.g., Lead Guide">
+</div>
+<div class="mb-3">
+  <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
+  <input type="email" class="form-control" name="email"
+         value="{{ member.email if member else '' }}" required aria-required="true">
+</div>
+<div class="mb-3">
+  <label class="form-label fw-semibold">Phone</label>
+  <input type="tel" class="form-control" name="phone"
+         value="{{ member.phone if member else '' }}">
+</div>
+<div class="mb-3">
+  <label class="form-label fw-semibold">Notes <span class="text-muted fw-normal">(internal)</span></label>
+  <textarea class="form-control" name="notes" rows="3">{{ member.notes if member else '' }}</textarea>
+</div>
+<div class="form-check form-switch">
+  <input class="form-check-input" type="checkbox" name="is_active" id="staff_active"
+         {% if not member or member.is_active %}checked{% endif %}>
+  <label class="form-check-label fw-semibold" for="staff_active">Active</label>
+</div>
