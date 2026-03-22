@@ -13,11 +13,11 @@
 {% block content %}
 <!-- Hero Image -->
 <div class="position-relative" style="height: 400px; overflow: hidden;">
-  <img src="{{ experience.photo_url or url_for('static', filename='images/jeepWrangler.webp') }}"
+  <img src="{{ url_for('main.image', filename=(experience.photo_url or 'jeep.webp')) }}"
        class="w-100 h-100"
        style="object-fit: cover; object-position: center;"
        alt="{{ experience.name }}"
-       onerror="this.src='{{ url_for('static', filename='images/jeepWrangler.webp') }}'">
+       onerror="this.onerror=null;this.src='{{ url_for('main.image', filename='jeep.webp') }}'">
   <div class="position-absolute top-0 start-0 w-100 h-100" style="background: rgba(0,0,0,0.40);"></div>
   <div class="position-absolute bottom-0 start-0 p-4 text-white">
     <span class="badge bg-warning text-dark mb-2 fs-6">{{ experience.category }}</span>

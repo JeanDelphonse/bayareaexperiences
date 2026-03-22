@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 
 
 class Config:
@@ -23,6 +23,11 @@ class Config:
 
     RECAPTCHA_SITE_KEY = os.environ.get('RECAPTCHA_SITE_KEY', '')
     RECAPTCHA_SECRET_KEY = os.environ.get('RECAPTCHA_SECRET_KEY', '')
+
+    ANTHROPIC_API_KEY  = os.environ.get('ANTHROPIC_API_KEY', '')
+    CHAT_MAX_TOKENS    = int(os.environ.get('CHAT_MAX_TOKENS', 1024))
+    CHAT_HISTORY_LIMIT = int(os.environ.get('CHAT_HISTORY_LIMIT', 10))
+    CHAT_ENABLED       = os.environ.get('CHAT_ENABLED', 'True') == 'True'
 
 
 class DevelopmentConfig(Config):

@@ -1,6 +1,6 @@
 import csv
 import io
-from datetime import date, timedelta
+from datetime import date, time as dt_time, timedelta
 from flask import (render_template, redirect, url_for, flash,
                    request, jsonify, Response)
 from flask_login import login_required
@@ -8,7 +8,8 @@ from sqlalchemy import func
 from app.blueprints.admin import admin_bp
 from app.extensions import db
 from app.models import (Experience, ExperiencePickupLocation, Timeslot,
-                        Booking, StaffMember, User)
+                        Booking, StaffMember, User, ContactSubmission,
+                        ChatSession, ChatMessage)
 from app.utils import admin_required, generate_pk
 
 PICKUP_CITIES = ['San Francisco, CA', 'San Jose, CA', 'Santa Cruz, CA', 'Monterey, CA']
@@ -29,13 +30,15 @@ def dashboard():
     null_staff_count = Booking.query.filter(
         Booking.staff_id == None,
         Booking.booking_status == 'confirmed').count()
+    unread_contacts  = ContactSubmission.query.filter_by(is_read=False).count()
     return render_template('admin/dashboard.html',
                            total_bookings=total_bookings,
                            today_bookings=today_bookings,
                            week_bookings=week_bookings,
                            total_revenue=total_revenue,
                            recent_bookings=recent_bookings,
-                           null_staff_count=null_staff_count)
+                           null_staff_count=null_staff_count,
+                           unread_contacts=unread_contacts)
 
 
 # ── Experiences ────────────────────────────────────────────────────────────────
@@ -164,8 +167,8 @@ def timeslots():
     if request.method == 'POST':
         experience_id = request.form.get('experience_id')
         slot_date     = date.fromisoformat(request.form.get('slot_date'))
-        start_time    = request.form.get('start_time')
-        end_time      = request.form.get('end_time')
+        start_time    = dt_time.fromisoformat(request.form.get('start_time'))
+        end_time      = dt_time.fromisoformat(request.form.get('end_time'))
         capacity      = int(request.form.get('capacity', 4))
 
         slot = Timeslot(
@@ -198,8 +201,8 @@ def bulk_timeslots():
         start_date    = date.fromisoformat(request.form.get('start_date'))
         end_date      = date.fromisoformat(request.form.get('end_date'))
         repeat_days   = request.form.getlist('repeat_days')  # ['0','1',...,'6'] Mon-Sun
-        start_time    = request.form.get('start_time')
-        end_time      = request.form.get('end_time')
+        start_time    = dt_time.fromisoformat(request.form.get('start_time'))
+        end_time      = dt_time.fromisoformat(request.form.get('end_time'))
         capacity      = int(request.form.get('capacity', 4))
 
         created = 0
@@ -346,3 +349,99 @@ def edit_staff(staff_id):
         flash('Staff member updated.', 'success')
         return redirect(url_for('admin.staff'))
     return render_template('admin/staff_form.html', member=member)
+
+
+# ── Contact Submissions ─────────────────────────────────────────────────────
+
+@admin_bp.route('/contact-submissions')
+@login_required
+@admin_required
+def contact_submissions():
+    page          = request.args.get('page', 1, type=int)
+    unread_filter = request.args.get('unread')
+    subject_filter = request.args.get('subject')
+    query = ContactSubmission.query
+    if unread_filter:
+        query = query.filter_by(is_read=False)
+    if subject_filter:
+        query = query.filter_by(subject=subject_filter)
+
+    # CSV export
+    if request.args.get('export') == 'csv':
+        rows = query.order_by(ContactSubmission.created_at.desc()).all()
+        out = io.StringIO()
+        w = csv.writer(out)
+        w.writerow(['submission_id', 'full_name', 'visitor_email', 'phone',
+                    'subject', 'referral_source', 'email_sent', 'sms_sent',
+                    'is_read', 'created_at'])
+        for s in rows:
+            w.writerow([s.submission_id, s.full_name, s.visitor_email, s.phone or '',
+                        s.subject, s.referral_source or '', s.email_sent, s.sms_sent,
+                        s.is_read, s.created_at.isoformat()])
+        return Response(out.getvalue(), mimetype='text/csv',
+                        headers={'Content-Disposition': 'attachment; filename=contact_submissions.csv'})
+
+    submissions  = query.order_by(ContactSubmission.created_at.desc()).paginate(page=page, per_page=25)
+    unread_count = ContactSubmission.query.filter_by(is_read=False).count()
+    return render_template('admin/contact_submissions.html',
+                           submissions=submissions, unread_count=unread_count)
+
+
+@admin_bp.route('/contact-submissions/<submission_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def contact_submission_detail(submission_id):
+    sub = ContactSubmission.query.get_or_404(submission_id)
+    if not sub.is_read:
+        sub.is_read = True
+        db.session.commit()
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'notes':
+            sub.admin_notes = request.form.get('admin_notes', '').strip()
+            db.session.commit()
+            flash('Notes saved.', 'success')
+        elif action == 'toggle_read':
+            sub.is_read = not sub.is_read
+            db.session.commit()
+        return redirect(url_for('admin.contact_submission_detail', submission_id=submission_id))
+    return render_template('admin/contact_submission_detail.html', sub=sub)
+
+
+@admin_bp.route('/contact-submissions/<submission_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_contact_submission(submission_id):
+    sub = ContactSubmission.query.get_or_404(submission_id)
+    db.session.delete(sub)
+    db.session.commit()
+    flash('Submission deleted.', 'info')
+    return redirect(url_for('admin.contact_submissions'))
+
+
+# ── Chat Sessions ─────────────────────────────────────────────────────────────
+
+@admin_bp.route('/chat-sessions')
+@login_required
+@admin_required
+def chat_sessions():
+    page  = request.args.get('page', 1, type=int)
+    query = ChatSession.query
+    if request.args.get('escalated'):
+        query = query.filter_by(was_escalated=True)
+    sessions  = query.order_by(ChatSession.started_at.desc()).paginate(page=page, per_page=25)
+    today_count     = ChatSession.query.filter(
+        func.date(ChatSession.started_at) == date.today()).count()
+    escalated_count = ChatSession.query.filter_by(was_escalated=True).count()
+    return render_template('admin/chat_sessions.html',
+                           sessions=sessions, today_count=today_count,
+                           escalated_count=escalated_count)
+
+
+@admin_bp.route('/chat-sessions/<session_id>')
+@login_required
+@admin_required
+def chat_session_detail(session_id):
+    cs = ChatSession.query.get_or_404(session_id)
+    messages = cs.messages.order_by(ChatMessage.created_at).all()
+    return render_template('admin/chat_session_detail.html', cs=cs, messages=messages)

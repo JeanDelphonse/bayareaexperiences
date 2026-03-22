@@ -1,6 +1,13 @@
-from flask import render_template, redirect, url_for
+import os
+from flask import render_template, redirect, url_for, send_from_directory, current_app
 from app.blueprints.main import main_bp
 from app.models import Experience
+
+
+@main_bp.route('/images/<path:filename>')
+def image(filename):
+    img_dir = os.path.join(current_app.root_path, 'templates', 'images')
+    return send_from_directory(img_dir, filename)
 
 
 @main_bp.route('/')

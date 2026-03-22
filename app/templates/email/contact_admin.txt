@@ -1,0 +1,17 @@
+New Contact Message — Bay Area Experiences
+==========================================
+
+Submission ID : {{ sub.submission_id }}
+Subject       : {{ sub.subject }}
+Name          : {{ sub.full_name }}
+Email         : {{ sub.visitor_email }}
+Phone         : {{ sub.phone or '—' }}
+Referral      : {{ sub.referral_source or '—' }}
+Submitted     : {{ sub.created_at.strftime('%Y-%m-%d %H:%M UTC') }}
+
+Message:
+--------
+{{ sub.message }}
+
+--
+Reply to this email to respond directly to {{ sub.full_name }}.

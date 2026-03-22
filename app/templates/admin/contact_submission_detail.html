@@ -1,0 +1,69 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Contact — {{ sub.full_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="fw-bold mb-0">Contact: {{ sub.full_name }}</h2>
+  <a href="{{ url_for('admin.contact_submissions') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Back
+  </a>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body p-4">
+        <h5 class="fw-bold mb-3">{{ sub.subject }}</h5>
+        <p style="white-space: pre-wrap;">{{ sub.message }}</p>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3">Admin Notes</h6>
+        <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <textarea class="form-control mb-3" name="admin_notes" rows="4"
+                    placeholder="Internal notes…">{{ sub.admin_notes or '' }}</textarea>
+          <button type="submit" class="btn btn-warning btn-sm fw-bold">Save Notes</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <dl class="mb-0">
+          <dt class="text-muted small">Submission ID</dt>
+          <dd class="font-monospace">{{ sub.submission_id }}</dd>
+
+          <dt class="text-muted small">Name</dt>
+          <dd>{{ sub.full_name }}</dd>
+
+          <dt class="text-muted small">Email</dt>
+          <dd><a href="mailto:{{ sub.visitor_email }}">{{ sub.visitor_email }}</a></dd>
+
+          <dt class="text-muted small">Phone</dt>
+          <dd>{{ sub.phone or '—' }}</dd>
+
+          <dt class="text-muted small">Referral</dt>
+          <dd>{{ sub.referral_source or '—' }}</dd>
+
+          <dt class="text-muted small">IP Address</dt>
+          <dd class="font-monospace">{{ sub.ip_address or '—' }}</dd>
+
+          <dt class="text-muted small">Submitted</dt>
+          <dd>{{ sub.created_at.strftime('%b %-d, %Y %I:%M %p UTC') }}</dd>
+
+          <dt class="text-muted small">Notifications</dt>
+          <dd>
+            <span class="badge {{ 'bg-success' if sub.email_sent else 'bg-secondary' }}">Email</span>
+            <span class="badge {{ 'bg-success' if sub.sms_sent else 'bg-secondary' }} ms-1">SMS</span>
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

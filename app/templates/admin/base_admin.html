@@ -32,6 +32,10 @@
         <i class="bi bi-calendar-check me-2"></i>Bookings</a></li>
       <li><a href="{{ url_for('admin.staff') }}" class="nav-link px-2 py-1 {% if 'staff' in request.endpoint %}active{% endif %}">
         <i class="bi bi-people me-2"></i>Staff</a></li>
+      <li><a href="{{ url_for('admin.contact_submissions') }}" class="nav-link px-2 py-1 {% if 'contact_submission' in request.endpoint %}active{% endif %}">
+        <i class="bi bi-envelope me-2"></i>Contact</a></li>
+      <li><a href="{{ url_for('admin.chat_sessions') }}" class="nav-link px-2 py-1 {% if 'chat_session' in request.endpoint %}active{% endif %}">
+        <i class="bi bi-chat-dots me-2"></i>Chat</a></li>
     </ul>
     <div class="mt-auto">
       <hr style="border-color:#495057;">

@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Contact Us — Bay Area Experiences{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+
+      <h1 class="fw-bold mb-1">Contact Us</h1>
+      <p class="text-muted mb-4">
+        Have a question or want to book a custom experience?
+        We typically respond within 2–4 hours.
+      </p>
+
+      <!-- Contact info strip -->
+      <div class="row g-3 mb-4">
+        <div class="col-sm-6">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-telephone-fill text-warning fs-5"></i>
+            <div>
+              <div class="fw-semibold small">Phone / Text</div>
+              <a href="tel:+14088312101" class="text-decoration-none fw-bold">(408) 831-2101</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-geo-alt-fill text-warning fs-5"></i>
+            <div>
+              <div class="fw-semibold small">Service Area</div>
+              <span class="text-muted small">San Francisco · San Jose · Santa Cruz · Monterey</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="d-flex gap-2 mb-4">
+        <button class="btn btn-warning fw-semibold px-4">
+          <i class="bi bi-envelope me-1"></i>Send a Message
+        </button>
+        {% if config.CHAT_ENABLED and config.ANTHROPIC_API_KEY %}
+        <button class="btn btn-outline-dark fw-semibold px-4" onclick="openChatWidget()">
+          <i class="bi bi-chat-dots me-1"></i>Chat With Us
+        </button>
+        {% endif %}
+      </div>
+
+      <div class="card border-0 shadow-sm" id="messageCard">
+        <div class="card-body p-4">
+          {% if form.errors %}
+          <div class="alert alert-danger py-2 mb-3">
+            Please correct the errors below before submitting.
+          </div>
+          {% endif %}
+
+          <form method="POST" novalidate id="contactForm">
+            {{ form.hidden_tag() }}
+
+            <div class="row g-3 mb-3">
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">{{ form.full_name.label.text }}</label>
+                {{ form.full_name(class="form-control" + (" is-invalid" if form.full_name.errors else ""),
+                   placeholder="Jane Smith", autocomplete="name") }}
+                {% if form.full_name.errors %}
+                  <div class="invalid-feedback">{{ form.full_name.errors[0] }}</div>
+                {% endif %}
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">{{ form.visitor_email.label.text }}</label>
+                {{ form.visitor_email(class="form-control" + (" is-invalid" if form.visitor_email.errors else ""),
+                   placeholder="jane@example.com", autocomplete="email") }}
+                {% if form.visitor_email.errors %}
+                  <div class="invalid-feedback">{{ form.visitor_email.errors[0] }}</div>
+                {% endif %}
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">{{ form.phone.label.text }}
+                  <span class="fw-normal text-muted">(optional)</span></label>
+                {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else ""),
+                   placeholder="(415) 555-0100", autocomplete="tel") }}
+                {% if form.phone.errors %}
+                  <div class="invalid-feedback">{{ form.phone.errors[0] }}</div>
+                {% endif %}
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">{{ form.subject.label.text }}</label>
+                {{ form.subject(class="form-select" + (" is-invalid" if form.subject.errors else "")) }}
+                {% if form.subject.errors %}
+                  <div class="invalid-feedback">{{ form.subject.errors[0] }}</div>
+                {% endif %}
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold">{{ form.message.label.text }}</label>
+                {{ form.message(class="form-control" + (" is-invalid" if form.message.errors else ""),
+                   rows=5, placeholder="Tell us how we can help…", id="contactMessage",
+                   maxlength=2000) }}
+                <div class="d-flex justify-content-between mt-1">
+                  {% if form.message.errors %}
+                    <div class="text-danger small">{{ form.message.errors[0] }}</div>
+                  {% else %}
+                    <div></div>
+                  {% endif %}
+                  <div id="msgCounter" class="text-muted small" style="display:none;"></div>
+                </div>
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold">{{ form.referral_source.label.text }}</label>
+                {{ form.referral_source(class="form-select") }}
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-warning btn-lg w-100 fw-bold" id="submitBtn">
+              <span id="submitText"><i class="bi bi-send-fill me-2"></i>Send Message</span>
+              <span id="submitSpinner" class="spinner-border spinner-border-sm ms-2" style="display:none;" role="status">
+                <span class="visually-hidden">Sending…</span>
+              </span>
+            </button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openChatWidget() {
+  if (window.baeChat) window.baeChat.open();
+}
+
+// Character counter on message textarea
+const msgTextarea = document.getElementById('contactMessage');
+const msgCounter  = document.getElementById('msgCounter');
+if (msgTextarea) {
+  msgTextarea.addEventListener('input', function() {
+    const len = this.value.length;
+    if (len > 1600) {
+      msgCounter.textContent = len + ' / 2000';
+      msgCounter.style.display = 'block';
+      msgCounter.className = len > 1900 ? 'text-danger small' : 'text-muted small';
+    } else {
+      msgCounter.style.display = 'none';
+    }
+  });
+}
+
+// Disable submit + show spinner on click to prevent double-submit
+document.getElementById('contactForm').addEventListener('submit', function() {
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  document.getElementById('submitSpinner').style.display = 'inline-block';
+});
+</script>
+{% endblock %}

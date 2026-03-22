@@ -1,0 +1,91 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Chat Sessions{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="fw-bold mb-0">Chat Sessions</h2>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('admin.chat_sessions') }}" class="btn btn-outline-secondary btn-sm">All</a>
+    <a href="{{ url_for('admin.chat_sessions', escalated=1) }}" class="btn btn-outline-danger btn-sm">Escalated</a>
+  </div>
+</div>
+
+<!-- KPI cards -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-md-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">Sessions Today</div>
+      <div class="display-6 fw-bold text-primary">{{ today_count }}</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-md-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">Escalated Total</div>
+      <div class="display-6 fw-bold text-danger">{{ escalated_count }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-dark">
+        <tr>
+          <th>Session ID</th>
+          <th>Started</th>
+          <th>User</th>
+          <th>IP</th>
+          <th>Messages</th>
+          <th>Escalated</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cs in sessions.items %}
+        <tr {% if cs.was_escalated %}style="border-left: 3px solid #dc3545;"{% endif %}>
+          <td class="font-monospace small">{{ cs.session_id }}</td>
+          <td class="text-nowrap">{{ cs.started_at.strftime('%b %-d, %Y %H:%M') }}</td>
+          <td>
+            {% if cs.user %}{{ cs.user.first_name }} {{ cs.user.last_name }}
+            {% else %}<span class="text-muted">Guest</span>{% endif %}
+          </td>
+          <td class="font-monospace small text-muted">{{ cs.ip_address or '—' }}</td>
+          <td>{{ cs.message_count }}</td>
+          <td>
+            {% if cs.was_escalated %}
+              <span class="badge bg-danger">Yes</span>
+            {% else %}
+              <span class="badge bg-secondary">No</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('admin.chat_session_detail', session_id=cs.session_id) }}"
+               class="btn btn-sm btn-outline-primary">View</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-4">No chat sessions yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if sessions.pages > 1 %}
+<nav class="mt-3">
+  <ul class="pagination justify-content-center">
+    {% if sessions.has_prev %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('admin.chat_sessions', page=sessions.prev_num) }}">Prev</a>
+      </li>
+    {% endif %}
+    <li class="page-item disabled"><span class="page-link">{{ sessions.page }} / {{ sessions.pages }}</span></li>
+    {% if sessions.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('admin.chat_sessions', page=sessions.next_num) }}">Next</a>
+      </li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}

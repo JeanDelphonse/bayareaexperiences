@@ -1,9 +1,11 @@
 import logging
 from logging.handlers import RotatingFileHandler
 import os
+import pymysql
+pymysql.install_as_MySQLdb()
 from flask import Flask, session, g
 from config import config
-from app.extensions import db, login_manager, bcrypt, mail, csrf
+from app.extensions import db, login_manager, bcrypt, mail, csrf, limiter
 from app.models import CartItem
 
 
@@ -17,6 +19,7 @@ def create_app(config_name='default'):
     bcrypt.init_app(app)
     mail.init_app(app)
     csrf.init_app(app)
+    limiter.init_app(app)
 
     # Blueprints
     from app.blueprints.main   import main_bp
@@ -26,6 +29,8 @@ def create_app(config_name='default'):
     from app.blueprints.checkout import checkout_bp
     from app.blueprints.account import account_bp
     from app.blueprints.admin  import admin_bp
+    from app.blueprints.contact import contact_bp
+    from app.blueprints.chat   import chat_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
@@ -34,6 +39,8 @@ def create_app(config_name='default'):
     app.register_blueprint(checkout_bp)
     app.register_blueprint(account_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(contact_bp)
+    app.register_blueprint(chat_bp)
 
     # Cart count context processor
     @app.context_processor

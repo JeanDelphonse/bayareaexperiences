@@ -41,6 +41,15 @@
       <div class="display-6 fw-bold text-success">${{ "%.0f"|format(total_revenue) }}</div>
     </div>
   </div>
+  <div class="col-sm-6 col-xl-3">
+    <a href="{{ url_for('admin.contact_submissions', unread=1) }}" class="text-decoration-none">
+      <div class="card border-0 shadow-sm text-center p-3"
+           style="border-left: 4px solid #C9952A !important;">
+        <div class="text-muted small mb-1">Unread Inquiries</div>
+        <div class="display-6 fw-bold" style="color:#C9952A;">{{ unread_contacts }}</div>
+      </div>
+    </a>
+  </div>
 </div>
 
 <!-- Quick Nav -->

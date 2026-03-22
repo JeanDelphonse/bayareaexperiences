@@ -1,0 +1,363 @@
+/**
+ * BAEChat — Bay Area Experiences AI Chat Widget
+ * Floating bottom-right widget powered by Anthropic Claude via SSE streaming.
+ */
+class BAEChat {
+  constructor(opts = {}) {
+    this.csrfToken   = opts.csrfToken || '';
+    this.streamUrl   = opts.streamUrl || '/chat/stream';
+    this.escalateUrl = opts.escalateUrl || '/chat/escalate';
+    this.userName    = opts.userName || null;   // null = guest
+    this.isOpen      = false;
+    this.greeted     = false;
+    this.streaming   = false;
+
+    this._buildDOM();
+    this._bindEvents();
+    this._scheduleGreeting();
+  }
+
+  // ── DOM Construction ────────────────────────────────────────────────────────
+
+  _buildDOM() {
+    // Inject styles
+    const style = document.createElement('style');
+    style.textContent = `
+      #bae-chat-btn {
+        position: fixed; bottom: 24px; right: 24px; z-index: 9998;
+        width: 56px; height: 56px; border-radius: 50%;
+        background: #C9952A; color: #fff; border: none;
+        box-shadow: 0 4px 16px rgba(0,0,0,.25); cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem; transition: transform .15s;
+      }
+      #bae-chat-btn:hover { transform: scale(1.08); }
+      #bae-chat-unread {
+        position: absolute; top: 4px; right: 4px;
+        width: 12px; height: 12px; border-radius: 50%;
+        background: #dc3545; border: 2px solid #fff; display: none;
+      }
+      #bae-chat-panel {
+        position: fixed; bottom: 92px; right: 24px; z-index: 9999;
+        width: 360px; height: 520px; border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0,0,0,.2); display: none;
+        flex-direction: column; overflow: hidden;
+        transform: translateY(20px); opacity: 0;
+        transition: transform .25s ease, opacity .25s ease;
+        background: #fff;
+      }
+      #bae-chat-panel.open {
+        display: flex; transform: translateY(0); opacity: 1;
+      }
+      @media (max-width: 575px) {
+        #bae-chat-panel {
+          width: 100vw; height: 100vh;
+          bottom: 0; right: 0; border-radius: 0;
+        }
+      }
+      #bae-chat-header {
+        background: #1A3557; color: #fff; padding: 14px 16px; flex-shrink: 0;
+      }
+      #bae-chat-header .bae-title {
+        font-weight: 700; font-size: .95rem; display: flex; align-items: center; gap: 8px;
+      }
+      #bae-chat-header .bae-subtitle {
+        color: #C9952A; font-size: .78rem; margin-top: 2px;
+      }
+      #bae-chat-header .bae-online {
+        width: 8px; height: 8px; border-radius: 50%; background: #28a745;
+        display: inline-block;
+      }
+      #bae-chat-close {
+        float: right; background: none; border: none;
+        color: #adb5bd; font-size: 1.2rem; cursor: pointer; padding: 0;
+        line-height: 1;
+      }
+      #bae-chat-messages {
+        flex: 1; overflow-y: auto; padding: 12px;
+        display: flex; flex-direction: column; gap: 8px;
+      }
+      .bae-msg {
+        display: flex; gap: 8px; align-items: flex-end; max-width: 88%;
+      }
+      .bae-msg.bot { align-self: flex-start; }
+      .bae-msg.user { align-self: flex-end; flex-direction: row-reverse; }
+      .bae-avatar {
+        width: 28px; height: 28px; border-radius: 50%;
+        background: #1A3557; color: #C9952A;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .65rem; font-weight: 700; flex-shrink: 0;
+      }
+      .bae-bubble {
+        padding: 8px 12px; border-radius: 14px;
+        font-size: .88rem; line-height: 1.45;
+        white-space: pre-wrap; word-break: break-word;
+      }
+      .bae-msg.bot  .bae-bubble { background: #F2F5F8; color: #212529; border-bottom-left-radius: 4px; }
+      .bae-msg.user .bae-bubble { background: #C9952A; color: #fff; border-bottom-right-radius: 4px; }
+      .bae-typing .bae-bubble { display: flex; gap: 4px; padding: 10px 14px; align-items: center; }
+      .bae-dot { width: 7px; height: 7px; border-radius: 50%; background: #adb5bd; animation: bae-bounce .9s infinite; }
+      .bae-dot:nth-child(2) { animation-delay: .2s; }
+      .bae-dot:nth-child(3) { animation-delay: .4s; }
+      @keyframes bae-bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }
+      #bae-chat-footer { padding: 10px 12px; border-top: 1px solid #dee2e6; flex-shrink: 0; background: #fff; }
+      #bae-chat-form { display: flex; gap: 8px; }
+      #bae-chat-input {
+        flex: 1; border: 1px solid #ced4da; border-radius: 20px;
+        padding: 7px 14px; font-size: .88rem; outline: none; resize: none;
+        max-height: 80px; overflow-y: auto;
+      }
+      #bae-chat-input:focus { border-color: #C9952A; box-shadow: 0 0 0 2px rgba(201,149,42,.2); }
+      #bae-chat-send {
+        width: 36px; height: 36px; border-radius: 50%;
+        background: #C9952A; color: #fff; border: none; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .9rem; flex-shrink: 0; transition: background .15s;
+      }
+      #bae-chat-send:hover { background: #b07f20; }
+      #bae-chat-send:disabled { background: #ced4da; cursor: not-allowed; }
+      #bae-char-counter { font-size: .72rem; color: #6c757d; text-align: right; margin-top: 3px; display: none; }
+      #bae-char-counter.warn { color: #dc3545; }
+    `;
+    document.head.appendChild(style);
+
+    // Button
+    this.btn = document.createElement('button');
+    this.btn.id = 'bae-chat-btn';
+    this.btn.title = 'Chat With Us';
+    this.btn.innerHTML = '<i class="bi bi-chat-dots-fill"></i><span id="bae-chat-unread"></span>';
+    document.body.appendChild(this.btn);
+
+    // Panel
+    this.panel = document.createElement('div');
+    this.panel.id = 'bae-chat-panel';
+    this.panel.innerHTML = `
+      <div id="bae-chat-header">
+        <button id="bae-chat-close" aria-label="Close chat">&times;</button>
+        <div class="bae-title">
+          <span class="bae-online"></span>Bay Area Experiences — Chat With Us
+        </div>
+        <div class="bae-subtitle">Ask me about our tours, pricing, or your bookings</div>
+      </div>
+      <div id="bae-chat-messages"></div>
+      <div id="bae-chat-footer">
+        <form id="bae-chat-form" autocomplete="off">
+          <textarea id="bae-chat-input" rows="1"
+            placeholder="Type your message…" maxlength="500" aria-label="Chat message"></textarea>
+          <button type="submit" id="bae-chat-send" aria-label="Send">
+            <i class="bi bi-send-fill"></i>
+          </button>
+        </form>
+        <div id="bae-char-counter"></div>
+      </div>
+    `;
+    document.body.appendChild(this.panel);
+
+    this.messagesEl = document.getElementById('bae-chat-messages');
+    this.inputEl    = document.getElementById('bae-chat-input');
+    this.sendBtn    = document.getElementById('bae-chat-send');
+    this.unreadDot  = document.getElementById('bae-chat-unread');
+    this.charCounter = document.getElementById('bae-char-counter');
+  }
+
+  // ── Events ──────────────────────────────────────────────────────────────────
+
+  _bindEvents() {
+    this.btn.addEventListener('click', () => this.toggle());
+    document.getElementById('bae-chat-close').addEventListener('click', () => this.close());
+    document.getElementById('bae-chat-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      this._send();
+    });
+
+    // Auto-grow textarea + char counter
+    this.inputEl.addEventListener('input', () => {
+      this.inputEl.style.height = 'auto';
+      this.inputEl.style.height = Math.min(this.inputEl.scrollHeight, 80) + 'px';
+      const len = this.inputEl.value.length;
+      if (len > 400) {
+        this.charCounter.textContent = `${len}/500`;
+        this.charCounter.classList.toggle('warn', len > 475);
+        this.charCounter.style.display = 'block';
+      } else {
+        this.charCounter.style.display = 'none';
+      }
+    });
+
+    // Submit on Enter (Shift+Enter = newline)
+    this.inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this._send();
+      }
+    });
+  }
+
+  // ── Open / Close ────────────────────────────────────────────────────────────
+
+  toggle() { this.isOpen ? this.close() : this.open(); }
+
+  open() {
+    this.isOpen = true;
+    this.panel.style.display = 'flex';
+    // Force reflow for animation
+    this.panel.getBoundingClientRect();
+    this.panel.classList.add('open');
+    this.unreadDot.style.display = 'none';
+    setTimeout(() => this.inputEl.focus(), 300);
+  }
+
+  close() {
+    this.isOpen = false;
+    this.panel.classList.remove('open');
+    setTimeout(() => { this.panel.style.display = 'none'; }, 250);
+  }
+
+  // ── Greeting ────────────────────────────────────────────────────────────────
+
+  _scheduleGreeting() {
+    setTimeout(() => {
+      if (!this.greeted) {
+        this.greeted = true;
+        this.unreadDot.style.display = 'block';
+        if (this.isOpen) {
+          const name = this.userName ? `Hi ${this.userName}! ` : 'Hi! ';
+          this._appendBot(
+            name + "I\u2019m the Bay Area Experiences assistant. Ask me about our tours, pricing, "
+            + "pickup locations, or your bookings. How can I help?"
+          );
+        }
+      }
+    }, 3000);
+  }
+
+  // ── Messaging ───────────────────────────────────────────────────────────────
+
+  _send() {
+    const text = this.inputEl.value.trim();
+    if (!text || this.streaming) return;
+
+    this.inputEl.value = '';
+    this.inputEl.style.height = 'auto';
+    this.charCounter.style.display = 'none';
+    this._appendUser(text);
+    this._stream(text);
+  }
+
+  async _stream(userText) {
+    this.streaming = true;
+    this.sendBtn.disabled = true;
+
+    const typingEl = this._appendTyping();
+
+    try {
+      const response = await fetch(this.streamUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': this.csrfToken,
+        },
+        body: JSON.stringify({ message: userText }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        typingEl.remove();
+        this._appendBot(err.error || 'Sorry, something went wrong. Please try again.');
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let botBubble = null;
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop(); // keep incomplete line
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const payload = line.slice(6).trim();
+          if (payload === '[DONE]') break;
+          try {
+            const obj = JSON.parse(payload);
+            if (obj.error) {
+              typingEl.remove();
+              this._appendBot(obj.error);
+              return;
+            }
+            if (obj.text) {
+              if (!botBubble) {
+                typingEl.remove();
+                botBubble = this._appendBot('');
+              }
+              botBubble.textContent += obj.text;
+              this._scrollToBottom();
+            }
+          } catch (_) { /* ignore parse errors */ }
+        }
+      }
+    } catch (err) {
+      typingEl.remove();
+      this._appendBot('Connection error. Please check your internet and try again.');
+    } finally {
+      this.streaming = false;
+      this.sendBtn.disabled = false;
+      this.inputEl.focus();
+    }
+  }
+
+  // ── DOM Helpers ─────────────────────────────────────────────────────────────
+
+  _appendUser(text) {
+    const wrap = document.createElement('div');
+    wrap.className = 'bae-msg user';
+    const bubble = document.createElement('div');
+    bubble.className = 'bae-bubble';
+    bubble.textContent = text;
+    wrap.appendChild(bubble);
+    this.messagesEl.appendChild(wrap);
+    this._scrollToBottom();
+  }
+
+  _appendBot(text) {
+    const wrap = document.createElement('div');
+    wrap.className = 'bae-msg bot';
+    const avatar = document.createElement('div');
+    avatar.className = 'bae-avatar';
+    avatar.textContent = 'BAE';
+    const bubble = document.createElement('div');
+    bubble.className = 'bae-bubble';
+    bubble.textContent = text;
+    wrap.appendChild(avatar);
+    wrap.appendChild(bubble);
+    this.messagesEl.appendChild(wrap);
+    this._scrollToBottom();
+    return bubble; // return bubble so streaming can append to it
+  }
+
+  _appendTyping() {
+    const wrap = document.createElement('div');
+    wrap.className = 'bae-msg bot bae-typing';
+    const avatar = document.createElement('div');
+    avatar.className = 'bae-avatar';
+    avatar.textContent = 'BAE';
+    const bubble = document.createElement('div');
+    bubble.className = 'bae-bubble';
+    bubble.innerHTML = '<span class="bae-dot"></span><span class="bae-dot"></span><span class="bae-dot"></span>';
+    wrap.appendChild(avatar);
+    wrap.appendChild(bubble);
+    this.messagesEl.appendChild(wrap);
+    this._scrollToBottom();
+    return wrap;
+  }
+
+  _scrollToBottom() {
+    this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
+  }
+}

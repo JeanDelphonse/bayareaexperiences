@@ -4,7 +4,7 @@ from flask import (render_template, redirect, url_for, flash,
 from flask_login import current_user
 from app.blueprints.booking import booking_bp
 from app.extensions import db, mail
-from app.models import Experience, Timeslot, Booking
+from app.models import Experience, Timeslot, Booking, CartItem
 from app.utils import generate_pk, send_email
 
 
@@ -100,6 +100,13 @@ def confirm_booking():
     slot.booked_count += guest_count
     if slot.booked_count >= slot.capacity:
         slot.is_available = False
+
+    # Clear cart after booking
+    if current_user.is_authenticated:
+        CartItem.query.filter_by(user_id=current_user.user_id).delete()
+    else:
+        session.pop('cart', None)
+
     db.session.commit()
 
     # Send confirmation email

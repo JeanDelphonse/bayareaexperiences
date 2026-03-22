@@ -1,0 +1,79 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Contact Submissions{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="fw-bold mb-0">
+    Contact Submissions
+    {% if unread_count %}
+      <span class="badge bg-warning text-dark ms-2">{{ unread_count }} unread</span>
+    {% endif %}
+  </h2>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('admin.contact_submissions') }}" class="btn btn-outline-secondary btn-sm">All</a>
+    <a href="{{ url_for('admin.contact_submissions', unread=1) }}" class="btn btn-outline-warning btn-sm">Unread Only</a>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-dark">
+        <tr>
+          <th>Date</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Subject</th>
+          <th>Referral</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sub in submissions.items %}
+        <tr class="{{ 'fw-semibold' if not sub.is_read else '' }}">
+          <td class="text-nowrap">{{ sub.created_at.strftime('%b %-d, %Y') }}</td>
+          <td>{{ sub.full_name }}</td>
+          <td>{{ sub.visitor_email }}</td>
+          <td>{{ sub.subject }}</td>
+          <td class="text-muted small">{{ sub.referral_source or '—' }}</td>
+          <td>
+            {% if not sub.is_read %}
+              <span class="badge bg-warning text-dark">New</span>
+            {% else %}
+              <span class="badge bg-secondary">Read</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('admin.contact_submission_detail', submission_id=sub.submission_id) }}"
+               class="btn btn-sm btn-outline-primary">View</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-4">No submissions yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if submissions.pages > 1 %}
+<nav class="mt-3">
+  <ul class="pagination justify-content-center">
+    {% if submissions.has_prev %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('admin.contact_submissions', page=submissions.prev_num) }}">Prev</a>
+      </li>
+    {% endif %}
+    <li class="page-item disabled"><span class="page-link">{{ submissions.page }} / {{ submissions.pages }}</span></li>
+    {% if submissions.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('admin.contact_submissions', page=submissions.next_num) }}">Next</a>
+      </li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}

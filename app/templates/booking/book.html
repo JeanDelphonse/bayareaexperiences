@@ -16,7 +16,7 @@
         ${{ "%.0f"|format(experience.price) }} per booking
       </p>
 
-      <form method="POST" action="{{ url_for('booking.confirm_booking') }}" id="bookingForm" novalidate>
+      <form method="POST" action="{{ url_for('cart.add') }}" id="bookingForm" novalidate>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="experience_id" value="{{ experience.experience_id }}">
         <input type="hidden" name="timeslot_id" id="timeslot_id" value="">
@@ -79,46 +79,6 @@
           </div>
         </div>
 
-        <!-- Step 3: Guest Information -->
-        <div class="card border-0 shadow-sm mb-4">
-          <div class="card-body p-4">
-            <h5 class="fw-bold mb-3"><span class="badge bg-warning text-dark me-2">3</span>Guest Information</h5>
-            <div class="row g-3">
-              <div class="col-sm-6">
-                <label for="first_name" class="form-label fw-semibold">First Name</label>
-                <input type="text" class="form-control" id="first_name" name="first_name"
-                       value="{{ current_user.first_name if current_user.is_authenticated else '' }}"
-                       required autocomplete="given-name" aria-required="true">
-              </div>
-              <div class="col-sm-6">
-                <label for="last_name" class="form-label fw-semibold">Last Name</label>
-                <input type="text" class="form-control" id="last_name" name="last_name"
-                       value="{{ current_user.last_name if current_user.is_authenticated else '' }}"
-                       required autocomplete="family-name" aria-required="true">
-              </div>
-              <div class="col-sm-6">
-                <label for="email" class="form-label fw-semibold">Email</label>
-                <input type="email" class="form-control" id="email" name="email"
-                       value="{{ current_user.email if current_user.is_authenticated else '' }}"
-                       required autocomplete="email" aria-required="true">
-              </div>
-              <div class="col-sm-6">
-                <label for="phone" class="form-label fw-semibold">Phone</label>
-                <input type="tel" class="form-control" id="phone" name="phone"
-                       value="{{ current_user.phone if current_user.is_authenticated else '' }}"
-                       autocomplete="tel" aria-label="Phone number">
-              </div>
-              <div class="col-12">
-                <label for="special_requests" class="form-label fw-semibold">
-                  Special Requests <span class="fw-normal text-muted">(optional)</span>
-                </label>
-                <textarea class="form-control" id="special_requests" name="special_requests"
-                          rows="3" aria-label="Special requests or notes"></textarea>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Order Summary -->
         <div class="card border-warning border-2 mb-4">
           <div class="card-body p-4">
@@ -140,7 +100,7 @@
         </div>
 
         <button type="submit" class="btn btn-warning btn-lg w-100 fw-bold" id="submitBtn" disabled>
-          Continue to Checkout
+          Add to Cart
         </button>
         <p class="text-center text-muted small mt-2">
           <i class="bi bi-lock-fill me-1"></i>Secure booking &bull; All payments are final
@@ -180,7 +140,7 @@ function fetchTimeslots(dateStr) {
   selectedTimeslotId = null;
   document.getElementById('timeslot_id').value = '';
 
-  fetch('/book/timeslot', {
+  fetch('{{ url_for("booking.get_timeslots") }}', {
     method: 'POST',
     headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
     body: JSON.stringify({experience_id: experienceId, date: dateStr, guest_count: guestCount})

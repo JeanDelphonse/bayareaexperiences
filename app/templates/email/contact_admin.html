@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>New Contact Message</title></head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <h2 style="color: #212529; border-bottom: 3px solid #ffc107; padding-bottom: 8px;">
+    New Contact Message — Bay Area Experiences
+  </h2>
+
+  <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+    <tr style="background: #f8f9fa;">
+      <td style="padding: 10px; font-weight: bold; width: 35%;">Submission ID</td>
+      <td style="padding: 10px; font-family: monospace;">{{ sub.submission_id }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; font-weight: bold;">Subject</td>
+      <td style="padding: 10px;">{{ sub.subject }}</td>
+    </tr>
+    <tr style="background: #f8f9fa;">
+      <td style="padding: 10px; font-weight: bold;">Name</td>
+      <td style="padding: 10px;">{{ sub.full_name }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; font-weight: bold;">Email</td>
+      <td style="padding: 10px;"><a href="mailto:{{ sub.visitor_email }}">{{ sub.visitor_email }}</a></td>
+    </tr>
+    <tr style="background: #f8f9fa;">
+      <td style="padding: 10px; font-weight: bold;">Phone</td>
+      <td style="padding: 10px;">{{ sub.phone or '—' }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; font-weight: bold;">How They Found Us</td>
+      <td style="padding: 10px;">{{ sub.referral_source or '—' }}</td>
+    </tr>
+    <tr style="background: #f8f9fa;">
+      <td style="padding: 10px; font-weight: bold;">Submitted</td>
+      <td style="padding: 10px;">{{ sub.created_at.strftime('%b %-d, %Y at %I:%M %p UTC') }}</td>
+    </tr>
+  </table>
+
+  <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 16px; margin: 16px 0;">
+    <strong>Message:</strong>
+    <p style="margin: 8px 0 0; white-space: pre-wrap;">{{ sub.message }}</p>
+  </div>
+
+  <p style="color: #6c757d; font-size: 12px; margin-top: 24px;">
+    Reply directly to this email to respond to {{ sub.full_name }}.
+  </p>
+</body>
+</html>

@@ -161,6 +161,7 @@ class Booking(db.Model):
                                 nullable=False, default='confirmed')
     notes           = db.Column(db.Text)
     stripe_payment_intent_id = db.Column(db.String(200))
+    referral_source = db.Column(db.String(100))  # C1: hotel partner program tracking
 
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc),
@@ -193,3 +194,73 @@ class CartItem(db.Model):
 
     experience = db.relationship('Experience')
     timeslot   = db.relationship('Timeslot')
+
+
+# ── Contact Submissions ────────────────────────────────────────────────────────
+
+class ContactSubmission(db.Model):
+    __tablename__ = 'contact_submissions'
+
+    submission_id  = db.Column(db.String(9),   primary_key=True, default=generate_pk)
+    full_name      = db.Column(db.String(150), nullable=False)
+    visitor_email  = db.Column(db.String(150), nullable=False)
+    phone          = db.Column(db.String(30))
+    subject        = db.Column(db.String(100), nullable=False)
+    message        = db.Column(db.Text,        nullable=False)
+    referral_source = db.Column(db.String(100))
+    ip_address     = db.Column(db.String(45))
+    user_agent     = db.Column(db.String(500))
+    email_sent     = db.Column(db.Boolean, default=False)
+    sms_sent       = db.Column(db.Boolean, default=False)
+    is_read        = db.Column(db.Boolean, default=False)
+    admin_notes    = db.Column(db.Text)
+    created_at     = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        db.Index('ix_contact_submissions_is_read', 'is_read'),
+        db.Index('ix_contact_submissions_created_at', 'created_at'),
+    )
+
+
+# ── Chat Sessions ──────────────────────────────────────────────────────────────
+
+class ChatSession(db.Model):
+    __tablename__ = 'chat_sessions'
+
+    session_id      = db.Column(db.String(9),   primary_key=True, default=generate_pk)
+    user_id         = db.Column(db.String(9),   db.ForeignKey('users.user_id'), nullable=True)
+    ip_address      = db.Column(db.String(45))
+    user_agent      = db.Column(db.String(500))
+    started_at      = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    last_active_at  = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc),
+                                onupdate=lambda: datetime.now(timezone.utc))
+    message_count   = db.Column(db.Integer, default=0)
+    was_escalated   = db.Column(db.Boolean, default=False)
+    escalated_to_form = db.Column(db.Boolean, default=False)
+
+    user     = db.relationship('User', backref='chat_sessions')
+    messages = db.relationship('ChatMessage', backref='session', lazy='dynamic',
+                               order_by='ChatMessage.created_at')
+
+    __table_args__ = (
+        db.Index('ix_chat_sessions_user_id', 'user_id'),
+        db.Index('ix_chat_sessions_started_at', 'started_at'),
+    )
+
+
+# ── Chat Messages ─────────────────────────────────────────────────────────────
+
+class ChatMessage(db.Model):
+    __tablename__ = 'chat_messages'
+
+    message_id  = db.Column(db.String(9),  primary_key=True, default=generate_pk)
+    session_id  = db.Column(db.String(9),  db.ForeignKey('chat_sessions.session_id'), nullable=False)
+    role        = db.Column(db.Enum('user', 'assistant'), nullable=False)
+    content     = db.Column(db.Text, nullable=False)
+    intent      = db.Column(db.String(50))
+    tokens_used = db.Column(db.Integer)
+    created_at  = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        db.Index('ix_chat_messages_session_id', 'session_id'),
+    )

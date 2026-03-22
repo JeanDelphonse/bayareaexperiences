@@ -10,7 +10,7 @@
 
 <!-- ── Hero Banner ─────────────────────────────────────────────────────────── -->
 <div class="hero-banner" style="
-  background-image: url('{{ url_for("static", filename="images/jeepWrangler.webp") }}');
+  background-image: url('{{ url_for("main.image", filename="tourist_sf.webp") }}');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -75,10 +75,10 @@
       {% for exp in experiences %}
       <div class="col">
         <div class="card h-100 shadow-sm border-0 experience-card">
-          <img src="{{ exp.photo_url or url_for('static', filename='images/jeepWrangler.webp') }}"
+          <img src="{{ url_for('main.image', filename=(exp.photo_url or 'jeep.webp')) }}"
                class="card-img-top experience-card-img"
                alt="{{ exp.name }}"
-               onerror="this.src='{{ url_for('static', filename='images/jeepWrangler.webp') }}'">
+               onerror="this.onerror=null;this.src='{{ url_for('main.image', filename='jeep.webp') }}'">
           <div class="card-body d-flex flex-column">
             <span class="badge bg-warning text-dark mb-2 align-self-start">{{ exp.category }}</span>
             <h5 class="card-title fw-bold">{{ exp.name }}</h5>
