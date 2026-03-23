@@ -10,7 +10,7 @@ from app.extensions import db
 from app.models import (Experience, ExperiencePickupLocation, Timeslot,
                         Booking, StaffMember, User, ContactSubmission,
                         ChatSession, ChatMessage)
-from app.utils import admin_required, generate_pk
+from app.utils import admin_required, generate_pk, paginate
 
 PICKUP_CITIES = ['San Francisco, CA', 'San Jose, CA', 'Santa Cruz, CA', 'Monterey, CA']
 
@@ -87,7 +87,7 @@ def experiences():
         flash(f'Experience "{name}" created.', 'success')
         return redirect(url_for('admin.experiences'))
 
-    all_exps  = Experience.query.order_by(Experience.sort_order).all()
+    all_exps  = paginate(Experience.query.order_by(Experience.sort_order))
     all_staff = StaffMember.query.filter_by(is_active=True).all()
     return render_template('admin/experiences.html',
                            experiences=all_exps, staff=all_staff,
@@ -185,10 +185,10 @@ def timeslots():
         return redirect(url_for('admin.timeslots'))
 
     all_exps  = Experience.query.filter_by(is_active=True).order_by(Experience.sort_order).all()
-    all_slots = (Timeslot.query
+    slots_q   = (Timeslot.query
                  .join(Experience)
-                 .order_by(Timeslot.slot_date.desc(), Timeslot.start_time)
-                 .all())
+                 .order_by(Timeslot.slot_date.desc(), Timeslot.start_time))
+    all_slots = paginate(slots_q)
     return render_template('admin/timeslots.html', experiences=all_exps, timeslots=all_slots)
 
 
@@ -281,9 +281,8 @@ def bookings():
             headers={'Content-Disposition': 'attachment; filename=bookings_export.csv'},
         )
 
-    page     = request.args.get('page', 1, type=int)
-    bkgs     = query.order_by(Booking.created_at.desc()).paginate(page=page, per_page=25)
-    all_exps = Experience.query.order_by(Experience.sort_order).all()
+    bkgs      = paginate(query.order_by(Booking.created_at.desc()))
+    all_exps  = Experience.query.order_by(Experience.sort_order).all()
     all_staff = StaffMember.query.all()
     return render_template('admin/bookings.html',
                            bookings=bkgs, experiences=all_exps, staff=all_staff)
@@ -329,7 +328,7 @@ def staff():
         flash('Staff member added.', 'success')
         return redirect(url_for('admin.staff'))
 
-    all_staff = StaffMember.query.order_by(StaffMember.full_name).all()
+    all_staff = paginate(StaffMember.query.order_by(StaffMember.full_name))
     return render_template('admin/staff.html', staff=all_staff)
 
 
@@ -357,7 +356,6 @@ def edit_staff(staff_id):
 @login_required
 @admin_required
 def contact_submissions():
-    page          = request.args.get('page', 1, type=int)
     unread_filter = request.args.get('unread')
     subject_filter = request.args.get('subject')
     query = ContactSubmission.query
@@ -381,7 +379,7 @@ def contact_submissions():
         return Response(out.getvalue(), mimetype='text/csv',
                         headers={'Content-Disposition': 'attachment; filename=contact_submissions.csv'})
 
-    submissions  = query.order_by(ContactSubmission.created_at.desc()).paginate(page=page, per_page=25)
+    submissions  = paginate(query.order_by(ContactSubmission.created_at.desc()))
     unread_count = ContactSubmission.query.filter_by(is_read=False).count()
     return render_template('admin/contact_submissions.html',
                            submissions=submissions, unread_count=unread_count)
@@ -425,11 +423,10 @@ def delete_contact_submission(submission_id):
 @login_required
 @admin_required
 def chat_sessions():
-    page  = request.args.get('page', 1, type=int)
     query = ChatSession.query
     if request.args.get('escalated'):
         query = query.filter_by(was_escalated=True)
-    sessions  = query.order_by(ChatSession.started_at.desc()).paginate(page=page, per_page=25)
+    sessions  = paginate(query.order_by(ChatSession.started_at.desc()))
     today_count     = ChatSession.query.filter(
         func.date(ChatSession.started_at) == date.today()).count()
     escalated_count = ChatSession.query.filter_by(was_escalated=True).count()

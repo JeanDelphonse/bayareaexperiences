@@ -1,4 +1,5 @@
 {% extends "admin/base_admin.html" %}
+{% from 'macros/pagination.html' import render_pagination %}
 {% block title %}Staff{% endblock %}
 
 {% block content %}
@@ -9,6 +10,7 @@
   </button>
 </div>
 
+{% call render_pagination(staff, 'staff members') %}
 <div class="card border-0 shadow-sm mb-4">
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0">
@@ -16,7 +18,7 @@
         <tr><th>Name</th><th>Title</th><th>Email</th><th>Phone</th><th>Status</th><th>Actions</th></tr>
       </thead>
       <tbody>
-        {% for s in staff %}
+        {% for s in staff.items %}
         <tr>
           <td class="fw-semibold">{{ s.full_name }}</td>
           <td>{{ s.title or '—' }}</td>
@@ -41,6 +43,7 @@
     </table>
   </div>
 </div>
+{% endcall %}
 
 <!-- Add Staff Modal -->
 <div class="modal fade" id="addStaffModal" tabindex="-1" aria-labelledby="addStaffLabel" aria-hidden="true">

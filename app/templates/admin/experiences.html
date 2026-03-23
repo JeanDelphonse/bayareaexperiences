@@ -1,4 +1,5 @@
 {% extends "admin/base_admin.html" %}
+{% from 'macros/pagination.html' import render_pagination %}
 {% block title %}Experiences{% endblock %}
 
 {% block head_extra %}
@@ -13,9 +14,10 @@
   </button>
 </div>
 
+{% call render_pagination(experiences, 'experiences') %}
 <div class="card border-0 shadow-sm mb-4">
   <div class="card-header bg-white text-muted small">
-    Drag rows to reorder. Changes save automatically.
+    Drag rows to reorder within this page. Changes save automatically.
   </div>
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0">
@@ -23,7 +25,7 @@
         <tr><th></th><th>Name</th><th>Category</th><th>Duration</th><th>Price</th><th>Status</th><th>Actions</th></tr>
       </thead>
       <tbody id="experienceList">
-        {% for exp in experiences %}
+        {% for exp in experiences.items %}
         <tr data-id="{{ exp.experience_id }}" style="cursor: grab;">
           <td><i class="bi bi-grip-vertical text-muted"></i></td>
           <td class="fw-semibold">{{ exp.name }}</td>
@@ -54,6 +56,7 @@
     </table>
   </div>
 </div>
+{% endcall %}
 
 <!-- Create Experience Modal -->
 <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">

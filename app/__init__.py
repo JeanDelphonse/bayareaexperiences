@@ -42,6 +42,14 @@ def create_app(config_name='default'):
     app.register_blueprint(contact_bp)
     app.register_blueprint(chat_bp)
 
+    # Template filters
+    @app.template_filter('format_number')
+    def format_number_filter(value):
+        try:
+            return '{:,}'.format(int(value))
+        except (TypeError, ValueError):
+            return value
+
     # Cart count context processor
     @app.context_processor
     def inject_cart_count():

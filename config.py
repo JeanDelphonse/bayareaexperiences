@@ -15,7 +15,7 @@ class Config:
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@bayareaexperiences.com')
-    ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@bayareaexperiences.com')
+    ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'valuemanager.management@gmail.com')
 
     STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', '')
     STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
@@ -28,6 +28,9 @@ class Config:
     CHAT_MAX_TOKENS    = int(os.environ.get('CHAT_MAX_TOKENS', 1024))
     CHAT_HISTORY_LIMIT = int(os.environ.get('CHAT_HISTORY_LIMIT', 10))
     CHAT_ENABLED       = os.environ.get('CHAT_ENABLED', 'True') == 'True'
+
+    _raw_page_size = os.environ.get('ADMIN_PAGE_SIZE', '20')
+    ADMIN_PAGE_SIZE = int(_raw_page_size) if _raw_page_size in ('10', '20', '50') else 20
 
 
 class DevelopmentConfig(Config):

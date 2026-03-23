@@ -106,7 +106,7 @@ def _notify_admin(app, submission_id):
 def _send_admin_email(app, sub):
     try:
         from flask_mail import Message
-        admin_email = app.config.get('ADMIN_EMAIL', 'admin@bayareaexperiences.com')
+        admin_email = app.config.get('ADMIN_EMAIL', 'valuemanager.management@gmail.com')
         msg = Message(
             subject=f'[BAE Contact] {sub.subject} \u2014 {sub.full_name}',
             recipients=[admin_email],

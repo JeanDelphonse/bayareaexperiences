@@ -40,3 +40,6 @@ Thumbs.db
 
 # Instance folder (local config/db)
 instance/
+
+# Marketing agent — local only, never published to public repo
+marketing_agent/

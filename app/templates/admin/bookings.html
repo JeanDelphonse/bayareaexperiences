@@ -1,4 +1,5 @@
 {% extends "admin/base_admin.html" %}
+{% from 'macros/pagination.html' import render_pagination %}
 {% block title %}Bookings{% endblock %}
 
 {% block content %}
@@ -62,6 +63,7 @@
   </div>
 </div>
 
+{% call render_pagination(bookings, 'bookings') %}
 <div class="card border-0 shadow-sm">
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0">
@@ -105,22 +107,6 @@
       </tbody>
     </table>
   </div>
-  {% if bookings.pages > 1 %}
-  <div class="card-footer bg-white">
-    <nav aria-label="Bookings pagination">
-      <ul class="pagination pagination-sm mb-0 justify-content-center">
-        {% for p in bookings.iter_pages() %}
-          {% if p %}
-            <li class="page-item {% if p == bookings.page %}active{% endif %}">
-              <a class="page-link" href="{{ url_for('admin.bookings', page=p, **request.args) }}">{{ p }}</a>
-            </li>
-          {% else %}
-            <li class="page-item disabled"><span class="page-link">…</span></li>
-          {% endif %}
-        {% endfor %}
-      </ul>
-    </nav>
-  </div>
-  {% endif %}
 </div>
+{% endcall %}
 {% endblock %}

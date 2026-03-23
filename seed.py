@@ -359,7 +359,7 @@ def run_seed():
             user_id=generate_pk(),
             first_name='Admin',
             last_name='BAE',
-            email=os.environ.get('ADMIN_EMAIL', 'admin@bayareaexperiences.com'),
+            email=os.environ.get('ADMIN_EMAIL', 'valuemanager.management@gmail.com'),
             password_hash=bcrypt.generate_password_hash(admin_password, rounds=12).decode('utf-8'),
             is_admin=True,
             email_verified=True,

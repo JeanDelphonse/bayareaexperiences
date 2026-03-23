@@ -1,4 +1,5 @@
 {% extends "admin/base_admin.html" %}
+{% from 'macros/pagination.html' import render_pagination %}
 {% block title %}Timeslots{% endblock %}
 
 {% block content %}
@@ -14,6 +15,7 @@
   </div>
 </div>
 
+{% call render_pagination(timeslots, 'timeslots') %}
 <div class="card border-0 shadow-sm mb-4">
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0">
@@ -22,7 +24,7 @@
             <th>Capacity</th><th>Booked</th><th>Status</th></tr>
       </thead>
       <tbody>
-        {% for slot in timeslots %}
+        {% for slot in timeslots.items %}
         <tr>
           <td>{{ slot.experience.name[:40] }}...</td>
           <td>{{ slot.slot_date.strftime('%b %-d, %Y') }}</td>
@@ -47,6 +49,7 @@
     </table>
   </div>
 </div>
+{% endcall %}
 
 <!-- Create Timeslot Modal -->
 <div class="modal fade" id="createSlotModal" tabindex="-1" aria-labelledby="createSlotLabel" aria-hidden="true">
