@@ -44,7 +44,7 @@ def track_event(event_type: str, category: str,
             url_path       = request.path[:500],
             target_id      = target_id,
             target_type    = target_type,
-            metadata       = json.dumps(metadata) if metadata else None,
+            event_meta     = json.dumps(metadata) if metadata else None,
             occurred_at    = datetime.now(timezone.utc),
         )
         db.session.add(event)

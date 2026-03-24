@@ -344,7 +344,7 @@ class UserEvent(db.Model):
     url_path       = db.Column(db.String(500), nullable=False)
     target_id      = db.Column(db.String(9),   nullable=True)
     target_type    = db.Column(db.String(50),  nullable=True)
-    metadata       = db.Column(db.Text,        nullable=True)   # JSON string
+    event_meta     = db.Column('metadata', db.Text, nullable=True)   # JSON string
     occurred_at    = db.Column(db.DateTime,    nullable=False, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
