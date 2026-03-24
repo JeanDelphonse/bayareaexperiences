@@ -64,15 +64,24 @@
 {% block scripts %}
 {% if recaptcha_site_key %}
 <script>
-  document.getElementById('registerForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    grecaptcha.ready(function() {
-      grecaptcha.execute('{{ recaptcha_site_key }}', {action: 'register'}).then(function(token) {
-        document.getElementById('recaptchaToken').value = token;
-        document.getElementById('registerForm').submit();
+  (function() {
+    var submitted = false;
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+      if (submitted) return;   // token already set — let native submit through
+      e.preventDefault();
+      submitted = true;
+      grecaptcha.ready(function() {
+        grecaptcha.execute('{{ recaptcha_site_key }}', {action: 'register'})
+          .then(function(token) {
+            document.getElementById('recaptchaToken').value = token;
+            document.getElementById('registerForm').submit();
+          })
+          .catch(function() {
+            document.getElementById('registerForm').submit();
+          });
       });
     });
-  });
+  })();
 </script>
 {% endif %}
 {% endblock %}
