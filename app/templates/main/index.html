@@ -8,53 +8,56 @@
 
 {% block content %}
 
-<!-- ── Hero ────────────────────────────────────────────────────────────────── -->
-<div class="bae-hero" style="
+<!-- ── Hero Banner ─────────────────────────────────────────────────────────── -->
+<div class="hero-banner" style="
   background-image: url('{{ url_for("main.image", filename="tourist_sf.webp") }}');
   background-size: cover;
   background-position: center;
-  background-repeat: no-repeat;">
-  <div class="bae-hero-overlay position-absolute top-0 start-0 w-100 h-100"></div>
+  background-repeat: no-repeat;
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  position: relative;">
+  <div class="hero-overlay position-absolute top-0 start-0 w-100 h-100"
+       style="background: rgba(0,0,0,0.55);"></div>
   <div class="container position-relative text-white text-center py-5">
-    <p class="bae-eyebrow text-white mb-2" style="opacity:.8;">San Francisco Bay Area</p>
-    <h1 class="display-3 fw-bold mb-3 text-white">Unforgettable<br>Bay Area Experiences</h1>
-    <p class="lead fs-5 mb-4" style="max-width:600px;margin:0 auto 1.5rem;">
-      Intimate small-group tours with door-to-door pickup — the coast, wine country, city landmarks, and more.
-    </p>
-    <a href="{{ url_for('main.experiences') }}" class="btn btn-bae-primary btn-lg px-5">
-      Explore All Experiences
+    <h1 class="display-3 fw-bold mb-3">Bay Area Experiences</h1>
+    <p class="lead fs-4 mb-2">Discover the magic of San Francisco, the coast, wine country, and scenic trails</p>
+    <p class="fs-5 mb-4">In an intimate group (just you and up to 3 friends!), with personalized service from start to finish.</p>
+    <a href="{{ url_for('main.experiences') }}" class="btn btn-warning btn-lg px-5 py-3 fw-semibold">
+      Explore Experiences
     </a>
   </div>
 </div>
 
-<!-- ── Value Props Strip ────────────────────────────────────────────────────── -->
-<section style="background:var(--bae-navy);padding:20px 0;">
+<!-- ── Value Propositions Strip ───────────────────────────────────────────── -->
+<section class="bg-dark text-white py-4">
   <div class="container">
     <div class="row text-center g-3">
       <div class="col-md-4">
         <div class="d-flex align-items-center justify-content-center gap-2">
-          <i class="bi bi-people-fill fs-4" style="color:var(--bae-gold);"></i>
+          <i class="bi bi-people-fill text-warning fs-4"></i>
           <div class="text-start">
-            <div class="fw-semibold text-white">Exclusive Small Groups</div>
-            <small style="color:#a8b8c8;">Maximum 4 guests for a personalized feel</small>
+            <div class="fw-semibold">Exclusive Small Groups</div>
+            <small class="text-light">Maximum 4 guests for a personalized feel</small>
           </div>
         </div>
       </div>
       <div class="col-md-4">
         <div class="d-flex align-items-center justify-content-center gap-2">
-          <i class="bi bi-geo-alt-fill fs-4" style="color:var(--bae-gold);"></i>
+          <i class="bi bi-geo-alt-fill text-warning fs-4"></i>
           <div class="text-start">
-            <div class="fw-semibold text-white">Door-to-Door Service</div>
-            <small style="color:#a8b8c8;">We pick you up and drop you off</small>
+            <div class="fw-semibold">Door-to-Door Service</div>
+            <small class="text-light">We pick you up and drop you off</small>
           </div>
         </div>
       </div>
       <div class="col-md-4">
         <div class="d-flex align-items-center justify-content-center gap-2">
-          <i class="bi bi-cup-fill fs-4" style="color:var(--bae-gold);"></i>
+          <i class="bi bi-cup-fill text-warning fs-4"></i>
           <div class="text-start">
-            <div class="fw-semibold text-white">Refreshments Included</div>
-            <small style="color:#a8b8c8;">Complimentary snacks and water onboard</small>
+            <div class="fw-semibold">Refreshments Included</div>
+            <small class="text-light">Complimentary power snacks and water onboard</small>
           </div>
         </div>
       </div>
@@ -62,149 +65,38 @@
   </div>
 </section>
 
-<!-- ── Choose Your Vibe ─────────────────────────────────────────────────────── -->
-<section class="py-5" style="background:var(--bae-off-white);">
+<!-- ── Experience Grid ─────────────────────────────────────────────────────── -->
+<section class="py-5">
   <div class="container">
-    <p class="bae-eyebrow text-center mb-1">Find Your Perfect Adventure</p>
-    <h2 class="fw-bold text-center mb-2" style="color:var(--bae-navy);">Choose Your Vibe</h2>
-    <p class="text-center text-muted mb-4">What kind of Bay Area experience are you looking for?</p>
+    <h2 class="text-center fw-bold mb-2">Our Experiences</h2>
+    <p class="text-center text-muted mb-5">Choose your Bay Area adventure</p>
 
-    <!-- Vibe Selector Buttons -->
-    <div class="bae-vibe-row" id="vibeRow">
-      <button class="bae-vibe-btn active" data-vibe="all">
-        <span class="bae-vibe-icon">🌉</span>
-        <span class="bae-vibe-label">All</span>
-      </button>
-      <button class="bae-vibe-btn" data-vibe="Sightseeing">
-        <span class="bae-vibe-icon">🗺️</span>
-        <span class="bae-vibe-label">Sightseeing</span>
-      </button>
-      <button class="bae-vibe-btn" data-vibe="Adventure">
-        <span class="bae-vibe-icon">🧗</span>
-        <span class="bae-vibe-label">Adventure</span>
-      </button>
-      <button class="bae-vibe-btn" data-vibe="Wine &amp; Spirits">
-        <span class="bae-vibe-icon">🍷</span>
-        <span class="bae-vibe-label">Wine &amp; Spirits</span>
-      </button>
-      <button class="bae-vibe-btn" data-vibe="Food &amp; Culinary">
-        <span class="bae-vibe-icon">🍴</span>
-        <span class="bae-vibe-label">Food &amp; Culinary</span>
-      </button>
-      <button class="bae-vibe-btn" data-vibe="Cultural">
-        <span class="bae-vibe-icon">🎨</span>
-        <span class="bae-vibe-label">Cultural</span>
-      </button>
-      <button class="bae-vibe-btn" data-vibe="Photography">
-        <span class="bae-vibe-icon">📷</span>
-        <span class="bae-vibe-label">Photography</span>
-      </button>
-      <button class="bae-vibe-btn" data-vibe="Celebration">
-        <span class="bae-vibe-icon">🎉</span>
-        <span class="bae-vibe-label">Celebration</span>
-      </button>
-    </div>
-
-    <!-- Experience Grid -->
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mt-2" id="experienceGrid">
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
       {% for exp in experiences %}
-      <div class="col bae-exp-col" data-vibe="{{ exp.category }}">
-        <div class="bae-exp-card h-100">
-          <div class="bae-exp-card__img-wrap">
-            <img src="{{ url_for('main.image', filename=(exp.photo_url or 'jeep.webp')) }}"
-                 class="bae-exp-card__img"
-                 alt="{{ exp.name }}"
-                 onerror="this.onerror=null;this.src='{{ url_for('main.image', filename='jeep.webp') }}'">
-            <span class="bae-exp-card__badge">{{ exp.category }}</span>
-          </div>
-          <div class="bae-exp-card__body d-flex flex-column">
-            <h5 class="bae-exp-card__title">{{ exp.name }}</h5>
-            <p class="bae-exp-card__desc flex-grow-1">
-              {{ (exp.short_description or exp.description)[:120] }}{% if (exp.short_description or exp.description)|length > 120 %}…{% endif %}
+      <div class="col">
+        <div class="card h-100 shadow-sm border-0 experience-card">
+          <img src="{{ url_for('main.image', filename=(exp.photo_url or 'jeep.webp')) }}"
+               class="card-img-top experience-card-img"
+               alt="{{ exp.name }}"
+               onerror="this.onerror=null;this.src='{{ url_for('main.image', filename='jeep.webp') }}'">
+          <div class="card-body d-flex flex-column">
+            <span class="badge bg-warning text-dark mb-2 align-self-start">{{ exp.category }}</span>
+            <h5 class="card-title fw-bold">{{ exp.name }}</h5>
+            <p class="card-text text-muted flex-grow-1">
+              {{ exp.description[:140] ~ '...' if exp.description and exp.description|length > 140 else exp.description }}
             </p>
             <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
-              <span class="text-muted small"><i class="bi bi-clock me-1"></i>{{ exp.duration_hours }}h</span>
-              <span class="bae-exp-card__price">${{ "%.0f"|format(exp.price) }}</span>
+              <span class="text-muted small"><i class="bi bi-clock me-1"></i>{{ exp.duration_hours|int }}{% if exp.duration_hours % 1 %}.{{ ((exp.duration_hours % 1) * 10)|int }}{% endif %} hours</span>
+              <span class="fs-5 fw-bold text-dark">${{ "%.0f"|format(exp.price) }}</span>
             </div>
             <a href="{{ url_for('main.experience_detail', slug=exp.slug) }}"
-               class="btn-bae-outline w-100 fw-semibold">Book Now</a>
+               class="btn btn-warning w-100 fw-semibold">Book Now</a>
           </div>
         </div>
       </div>
       {% endfor %}
     </div>
-
-    <!-- Empty state -->
-    <div id="vibeEmpty" class="text-center py-5 text-muted" style="display:none!important;">
-      <i class="bi bi-compass display-4 d-block mb-3"></i>
-      <p>No experiences in this category yet — check back soon!</p>
-      <button class="btn btn-bae-primary" onclick="selectVibe('all')">Show All</button>
-    </div>
-
-    <div class="text-center mt-4">
-      <a href="{{ url_for('main.experiences') }}" class="btn btn-bae-secondary px-4">
-        View All Experiences <i class="bi bi-arrow-right ms-1"></i>
-      </a>
-    </div>
   </div>
 </section>
 
-<!-- ── Featured Banner ───────────────────────────────────────────────────────── -->
-<section class="py-5" style="background:var(--bae-white);">
-  <div class="container">
-    <div class="bae-featured-banner">
-      <div class="row align-items-center g-4">
-        <div class="col-md-8">
-          <p class="bae-eyebrow mb-1">Why Bay Area Experiences?</p>
-          <h3 class="fw-bold mb-2" style="color:var(--bae-navy);">Your private group. Your pace. Our expertise.</h3>
-          <p class="text-muted mb-0">
-            Every tour is fully private — no strangers, no rush. We design each experience around your group,
-            with an expert local guide who knows every hidden gem from the Golden Gate to Big Sur.
-          </p>
-        </div>
-        <div class="col-md-4 text-center text-md-end">
-          <a href="{{ url_for('main.experiences') }}" class="btn btn-bae-primary px-4">
-            Browse Experiences
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-{% endblock %}
-
-{% block scripts %}
-<script>
-(function() {
-  function selectVibe(vibe) {
-    // Update button states
-    document.querySelectorAll('.bae-vibe-btn').forEach(function(btn) {
-      btn.classList.toggle('active', btn.dataset.vibe === vibe);
-    });
-
-    var cols = document.querySelectorAll('.bae-exp-col');
-    var visible = 0;
-    cols.forEach(function(col) {
-      if (vibe === 'all' || col.dataset.vibe === vibe) {
-        col.style.display = '';
-        visible++;
-      } else {
-        col.style.display = 'none';
-      }
-    });
-
-    var empty = document.getElementById('vibeEmpty');
-    empty.style.setProperty('display', visible === 0 ? 'block' : 'none', 'important');
-  }
-
-  document.getElementById('vibeRow').addEventListener('click', function(e) {
-    var btn = e.target.closest('.bae-vibe-btn');
-    if (!btn) return;
-    selectVibe(btn.dataset.vibe);
-  });
-
-  window.selectVibe = selectVibe;
-})();
-</script>
 {% endblock %}

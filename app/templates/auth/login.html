@@ -2,44 +2,38 @@
 {% block title %}Sign In — Bay Area Experiences{% endblock %}
 
 {% block content %}
-<div style="background:var(--bae-off-white);min-height:calc(100vh - 52px);display:flex;align-items:center;padding:40px 0;">
-  <div class="container">
-    <div class="row justify-content-center">
-      <div class="col-md-5 col-lg-4">
-        <div class="text-center mb-4">
-          <span class="fw-bold fs-5" style="color:var(--bae-navy);">Bay Area</span><span class="fw-bold fs-5" style="color:var(--bae-gold);"> Experiences</span>
-          <p class="text-muted small mt-1 mb-0">Sign in to your account</p>
-        </div>
-        <div class="card border-0 shadow-sm" style="border-radius:var(--radius-lg);">
-          <div class="card-body p-4">
-            <h2 class="fw-bold text-center mb-4" style="color:var(--bae-navy);font-size:1.4rem;">Welcome back</h2>
-            <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <div class="mb-3">
-                <label for="email" class="form-label fw-semibold small">Email address</label>
-                <input type="email" class="form-control" id="email" name="email"
-                       required autocomplete="email" aria-required="true">
-              </div>
-              <div class="mb-3">
-                <label for="password" class="form-label fw-semibold small">Password</label>
-                <input type="password" class="form-control" id="password" name="password"
-                       required autocomplete="current-password" aria-required="true">
-              </div>
-              <div class="mb-3 form-check">
-                <input type="checkbox" class="form-check-input" id="remember" name="remember">
-                <label class="form-check-label small" for="remember">Remember me</label>
-              </div>
-              <button type="submit" class="btn btn-bae-primary w-100 fw-bold">Sign In</button>
-            </form>
-            <div class="text-center mt-3">
-              <a href="{{ url_for('auth.forgot_password') }}" class="text-muted small">Forgot password?</a>
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-5">
+      <div class="card border-0 shadow">
+        <div class="card-body p-4">
+          <h2 class="fw-bold text-center mb-4">Sign In</h2>
+          <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+              <label for="email" class="form-label fw-semibold">Email address</label>
+              <input type="email" class="form-control" id="email" name="email"
+                     required autocomplete="email" aria-required="true">
             </div>
-            <hr style="border-color:var(--bae-border);">
-            <p class="text-center mb-0 small">
-              Don't have an account?
-              <a href="{{ url_for('auth.register') }}" class="fw-semibold" style="color:var(--bae-gold);">Create Account</a>
-            </p>
+            <div class="mb-3">
+              <label for="password" class="form-label fw-semibold">Password</label>
+              <input type="password" class="form-control" id="password" name="password"
+                     required autocomplete="current-password" aria-required="true">
+            </div>
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="remember" name="remember">
+              <label class="form-check-label" for="remember">Remember me</label>
+            </div>
+            <button type="submit" class="btn btn-warning w-100 fw-bold">Sign In</button>
+          </form>
+          <div class="text-center mt-3">
+            <a href="{{ url_for('auth.forgot_password') }}" class="text-muted small">Forgot password?</a>
           </div>
+          <hr>
+          <p class="text-center mb-0">
+            Don't have an account?
+            <a href="{{ url_for('auth.register') }}" class="fw-semibold text-warning">Create Account</a>
+          </p>
         </div>
       </div>
     </div>

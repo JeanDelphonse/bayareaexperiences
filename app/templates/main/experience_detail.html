@@ -11,181 +11,109 @@
 {% endblock %}
 
 {% block content %}
-
 <!-- Hero Image -->
-<div class="position-relative" style="height:420px;overflow:hidden;">
+<div class="position-relative" style="height: 400px; overflow: hidden;">
   <img src="{{ url_for('main.image', filename=(experience.photo_url or 'jeep.webp')) }}"
        class="w-100 h-100"
-       style="object-fit:cover;object-position:center;"
+       style="object-fit: cover; object-position: center;"
        alt="{{ experience.name }}"
        onerror="this.onerror=null;this.src='{{ url_for('main.image', filename='jeep.webp') }}'">
-  <!-- Navy overlay at 60% -->
-  <div class="position-absolute top-0 start-0 w-100 h-100"
-       style="background:linear-gradient(to bottom, rgba(26,53,87,0.45) 0%, rgba(26,53,87,0.75) 100%);"></div>
+  <div class="position-absolute top-0 start-0 w-100 h-100" style="background: rgba(0,0,0,0.40);"></div>
   <div class="position-absolute bottom-0 start-0 p-4 text-white">
-    <span class="badge mb-2 fs-6" style="background:var(--bae-gold);color:#fff;">{{ experience.category }}</span>
-    <h1 class="fw-bold display-5 text-white mb-0">{{ experience.name }}</h1>
+    <span class="badge bg-warning text-dark mb-2 fs-6">{{ experience.category }}</span>
+    <h1 class="fw-bold display-5">{{ experience.name }}</h1>
   </div>
 </div>
 
-<section class="py-5" style="background:var(--bae-off-white);">
+<section class="py-5">
   <div class="container">
     <div class="row g-5">
-
       <!-- Details Column -->
       <div class="col-lg-8">
-        <h2 class="fw-bold mb-3" style="color:var(--bae-navy);">About This Experience</h2>
-        <p class="lead" style="color:var(--bae-text);">{{ experience.description }}</p>
+        <h2 class="fw-bold mb-3">About This Experience</h2>
+        <p class="lead">{{ experience.description }}</p>
 
-        <hr class="my-4" style="border-color:var(--bae-border);">
+        <hr class="my-4">
 
-        <!-- Quick facts -->
         <div class="row g-3 mb-4">
           <div class="col-sm-6">
-            <div class="d-flex align-items-center gap-3">
-              <div style="width:40px;height:40px;border-radius:var(--radius-md);background:var(--bae-light-blue);
-                          display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <i class="bi bi-clock" style="color:var(--bae-navy);font-size:1.1rem;"></i>
-              </div>
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-clock text-warning fs-4"></i>
               <div>
-                <div class="bae-eyebrow">Duration</div>
+                <div class="text-muted small">Duration</div>
                 <div class="fw-semibold">{{ experience.duration_hours }} hours</div>
               </div>
             </div>
           </div>
           <div class="col-sm-6">
-            <div class="d-flex align-items-center gap-3">
-              <div style="width:40px;height:40px;border-radius:var(--radius-md);background:var(--bae-light-blue);
-                          display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <i class="bi bi-people" style="color:var(--bae-navy);font-size:1.1rem;"></i>
-              </div>
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-people text-warning fs-4"></i>
               <div>
-                <div class="bae-eyebrow">Group Size</div>
+                <div class="text-muted small">Group Size</div>
                 <div class="fw-semibold">Up to {{ experience.max_guests }} guests</div>
               </div>
             </div>
           </div>
-          {% if experience.pickup_locations %}
           <div class="col-sm-6">
-            <div class="d-flex align-items-center gap-3">
-              <div style="width:40px;height:40px;border-radius:var(--radius-md);background:var(--bae-light-blue);
-                          display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <i class="bi bi-geo-alt" style="color:var(--bae-navy);font-size:1.1rem;"></i>
-              </div>
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-geo-alt text-warning fs-4"></i>
               <div>
-                <div class="bae-eyebrow">Pickup Cities</div>
+                <div class="text-muted small">Pickup Cities</div>
                 <div class="fw-semibold">
-                  {% for loc in experience.pickup_locations %}{{ loc.pickup_city }}{% if not loop.last %}, {% endif %}{% endfor %}
+                  {% for loc in experience.pickup_locations %}
+                    {{ loc.pickup_city }}{% if not loop.last %}, {% endif %}
+                  {% endfor %}
                 </div>
               </div>
             </div>
           </div>
-          {% endif %}
           <div class="col-sm-6">
-            <div class="d-flex align-items-center gap-3">
-              <div style="width:40px;height:40px;border-radius:var(--radius-md);background:var(--bae-light-blue);
-                          display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <i class="bi bi-cup" style="color:var(--bae-navy);font-size:1.1rem;"></i>
-              </div>
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-cup text-warning fs-4"></i>
               <div>
-                <div class="bae-eyebrow">Includes</div>
-                <div class="fw-semibold">Refreshments &amp; water</div>
+                <div class="text-muted small">Includes</div>
+                <div class="fw-semibold">Refreshments & water</div>
               </div>
             </div>
           </div>
         </div>
-
-        {% if experience.inclusions %}
-        <h4 class="fw-semibold mb-3" style="color:var(--bae-navy);">What's Included</h4>
-        <p style="white-space:pre-line;">{{ experience.inclusions }}</p>
-        {% endif %}
-
-        {% if experience.what_to_bring %}
-        <h4 class="fw-semibold mb-3 mt-4" style="color:var(--bae-navy);">What to Bring</h4>
-        <p style="white-space:pre-line;">{{ experience.what_to_bring }}</p>
-        {% endif %}
-
-        {% if experience.cancellation_policy %}
-        <div class="p-3 mt-4" style="background:var(--bae-light-gold);border-left:4px solid var(--bae-gold);border-radius:var(--radius-sm);">
-          <div class="fw-semibold mb-1" style="color:var(--bae-navy);">Cancellation Policy</div>
-          <div class="small text-muted">
-            {% if experience.cancellation_policy == 'flexible' %}
-              Full refund if cancelled 48+ hours before the experience.
-            {% elif experience.cancellation_policy == 'moderate' %}
-              50% refund if cancelled 5+ days before the experience.
-            {% else %}
-              No refund — all bookings are final.
-            {% endif %}
-          </div>
-        </div>
-        {% endif %}
       </div>
 
-      <!-- Booking Sidebar -->
+      <!-- Booking Card -->
       <div class="col-lg-4">
-        <div class="card border-0 shadow-lg sticky-top" style="top:72px;border-radius:var(--radius-lg)!important;">
+        <div class="card border-0 shadow-lg sticky-top" style="top: 80px;">
           <div class="card-body p-4">
             <div class="text-center mb-3">
-              <div class="bae-eyebrow mb-1">Price per booking</div>
-              <div class="display-5 fw-bold" style="color:var(--bae-navy);">${{ "%.0f"|format(experience.price) }}</div>
+              <div class="text-muted small">Price per booking</div>
+              <div class="display-5 fw-bold text-dark">${{ "%.0f"|format(experience.price) }}</div>
               <div class="text-muted small">Up to {{ experience.max_guests }} guests</div>
             </div>
-
             {% if experience.payment_mode == 'full' %}
-              <div class="alert py-2 text-center small mb-3" style="background:var(--bae-light-blue);border:none;color:var(--bae-navy);">
+              <div class="alert alert-info py-2 text-center small">
                 <i class="bi bi-shield-check me-1"></i>Full payment required at checkout
               </div>
             {% elif experience.payment_mode == 'deposit' %}
-              <div class="alert py-2 text-center small mb-3" style="background:var(--bae-light-blue);border:none;color:var(--bae-navy);">
+              <div class="alert alert-info py-2 text-center small">
                 Deposit ${{ "%.0f"|format(experience.deposit_amount) }} now, remainder on the day
               </div>
             {% else %}
-              <div class="alert py-2 text-center small mb-3" style="background:var(--bae-light-gold);border:none;color:var(--bae-gold-text);">
-                Pay offline — reserve your spot today
-              </div>
+              <div class="alert alert-secondary py-2 text-center small">Pay offline — reserve your spot today</div>
             {% endif %}
-
             <a href="{{ url_for('booking.book', experience_id=experience.experience_id) }}"
-               class="btn btn-bae-primary w-100 btn-lg fw-bold">
+               class="btn btn-warning w-100 btn-lg fw-bold">
               Book This Experience
             </a>
-
-            <hr style="border-color:var(--bae-border);margin:16px 0;">
-
-            <ul class="list-unstyled small mb-0" style="color:var(--bae-muted);">
-              <li class="mb-2 d-flex align-items-center gap-2">
-                <i class="bi bi-check-circle-fill" style="color:var(--bae-success);"></i>Door-to-door pickup
-              </li>
-              <li class="mb-2 d-flex align-items-center gap-2">
-                <i class="bi bi-check-circle-fill" style="color:var(--bae-success);"></i>Private group only
-              </li>
-              <li class="mb-2 d-flex align-items-center gap-2">
-                <i class="bi bi-check-circle-fill" style="color:var(--bae-success);"></i>Refreshments included
-              </li>
-              <li class="d-flex align-items-center gap-2">
-                <i class="bi bi-check-circle-fill" style="color:var(--bae-success);"></i>Expert local guide
-              </li>
+            <hr>
+            <ul class="list-unstyled small text-muted">
+              <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>All payments are final</li>
+              <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Door-to-door pickup</li>
+              <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Private group only</li>
+              <li><i class="bi bi-check-circle-fill text-success me-2"></i>Refreshments included</li>
             </ul>
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </section>
-
-<!-- Mobile Sticky Bar -->
-<div class="d-lg-none" style="position:fixed;bottom:0;left:0;right:0;z-index:1040;
-  background:var(--bae-white);border-top:1px solid var(--bae-border);padding:12px 16px;
-  display:flex;align-items:center;justify-content:space-between;gap:12px;">
-  <div>
-    <div class="fw-bold" style="color:var(--bae-navy);">${{ "%.0f"|format(experience.price) }}</div>
-    <div class="small text-muted">per booking</div>
-  </div>
-  <a href="{{ url_for('booking.book', experience_id=experience.experience_id) }}"
-     class="btn btn-bae-primary fw-bold flex-grow-1" style="max-width:240px;">
-    Book Now
-  </a>
-</div>
-
 {% endblock %}
