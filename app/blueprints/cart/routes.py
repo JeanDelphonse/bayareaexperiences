@@ -50,6 +50,12 @@ def add():
         })
         _save_session_cart(cart)
 
+    try:
+        from app.tracking.events import track_event
+        track_event('cart_item_added', category='ecommerce',
+                    target_id=experience_id, target_type='experience')
+    except Exception:
+        pass
     flash(f'"{exp.name}" added to cart.', 'success')
     return redirect(url_for('cart.view'))
 

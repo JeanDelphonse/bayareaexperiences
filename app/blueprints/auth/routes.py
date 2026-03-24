@@ -38,9 +38,19 @@ def login():
         user = User.query.filter_by(email=email).first()
         if user and bcrypt.check_password_hash(user.password_hash, password):
             login_user(user, remember=remember)
+            try:
+                from app.tracking.events import track_event
+                track_event('user_logged_in', category='auth', target_id=user.user_id, target_type='user')
+            except Exception:
+                pass
             next_page = request.args.get('next')
             flash('Welcome back!', 'success')
             return redirect(next_page or url_for('main.index'))
+        try:
+            from app.tracking.events import track_event
+            track_event('login_failed', category='auth')
+        except Exception:
+            pass
         flash('Invalid email or password.', 'danger')
     return render_template('auth/login.html')
 
@@ -91,6 +101,12 @@ def register():
         db.session.add(user)
         db.session.commit()
 
+        try:
+            from app.tracking.events import track_event
+            track_event('user_registered', category='auth', target_id=user.user_id, target_type='user')
+        except Exception:
+            pass
+
         # Send verification email
         token = get_serializer().dumps(email, salt='email-verify')
         verify_url = url_for('auth.verify_email', token=token, _external=True)
@@ -129,6 +145,12 @@ def verify_email(token):
 @auth_bp.route('/logout')
 @login_required
 def logout():
+    try:
+        from app.tracking.events import track_event
+        from flask_login import current_user
+        track_event('user_logged_out', category='auth', target_id=current_user.user_id, target_type='user')
+    except Exception:
+        pass
     logout_user()
     flash('You have been signed out.', 'info')
     return redirect(url_for('main.index'))

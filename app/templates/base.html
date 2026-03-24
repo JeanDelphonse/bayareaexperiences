@@ -130,6 +130,30 @@
 
 {% block scripts %}{% endblock %}
 
+{% if config.TRACKING_ENABLED and g.current_view_id is defined %}
+<script>
+(function(){
+  var _viewId = '{{ g.current_view_id }}';
+  var _start  = Date.now();
+  function _beacon(){
+    var secs = Math.round((Date.now() - _start) / 1000);
+    if (secs < 1) return;
+    var blob = new Blob(
+      [JSON.stringify({view_id: _viewId, time_on_page: secs})],
+      {type:'application/json'}
+    );
+    navigator.sendBeacon('{{ url_for("tracking.beacon") }}', blob);
+  }
+  window.addEventListener('pagehide', _beacon);
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'hidden') _beacon();
+  });
+})();
+</script>
+{% endif %}
+
+{% include 'partials/cookie_consent.html' %}
+
 <!-- Chat Widget -->
 {% if config.CHAT_ENABLED and config.ANTHROPIC_API_KEY %}
 <script>

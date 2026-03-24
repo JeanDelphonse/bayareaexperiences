@@ -1,0 +1,71 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Analytics — Funnel{% endblock %}
+
+{% block head_extra %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous"></script>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h2 class="h4 mb-0"><i class="bi bi-bar-chart-line me-2 text-warning"></i>Analytics</h2>
+</div>
+
+{% include 'admin/analytics/_nav.html' %}
+{% include 'admin/analytics/_date_filter.html' %}
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header fw-semibold">Booking Funnel</div>
+      <div class="card-body">
+        {% for label, count, pct in funnel_pct %}
+        <div class="mb-2">
+          <div class="d-flex justify-content-between small mb-1">
+            <span>{{ label }}</span>
+            <span class="text-muted">{{ count | format_number }} ({{ pct }}%)</span>
+          </div>
+          <div class="progress" style="height:22px">
+            <div class="progress-bar bg-warning text-dark fw-semibold"
+                 role="progressbar" style="width:{{ pct }}%">
+              {% if pct >= 12 %}{{ pct }}%{% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+        {% if not funnel_pct %}
+          <p class="text-muted">No funnel data for this period.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header fw-semibold">Funnel Chart</div>
+      <div class="card-body">
+        <canvas id="funnelChart" height="250"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  const labels = {{ chart_labels | safe }};
+  const data   = {{ chart_data   | safe }};
+  new Chart(document.getElementById('funnelChart'), {
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{ label:'Count', data, backgroundColor:'rgba(255,193,7,.8)' }]
+    },
+    options:{
+      indexAxis:'y',
+      plugins:{ legend:{ display:false } },
+      scales:{ x:{ beginAtZero:true } }
+    }
+  });
+})();
+</script>
+{% endblock %}

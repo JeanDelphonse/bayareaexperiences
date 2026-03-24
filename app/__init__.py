@@ -29,8 +29,9 @@ def create_app(config_name='default'):
     from app.blueprints.checkout import checkout_bp
     from app.blueprints.account import account_bp
     from app.blueprints.admin  import admin_bp
-    from app.blueprints.contact import contact_bp
-    from app.blueprints.chat   import chat_bp
+    from app.blueprints.contact  import contact_bp
+    from app.blueprints.chat     import chat_bp
+    from app.blueprints.tracking import tracking_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
@@ -41,6 +42,11 @@ def create_app(config_name='default'):
     app.register_blueprint(admin_bp)
     app.register_blueprint(contact_bp)
     app.register_blueprint(chat_bp)
+    app.register_blueprint(tracking_bp)
+
+    # Tracking middleware
+    from app.tracking.middleware import init_tracking
+    init_tracking(app)
 
     # Template filters
     @app.template_filter('format_number')

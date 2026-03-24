@@ -1,0 +1,62 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Analytics — Errors{% endblock %}
+
+{% block head_extra %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous"></script>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h2 class="h4 mb-0"><i class="bi bi-bar-chart-line me-2 text-warning"></i>Analytics</h2>
+</div>
+
+{% include 'admin/analytics/_nav.html' %}
+{% include 'admin/analytics/_date_filter.html' %}
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card text-center">
+      <div class="card-body py-3">
+        <div class="fs-3 fw-bold text-warning">{{ total_404 | format_number }}</div>
+        <div class="small text-muted">404 Not Found</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card text-center">
+      <div class="card-body py-3">
+        <div class="fs-3 fw-bold text-danger">{{ total_500 | format_number }}</div>
+        <div class="small text-muted">500 Server Errors</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header fw-semibold">Errors per Day</div>
+  <div class="card-body">
+    <canvas id="errorsChart" height="100"></canvas>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  const labels = {{ chart_labels | safe }};
+  const d404   = {{ chart_404   | safe }};
+  const d500   = {{ chart_500   | safe }};
+  new Chart(document.getElementById('errorsChart'), {
+    type:'bar',
+    data:{
+      labels,
+      datasets:[
+        { label:'404', data:d404, backgroundColor:'rgba(255,193,7,.8)' },
+        { label:'500', data:d500, backgroundColor:'rgba(220,53,69,.8)' },
+      ]
+    },
+    options:{ plugins:{ legend:{ position:'bottom' } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
+  });
+})();
+</script>
+{% endblock %}

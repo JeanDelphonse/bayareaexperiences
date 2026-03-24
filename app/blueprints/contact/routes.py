@@ -70,6 +70,13 @@ def contact():
         db.session.add(sub)
         db.session.commit()
 
+        try:
+            from app.tracking.events import track_event
+            track_event('contact_form_submitted', category='engagement',
+                        target_id=sub.submission_id, target_type='contact_submission')
+        except Exception:
+            pass
+
         # Send notifications in background so the request returns immediately
         app = current_app._get_current_object()
         submission_id = sub.submission_id

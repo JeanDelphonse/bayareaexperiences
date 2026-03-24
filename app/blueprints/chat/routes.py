@@ -66,6 +66,13 @@ def stream():
     chat_session.last_active_at = datetime.now(timezone.utc)
     db.session.commit()
 
+    try:
+        from app.tracking.events import track_event
+        track_event('chat_message_sent', category='engagement',
+                    target_id=chat_session.session_id, target_type='chat_session')
+    except Exception:
+        pass
+
     # Build conversation history (rolling 10-pair window = 20 messages)
     history_limit = current_app.config.get('CHAT_HISTORY_LIMIT', 10) * 2
     past = (ChatMessage.query
@@ -159,4 +166,10 @@ def escalate():
             cs.was_escalated = True
             cs.escalated_to_form = True
             db.session.commit()
+            try:
+                from app.tracking.events import track_event
+                track_event('chat_escalated', category='engagement',
+                            target_id=sid, target_type='chat_session')
+            except Exception:
+                pass
     return jsonify({'status': 'ok'})

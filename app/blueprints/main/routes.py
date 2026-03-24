@@ -25,6 +25,11 @@ def experiences():
                    .filter_by(is_active=True)
                    .order_by(Experience.sort_order)
                    .all())
+    try:
+        from app.tracking.events import track_event
+        track_event('experience_list_viewed', category='navigation')
+    except Exception:
+        pass
     return render_template('main/experiences.html', experiences=experiences)
 
 
@@ -36,4 +41,10 @@ def ride_redirect():
 @main_bp.route('/experience/<slug>')
 def experience_detail(slug):
     exp = Experience.query.filter_by(slug=slug, is_active=True).first_or_404()
+    try:
+        from app.tracking.events import track_event
+        track_event('experience_viewed', category='experience',
+                    target_id=exp.experience_id, target_type='experience')
+    except Exception:
+        pass
     return render_template('main/experience_detail.html', experience=exp)

@@ -41,6 +41,12 @@ def checkout():
         return redirect(url_for('cart.view'))
 
     total = sum(i['price'] for i in cart_data)
+    try:
+        from app.tracking.events import track_event, track_funnel_step
+        track_event('checkout_started', category='ecommerce')
+        track_funnel_step('checkout_start')
+    except Exception:
+        pass
     stripe_key = current_app.config.get('STRIPE_PUBLISHABLE_KEY', '')
     return render_template('checkout/checkout.html',
                            cart_items=cart_data, total=total,

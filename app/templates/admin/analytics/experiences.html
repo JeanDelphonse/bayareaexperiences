@@ -1,0 +1,55 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Analytics — Experiences{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h2 class="h4 mb-0"><i class="bi bi-bar-chart-line me-2 text-warning"></i>Analytics</h2>
+</div>
+
+{% include 'admin/analytics/_nav.html' %}
+{% include 'admin/analytics/_date_filter.html' %}
+
+<div class="card">
+  <div class="card-header fw-semibold">Experience Performance</div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Experience</th>
+          <th class="text-end">Views</th>
+          <th class="text-end">Starts</th>
+          <th class="text-end">Bookings</th>
+          <th class="text-end">Conversion</th>
+          <th class="text-end">Abandonment</th>
+          <th class="text-end">Revenue</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if rows %}
+          {% for row in rows %}
+          <tr>
+            <td>{{ row.name }}</td>
+            <td class="text-end">{{ (row.views or 0) | format_number }}</td>
+            <td class="text-end">{{ (row.starts or 0) | format_number }}</td>
+            <td class="text-end">{{ (row.completed or 0) | format_number }}</td>
+            <td class="text-end">
+              {% if row.conversion is not none %}
+                {{ "%.1f"|format(row.conversion) }}%
+              {% else %}&mdash;{% endif %}
+            </td>
+            <td class="text-end">
+              {% if row.abandonment is not none %}
+                {{ "%.1f"|format(row.abandonment) }}%
+              {% else %}&mdash;{% endif %}
+            </td>
+            <td class="text-end">${{ "%.2f"|format(row.revenue or 0) }}</td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="7" class="text-center text-muted py-3">No experience data for this period.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

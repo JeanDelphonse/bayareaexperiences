@@ -11,6 +11,13 @@ from app.utils import generate_pk, send_email
 @booking_bp.route('/book/<experience_id>', methods=['GET', 'POST'])
 def book(experience_id):
     exp = Experience.query.filter_by(experience_id=experience_id, is_active=True).first_or_404()
+    try:
+        from app.tracking.events import track_event, track_funnel_step
+        track_event('booking_started', category='ecommerce',
+                    target_id=experience_id, target_type='experience')
+        track_funnel_step('booking_start', experience_id=experience_id)
+    except Exception:
+        pass
     min_date = date.today() + timedelta(days=exp.advance_booking_days)
     return render_template('booking/book.html', experience=exp,
                            min_date=min_date.isoformat())
@@ -108,6 +115,14 @@ def confirm_booking():
         session.pop('cart', None)
 
     db.session.commit()
+
+    try:
+        from app.tracking.events import track_event, track_funnel_step
+        track_event('booking_completed', category='ecommerce',
+                    target_id=booking.booking_id, target_type='booking')
+        track_funnel_step('booking_complete', experience_id=experience_id)
+    except Exception:
+        pass
 
     # Send confirmation email
     try:

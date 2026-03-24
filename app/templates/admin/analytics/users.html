@@ -1,0 +1,63 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Analytics — Users{% endblock %}
+
+{% block head_extra %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous"></script>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h2 class="h4 mb-0"><i class="bi bi-bar-chart-line me-2 text-warning"></i>Analytics</h2>
+</div>
+
+{% include 'admin/analytics/_nav.html' %}
+{% include 'admin/analytics/_date_filter.html' %}
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card text-center">
+      <div class="card-body py-3">
+        <div class="fs-3 fw-bold text-primary">{{ new_accounts | format_number }}</div>
+        <div class="small text-muted">New Accounts</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-center">
+      <div class="card-body py-3">
+        <div class="fs-3 fw-bold text-success">{{ contact_subs | format_number }}</div>
+        <div class="small text-muted">Contact Submissions</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-center">
+      <div class="card-body py-3">
+        <div class="fs-3 fw-bold text-info">{{ chat_starts | format_number }}</div>
+        <div class="small text-muted">Chat Sessions Started</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header fw-semibold">New Registrations per Day</div>
+  <div class="card-body">
+    <canvas id="usersChart" height="100"></canvas>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  const labels   = {{ chart_labels    | safe }};
+  const newUsers = {{ chart_new_users | safe }};
+  new Chart(document.getElementById('usersChart'), {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'New Accounts', data:newUsers, backgroundColor:'rgba(13,110,253,.7)' }] },
+    options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
+  });
+})();
+</script>
+{% endblock %}

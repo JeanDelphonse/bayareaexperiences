@@ -1,0 +1,36 @@
+{# Cookie consent banner — shown only when tracking_consent cookie is absent #}
+{% if request.cookies.get('tracking_consent') is none %}
+<div id="bae-consent-banner"
+     style="position:fixed;bottom:0;left:0;right:0;z-index:10000;
+            background:#212529;color:#f8f9fa;padding:14px 20px;
+            display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+  <span style="flex:1;min-width:220px;font-size:.88rem;">
+    We use cookies to improve your experience and analyse site usage.
+    <a href="{{ url_for('contact.contact') }}" style="color:#ffc107;">Learn more</a>
+  </span>
+  <button id="bae-consent-accept"
+          style="background:#ffc107;color:#212529;border:none;
+                 padding:7px 18px;border-radius:4px;cursor:pointer;font-weight:600;font-size:.88rem;">
+    Accept
+  </button>
+  <button id="bae-consent-decline"
+          style="background:transparent;color:#adb5bd;border:1px solid #495057;
+                 padding:7px 14px;border-radius:4px;cursor:pointer;font-size:.88rem;">
+    Decline
+  </button>
+</div>
+<script>
+(function(){
+  function sendConsent(accept){
+    fetch('{{ url_for("tracking.consent") }}',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token() }}'},
+      body:JSON.stringify({accept:accept})
+    });
+    document.getElementById('bae-consent-banner').style.display='none';
+  }
+  document.getElementById('bae-consent-accept').addEventListener('click',function(){ sendConsent(true); });
+  document.getElementById('bae-consent-decline').addEventListener('click',function(){ sendConsent(false); });
+})();
+</script>
+{% endif %}

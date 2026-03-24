@@ -32,6 +32,12 @@ class Config:
     _raw_page_size = os.environ.get('ADMIN_PAGE_SIZE', '20')
     ADMIN_PAGE_SIZE = int(_raw_page_size) if _raw_page_size in ('10', '20', '50') else 20
 
+    # Analytics / Tracking
+    TRACKING_ENABLED         = os.environ.get('TRACKING_ENABLED', 'True') == 'True'
+    TRACKING_SESSION_TIMEOUT = int(os.environ.get('TRACKING_SESSION_TIMEOUT', 1800))   # seconds
+    TRACKING_RETENTION_DAYS  = int(os.environ.get('TRACKING_RETENTION_DAYS', 90))
+    GEOIP_PROVIDER           = os.environ.get('GEOIP_PROVIDER', 'ip-api')
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

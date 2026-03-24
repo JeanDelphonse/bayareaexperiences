@@ -264,3 +264,196 @@ class ChatMessage(db.Model):
     __table_args__ = (
         db.Index('ix_chat_messages_session_id', 'session_id'),
     )
+
+
+# ── Analytics: Site Sessions ──────────────────────────────────────────────────
+
+class SiteSession(db.Model):
+    __tablename__ = 'site_sessions'
+
+    session_id       = db.Column(db.String(9),   primary_key=True, default=generate_pk)
+    user_id          = db.Column(db.String(9),   db.ForeignKey('users.user_id'), nullable=True)
+    started_at       = db.Column(db.DateTime,    nullable=False, default=lambda: datetime.now(timezone.utc))
+    last_seen_at     = db.Column(db.DateTime,    nullable=False, default=lambda: datetime.now(timezone.utc))
+    ended_at         = db.Column(db.DateTime,    nullable=True)
+    duration_seconds = db.Column(db.Integer,     nullable=True)
+    page_count       = db.Column(db.Integer,     default=0)
+    ip_hash          = db.Column(db.String(64),  nullable=True)
+    user_agent       = db.Column(db.String(500), nullable=True)
+    device_type      = db.Column(db.Enum('desktop', 'tablet', 'mobile', 'bot', 'unknown'),
+                                 nullable=False, default='unknown')
+    browser          = db.Column(db.String(80),  nullable=True)
+    os               = db.Column(db.String(80),  nullable=True)
+    referrer_url     = db.Column(db.String(1000), nullable=True)
+    referrer_domain  = db.Column(db.String(200), nullable=True)
+    referrer_type    = db.Column(db.Enum('direct', 'organic', 'social', 'referral',
+                                         'email', 'paid', 'unknown'),
+                                 nullable=False, default='unknown')
+    utm_source       = db.Column(db.String(200), nullable=True)
+    utm_medium       = db.Column(db.String(200), nullable=True)
+    utm_campaign     = db.Column(db.String(200), nullable=True)
+    utm_content      = db.Column(db.String(200), nullable=True)
+    country          = db.Column(db.String(80),  nullable=True)
+    region           = db.Column(db.String(80),  nullable=True)
+    city             = db.Column(db.String(80),  nullable=True)
+    is_bounce        = db.Column(db.Boolean,     default=True)
+    consent_given    = db.Column(db.Boolean,     default=False)
+
+    __table_args__ = (
+        db.Index('ix_site_sessions_started_at', 'started_at'),
+        db.Index('ix_site_sessions_ip_hash',    'ip_hash'),
+        db.Index('ix_site_sessions_user_id',    'user_id'),
+    )
+
+
+# ── Analytics: Page Views ─────────────────────────────────────────────────────
+
+class PageView(db.Model):
+    __tablename__ = 'page_views'
+
+    view_id              = db.Column(db.String(9),   primary_key=True, default=generate_pk)
+    session_id           = db.Column(db.String(9),   db.ForeignKey('site_sessions.session_id'), nullable=True)
+    user_id              = db.Column(db.String(9),   db.ForeignKey('users.user_id'), nullable=True)
+    url_path             = db.Column(db.String(500), nullable=False)
+    url_query            = db.Column(db.String(500), nullable=True)
+    page_title           = db.Column(db.String(200), nullable=True)
+    http_method          = db.Column(db.Enum('GET', 'POST'), nullable=False, default='GET')
+    http_status          = db.Column(db.SmallInteger, nullable=False, default=200)
+    response_time_ms     = db.Column(db.Integer,     nullable=True)
+    referrer_path        = db.Column(db.String(500), nullable=True)
+    time_on_page_seconds = db.Column(db.Integer,     nullable=True)
+    viewed_at            = db.Column(db.DateTime,    nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        db.Index('ix_page_views_session_id', 'session_id'),
+        db.Index('ix_page_views_viewed_at',  'viewed_at'),
+        db.Index('ix_page_views_url_path',   'url_path'),
+    )
+
+
+# ── Analytics: User Events ────────────────────────────────────────────────────
+
+class UserEvent(db.Model):
+    __tablename__ = 'user_events'
+
+    event_id       = db.Column(db.String(9),   primary_key=True, default=generate_pk)
+    session_id     = db.Column(db.String(9),   db.ForeignKey('site_sessions.session_id'), nullable=True)
+    user_id        = db.Column(db.String(9),   db.ForeignKey('users.user_id'), nullable=True)
+    event_type     = db.Column(db.String(80),  nullable=False)
+    event_category = db.Column(db.String(50),  nullable=False)
+    url_path       = db.Column(db.String(500), nullable=False)
+    target_id      = db.Column(db.String(9),   nullable=True)
+    target_type    = db.Column(db.String(50),  nullable=True)
+    metadata       = db.Column(db.Text,        nullable=True)   # JSON string
+    occurred_at    = db.Column(db.DateTime,    nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        db.Index('ix_user_events_session_id',  'session_id'),
+        db.Index('ix_user_events_user_id',     'user_id'),
+        db.Index('ix_user_events_event_type',  'event_type'),
+        db.Index('ix_user_events_occurred_at', 'occurred_at'),
+    )
+
+
+# ── Analytics: Daily Stats (aggregated nightly) ───────────────────────────────
+
+class DailyStat(db.Model):
+    __tablename__ = 'daily_stats'
+
+    stat_id               = db.Column(db.String(9),       primary_key=True, default=generate_pk)
+    stat_date             = db.Column(db.Date,            unique=True, nullable=False)
+    total_sessions        = db.Column(db.Integer,         default=0)
+    total_page_views      = db.Column(db.Integer,         default=0)
+    unique_visitors       = db.Column(db.Integer,         default=0)
+    new_vs_returning      = db.Column(db.Text,            nullable=True)
+    bounce_rate           = db.Column(db.Numeric(5, 2),   nullable=True)
+    avg_session_duration  = db.Column(db.Integer,         nullable=True)
+    avg_pages_per_session = db.Column(db.Numeric(4, 2),   nullable=True)
+    device_breakdown      = db.Column(db.Text,            nullable=True)
+    browser_breakdown     = db.Column(db.Text,            nullable=True)
+    referrer_breakdown    = db.Column(db.Text,            nullable=True)
+    top_pages             = db.Column(db.Text,            nullable=True)
+    top_experiences       = db.Column(db.Text,            nullable=True)
+    booking_funnel        = db.Column(db.Text,            nullable=True)
+    bookings_completed    = db.Column(db.Integer,         default=0)
+    revenue_total         = db.Column(db.Numeric(10, 2),  default=0.00)
+    new_accounts          = db.Column(db.Integer,         default=0)
+    contact_submissions   = db.Column(db.Integer,         default=0)
+    chat_sessions_started = db.Column(db.Integer,         default=0)
+    error_404_count       = db.Column(db.Integer,         default=0)
+    error_500_count       = db.Column(db.Integer,         default=0)
+    computed_at           = db.Column(db.DateTime,        nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        db.Index('ix_daily_stats_stat_date', 'stat_date'),
+    )
+
+
+# ── Analytics: Experience Stats (aggregated nightly) ─────────────────────────
+
+class ExperienceStat(db.Model):
+    __tablename__ = 'experience_stats'
+
+    stat_id            = db.Column(db.String(9),      primary_key=True, default=generate_pk)
+    experience_id      = db.Column(db.String(9),      db.ForeignKey('experiences.experience_id'), nullable=False)
+    stat_date          = db.Column(db.Date,           nullable=False)
+    views              = db.Column(db.Integer,        default=0)
+    booking_starts     = db.Column(db.Integer,        default=0)
+    bookings_completed = db.Column(db.Integer,        default=0)
+    conversion_rate    = db.Column(db.Numeric(5, 2),  nullable=True)
+    revenue            = db.Column(db.Numeric(10, 2), default=0.00)
+    avg_time_on_page   = db.Column(db.Integer,        nullable=True)
+    cart_adds          = db.Column(db.Integer,        default=0)
+    abandonment_rate   = db.Column(db.Numeric(5, 2),  nullable=True)
+
+    __table_args__ = (
+        db.Index('ix_experience_stats_experience_id', 'experience_id'),
+        db.Index('ix_experience_stats_stat_date',     'stat_date'),
+    )
+
+
+# ── Analytics: Funnel Steps ───────────────────────────────────────────────────
+
+class FunnelStep(db.Model):
+    __tablename__ = 'funnel_steps'
+
+    step_id              = db.Column(db.String(9),  primary_key=True, default=generate_pk)
+    session_id           = db.Column(db.String(9),  db.ForeignKey('site_sessions.session_id'), nullable=True)
+    experience_id        = db.Column(db.String(9),  db.ForeignKey('experiences.experience_id'), nullable=True)
+    step_name            = db.Column(db.Enum('experience_view', 'booking_start', 'timeslot_select',
+                                              'cart_add', 'checkout_start', 'payment_attempt',
+                                              'booking_complete'), nullable=False)
+    step_order           = db.Column(db.SmallInteger, nullable=False)
+    entered_at           = db.Column(db.DateTime,   nullable=False, default=lambda: datetime.now(timezone.utc))
+    exited_at            = db.Column(db.DateTime,   nullable=True)
+    time_at_step_seconds = db.Column(db.Integer,    nullable=True)
+    completed            = db.Column(db.Boolean,    default=False)
+
+    __table_args__ = (
+        db.Index('ix_funnel_steps_session_id', 'session_id'),
+        db.Index('ix_funnel_steps_entered_at', 'entered_at'),
+    )
+
+
+# ── Analytics: UTM Campaigns (aggregated nightly) ────────────────────────────
+
+class UtmCampaign(db.Model):
+    __tablename__ = 'utm_campaigns'
+
+    campaign_id          = db.Column(db.String(9),      primary_key=True, default=generate_pk)
+    utm_source           = db.Column(db.String(200),    nullable=False)
+    utm_medium           = db.Column(db.String(200),    nullable=False)
+    utm_campaign         = db.Column(db.String(200),    nullable=False)
+    stat_date            = db.Column(db.Date,           nullable=False)
+    sessions             = db.Column(db.Integer,        default=0)
+    page_views           = db.Column(db.Integer,        default=0)
+    bookings_completed   = db.Column(db.Integer,        default=0)
+    revenue              = db.Column(db.Numeric(10, 2), default=0.00)
+    bounce_rate          = db.Column(db.Numeric(5, 2),  nullable=True)
+    avg_session_duration = db.Column(db.Integer,        nullable=True)
+
+    __table_args__ = (
+        db.Index('ix_utm_campaigns_stat_date', 'stat_date'),
+        db.UniqueConstraint('utm_source', 'utm_medium', 'utm_campaign', 'stat_date',
+                            name='uq_utm_campaign_date'),
+    )

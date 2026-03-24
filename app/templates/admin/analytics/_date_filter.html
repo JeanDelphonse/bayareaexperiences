@@ -1,0 +1,9 @@
+{# Date-range filter form — include at top of analytics pages #}
+<form method="get" class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+  <label class="form-label mb-0 fw-semibold small">Date range:</label>
+  <input type="date" name="start" value="{{ start }}" class="form-control form-control-sm" style="width:140px">
+  <span class="text-muted small">to</span>
+  <input type="date" name="end"   value="{{ end }}"   class="form-control form-control-sm" style="width:140px">
+  <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+  <a href="{{ request.path }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+</form>

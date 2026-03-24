@@ -1,0 +1,27 @@
+{# Analytics sub-nav — include inside analytics page content blocks #}
+<div class="d-flex flex-wrap gap-2 mb-4">
+  <a href="{{ url_for('admin.analytics_overview', start=start, end=end) }}"
+     class="btn btn-sm {% if request.endpoint == 'admin.analytics_overview' %}btn-warning{% else %}btn-outline-secondary{% endif %}">
+    <i class="bi bi-speedometer2 me-1"></i>Overview</a>
+  <a href="{{ url_for('admin.analytics_traffic', start=start, end=end) }}"
+     class="btn btn-sm {% if request.endpoint == 'admin.analytics_traffic' %}btn-warning{% else %}btn-outline-secondary{% endif %}">
+    <i class="bi bi-diagram-3 me-1"></i>Traffic</a>
+  <a href="{{ url_for('admin.analytics_experiences', start=start, end=end) }}"
+     class="btn btn-sm {% if request.endpoint == 'admin.analytics_experiences' %}btn-warning{% else %}btn-outline-secondary{% endif %}">
+    <i class="bi bi-compass me-1"></i>Experiences</a>
+  <a href="{{ url_for('admin.analytics_funnel', start=start, end=end) }}"
+     class="btn btn-sm {% if request.endpoint == 'admin.analytics_funnel' %}btn-warning{% else %}btn-outline-secondary{% endif %}">
+    <i class="bi bi-funnel me-1"></i>Funnel</a>
+  <a href="{{ url_for('admin.analytics_users', start=start, end=end) }}"
+     class="btn btn-sm {% if request.endpoint == 'admin.analytics_users' %}btn-warning{% else %}btn-outline-secondary{% endif %}">
+    <i class="bi bi-people me-1"></i>Users</a>
+  <a href="{{ url_for('admin.analytics_campaigns', start=start, end=end) }}"
+     class="btn btn-sm {% if request.endpoint == 'admin.analytics_campaigns' %}btn-warning{% else %}btn-outline-secondary{% endif %}">
+    <i class="bi bi-megaphone me-1"></i>Campaigns</a>
+  <a href="{{ url_for('admin.analytics_errors', start=start, end=end) }}"
+     class="btn btn-sm {% if request.endpoint == 'admin.analytics_errors' %}btn-warning{% else %}btn-outline-secondary{% endif %}">
+    <i class="bi bi-exclamation-triangle me-1"></i>Errors</a>
+  <a href="{{ url_for('admin.analytics_export', start=start, end=end) }}"
+     class="btn btn-sm btn-outline-success ms-auto">
+    <i class="bi bi-download me-1"></i>Export CSV</a>
+</div>

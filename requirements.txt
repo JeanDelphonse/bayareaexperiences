@@ -17,3 +17,4 @@ Werkzeug==3.0.4
 twilio==9.3.6
 anthropic==0.40.0
 Flask-Limiter==3.8.0
+user-agents>=2.2.0
