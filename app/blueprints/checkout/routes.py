@@ -55,16 +55,43 @@ def checkout():
 
 @checkout_bp.route('/checkout/create-payment-intent', methods=['POST'])
 def create_payment_intent():
-    """Create a Stripe PaymentIntent and return the client_secret."""
+    """Create a Stripe PaymentIntent, routing to provider via Connect if applicable."""
+    from decimal import Decimal
+    from app.blueprints.payments.split import calculate_split
     data = request.get_json(force=True)
     amount_cents = int(float(data.get('amount', 0)) * 100)
+    experience_id = data.get('experience_id')
     stripe.api_key = current_app.config.get('STRIPE_SECRET_KEY', '')
+
     try:
-        intent = stripe.PaymentIntent.create(
+        # Determine if this is a provider experience
+        provider_id = None
+        if experience_id:
+            exp = Experience.query.get(experience_id)
+            if exp:
+                provider_id = exp.provider_id
+
+        split = calculate_split(Decimal(str(data.get('amount', 0))), provider_id)
+
+        intent_kwargs = dict(
             amount=amount_cents,
             currency='usd',
             automatic_payment_methods={'enabled': True},
+            metadata={
+                'experience_id':    experience_id or '',
+                'provider_id':      provider_id or 'BAE',
+                'platform_fee':     str(split['platform_fee']),
+                'provider_amount':  str(split['provider_amount']),
+                'commission_rate':  str(split['commission_rate']),
+                'tier':             split['tier'],
+            },
         )
+        # Add Connect transfer only when provider has a connected Stripe account
+        if not split['is_bae_owned'] and split.get('stripe_account_id'):
+            intent_kwargs['application_fee_amount'] = int(float(split['platform_fee']) * 100)
+            intent_kwargs['transfer_data'] = {'destination': split['stripe_account_id']}
+
+        intent = stripe.PaymentIntent.create(**intent_kwargs)
         return jsonify({'clientSecret': intent.client_secret})
-    except stripe.error.StripeError as e:
+    except (stripe.error.StripeError, ValueError) as e:
         return jsonify({'error': str(e)}), 400

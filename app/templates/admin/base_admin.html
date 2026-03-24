@@ -38,6 +38,13 @@
         <i class="bi bi-chat-dots me-2"></i>Chat</a></li>
       <li><a href="{{ url_for('admin.analytics_overview') }}" class="nav-link px-2 py-1 {% if 'analytics' in request.endpoint %}active{% endif %}">
         <i class="bi bi-bar-chart-line me-2"></i>Analytics</a></li>
+      <li class="mt-2"><span class="px-2 py-1 text-secondary small">MARKETPLACE</span></li>
+      <li><a href="{{ url_for('admin.admin_providers') }}" class="nav-link px-2 py-1 {% if 'admin_provider' in request.endpoint %}active{% endif %}">
+        <i class="bi bi-people me-2"></i>Providers</a></li>
+      <li><a href="{{ url_for('admin.admin_review_queue') }}" class="nav-link px-2 py-1 {% if 'review_queue' in request.endpoint %}active{% endif %}">
+        <i class="bi bi-clock-history me-2"></i>Review Queue</a></li>
+      <li><a href="{{ url_for('admin.admin_marketplace_revenue') }}" class="nav-link px-2 py-1 {% if 'revenue' in request.endpoint %}active{% endif %}">
+        <i class="bi bi-cash-coin me-2"></i>Revenue</a></li>
     </ul>
     <div class="mt-auto">
       <hr style="border-color:#495057;">

@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Upload Documents — Bay Area Experiences{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width:720px;">
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item text-success">✓ Application</li>
+      <li class="breadcrumb-item text-success">✓ Tier</li>
+      <li class="breadcrumb-item text-success">✓ Stripe</li>
+      <li class="breadcrumb-item active">Documents</li>
+    </ol>
+  </nav>
+
+  <h2 class="fw-bold mb-1">Verification Documents</h2>
+  <p class="text-muted mb-4">Upload documents to verify your identity and business. Required for approval.</p>
+
+  {% if docs %}
+  <div class="mb-4">
+    <h5>Uploaded Documents</h5>
+    <div class="list-group">
+      {% for doc in docs %}
+      <div class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <span class="fw-semibold">{{ doc.doc_type | replace('_', ' ') | title }}</span>
+          <small class="text-muted ms-2">{{ doc.original_filename }}</small>
+          {% if doc.expires_at %}
+          <small class="text-muted ms-2">Expires: {{ doc.expires_at.strftime('%b %d, %Y') }}</small>
+          {% endif %}
+        </div>
+        <span class="badge
+          {% if doc.status == 'approved' %}bg-success
+          {% elif doc.status == 'rejected' %}bg-danger
+          {% else %}bg-secondary{% endif %}">
+          {{ doc.status | title }}
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card shadow-sm">
+    <div class="card-body p-4">
+      <h5 class="mb-3">Upload a Document</h5>
+      <form method="POST" enctype="multipart/form-data" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="mb-3">
+          {{ form.doc_type.label(class='form-label fw-semibold') }}
+          {{ form.doc_type(class='form-select') }}
+        </div>
+
+        <div class="mb-3">
+          {{ form.expires_at.label(class='form-label fw-semibold') }}
+          {{ form.expires_at(class='form-control', placeholder='YYYY-MM-DD') }}
+        </div>
+
+        <div class="mb-4">
+          {{ form.doc_file.label(class='form-label fw-semibold') }}
+          {{ form.doc_file(class='form-control') }}
+          {% for e in form.doc_file.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+        </div>
+
+        {{ form.submit(class='btn btn-primary') }}
+      </form>
+    </div>
+  </div>
+
+  <div class="mt-4 text-center">
+    <a href="{{ url_for('providers.onboarding_complete') }}" class="btn btn-outline-secondary">
+      Skip for now — I'll upload later
+    </a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends 'providers/dashboard/base_provider.html' %}
+{% block title %}{{ 'Edit' if is_edit else 'New' }} Experience{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4 gap-3">
+  <a href="{{ url_for('providers.dashboard_experiences') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h2 class="fw-bold mb-0">{{ 'Edit' if is_edit else 'New' }} Experience</h2>
+</div>
+
+<div class="card shadow-sm border-0" style="max-width:760px;">
+  <div class="card-body p-4">
+    <form method="POST" novalidate>
+      {{ form.hidden_tag() }}
+
+      <div class="mb-3">
+        {{ form.name.label(class='form-label fw-semibold') }}
+        {{ form.name(class='form-control' + (' is-invalid' if form.name.errors else ''), placeholder='e.g. Golden Gate Sunrise Bike Tour') }}
+        {% for e in form.name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+      </div>
+
+      <div class="mb-3">
+        {{ form.short_description.label(class='form-label fw-semibold') }}
+        {{ form.short_description(class='form-control', placeholder='One-line description shown on listing cards') }}
+        {% for e in form.short_description.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+
+      <div class="mb-3">
+        {{ form.description.label(class='form-label fw-semibold') }}
+        {{ form.description(class='form-control', rows=6, placeholder='Full description for the experience detail page...') }}
+        {% for e in form.description.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          {{ form.category.label(class='form-label fw-semibold') }}
+          {{ form.category(class='form-select') }}
+        </div>
+        <div class="col-md-4">
+          {{ form.duration_hours.label(class='form-label fw-semibold') }}
+          {{ form.duration_hours(class='form-control', placeholder='2.5') }}
+        </div>
+        <div class="col-md-4">
+          {{ form.price.label(class='form-label fw-semibold') }}
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            {{ form.price(class='form-control', placeholder='150.00') }}
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          {{ form.max_guests.label(class='form-label fw-semibold') }}
+          {{ form.max_guests(class='form-control') }}
+        </div>
+        <div class="col-md-4">
+          {{ form.advance_booking_days.label(class='form-label fw-semibold') }}
+          {{ form.advance_booking_days(class='form-select') }}
+        </div>
+        <div class="col-md-4">
+          {{ form.cancellation_policy.label(class='form-label fw-semibold') }}
+          {{ form.cancellation_policy(class='form-select') }}
+        </div>
+      </div>
+
+      <div class="mb-3">
+        {{ form.pickup_cities.label(class='form-label fw-semibold') }}
+        {{ form.pickup_cities(class='form-select', size=4) }}
+        <div class="form-text">Hold Ctrl/Cmd to select multiple.</div>
+      </div>
+
+      <div class="mb-3">
+        {{ form.inclusions.label(class='form-label fw-semibold') }}
+        {{ form.inclusions(class='form-control', rows=3, placeholder='What is included in the price...') }}
+      </div>
+
+      <div class="mb-3">
+        {{ form.what_to_bring.label(class='form-label fw-semibold') }}
+        {{ form.what_to_bring(class='form-control', rows=2, placeholder='e.g. Comfortable shoes, sunscreen...') }}
+      </div>
+
+      <div class="mb-3">
+        {{ form.photo_url.label(class='form-label fw-semibold') }}
+        {{ form.photo_url(class='form-control', placeholder='filename.jpg') }}
+        <div class="form-text">Filename in the static/images/ folder.</div>
+      </div>
+
+      <div class="mb-4 form-check">
+        {{ form.is_active(class='form-check-input') }}
+        {{ form.is_active.label(class='form-check-label') }}
+      </div>
+
+      <div class="d-flex gap-2">
+        {{ form.submit(class='btn btn-warning fw-semibold px-4') }}
+        <a href="{{ url_for('providers.dashboard_experiences') }}" class="btn btn-outline-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

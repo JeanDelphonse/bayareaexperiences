@@ -44,6 +44,15 @@
           <a class="nav-link {% if request.endpoint == 'contact.contact' %}active{% endif %}"
              href="{{ url_for('contact.contact') }}">Contact</a>
         </li>
+        <li class="nav-item">
+          {% if current_user.is_authenticated and current_user.provider %}
+          <a class="nav-link {% if 'providers' in request.endpoint %}active{% endif %}"
+             href="{{ url_for('providers.dashboard') }}">Provider Hub</a>
+          {% else %}
+          <a class="nav-link {% if request.endpoint == 'providers.apply' %}active{% endif %}"
+             href="{{ url_for('providers.apply') }}">Become a Provider</a>
+          {% endif %}
+        </li>
       </ul>
       <!-- Right nav -->
       <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center">

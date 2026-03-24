@@ -1,0 +1,67 @@
+{% extends 'providers/dashboard/base_provider.html' %}
+{% block title %}Edit Profile{% endblock %}
+
+{% block content %}
+<h2 class="fw-bold mb-4">Edit Profile</h2>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <form method="POST" novalidate>
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            {{ form.business_name.label(class='form-label fw-semibold') }}
+            {{ form.business_name(class='form-control' + (' is-invalid' if form.business_name.errors else '')) }}
+            {% for e in form.business_name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="mb-3">
+            {{ form.bio.label(class='form-label fw-semibold') }}
+            {{ form.bio(class='form-control', rows=5) }}
+            {% for e in form.bio.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="mb-3">
+            {{ form.website.label(class='form-label fw-semibold') }}
+            {{ form.website(class='form-control', placeholder='https://') }}
+          </div>
+
+          <div class="mb-3">
+            {{ form.instagram.label(class='form-label fw-semibold') }}
+            <div class="input-group">
+              <span class="input-group-text">@</span>
+              {{ form.instagram(class='form-control') }}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              {{ form.languages_spoken.label(class='form-label fw-semibold') }}
+              {{ form.languages_spoken(class='form-control', placeholder='English, Spanish') }}
+            </div>
+            <div class="col-md-6">
+              {{ form.years_experience.label(class='form-label fw-semibold') }}
+              {{ form.years_experience(class='form-control') }}
+            </div>
+          </div>
+
+          {{ form.submit(class='btn btn-warning fw-semibold px-4') }}
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card border-0 bg-light p-4">
+      <h6 class="fw-bold mb-3">Public Profile</h6>
+      <p class="small text-muted">Your public profile is visible to guests at:</p>
+      <a href="{{ url_for('providers.provider_profile', slug=provider.business_slug) }}"
+         target="_blank" class="text-break small">
+        /providers/{{ provider.business_slug }}
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

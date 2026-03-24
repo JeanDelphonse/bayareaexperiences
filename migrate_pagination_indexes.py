@@ -37,6 +37,7 @@ INDEXES = [
 if __name__ == '__main__':
     app = create_app()
     with app.app_context():
+        db.create_all()   # ensure all tables exist before indexing
         with db.engine.connect() as conn:
             for sql in INDEXES:
                 try:

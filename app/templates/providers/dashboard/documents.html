@@ -1,0 +1,78 @@
+{% extends 'providers/dashboard/base_provider.html' %}
+{% block title %}Documents{% endblock %}
+
+{% block content %}
+<h2 class="fw-bold mb-4">Verification Documents</h2>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    {% if docs %}
+    <div class="mb-4">
+      <div class="list-group">
+        {% for doc in docs %}
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-semibold">{{ doc.doc_type | replace('_', ' ') | title }}</div>
+            <small class="text-muted">{{ doc.original_filename }}</small>
+            {% if doc.expires_at %}
+            <small class="text-muted ms-2">· Expires {{ doc.expires_at.strftime('%b %d, %Y') }}</small>
+            {% endif %}
+            <br><small class="text-muted">Uploaded {{ doc.uploaded_at.strftime('%b %d, %Y') }}</small>
+            {% if doc.rejection_reason %}
+            <div class="text-danger small mt-1">{{ doc.rejection_reason }}</div>
+            {% endif %}
+          </div>
+          <span class="badge
+            {% if doc.status == 'approved' %}bg-success
+            {% elif doc.status == 'rejected' %}bg-danger
+            {% else %}bg-secondary{% endif %} ms-2">
+            {{ doc.status | title }}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-white fw-semibold">Upload New Document</div>
+      <div class="card-body p-4">
+        <form method="POST" enctype="multipart/form-data" novalidate>
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            {{ form.doc_type.label(class='form-label fw-semibold') }}
+            {{ form.doc_type(class='form-select') }}
+          </div>
+
+          <div class="mb-3">
+            {{ form.expires_at.label(class='form-label fw-semibold') }}
+            {{ form.expires_at(class='form-control', placeholder='YYYY-MM-DD') }}
+          </div>
+
+          <div class="mb-4">
+            {{ form.doc_file.label(class='form-label fw-semibold') }}
+            {{ form.doc_file(class='form-control') }}
+            {% for e in form.doc_file.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
+
+          {{ form.submit(class='btn btn-primary') }}
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card border-0 bg-light p-4">
+      <h6 class="fw-bold mb-3">Required Documents</h6>
+      <ul class="list-unstyled small mb-0">
+        <li class="mb-2"><i class="bi bi-id-card me-2 text-muted"></i>Government ID (required)</li>
+        <li class="mb-2"><i class="bi bi-building me-2 text-muted"></i>Business License (if applicable)</li>
+        <li class="mb-2"><i class="bi bi-shield-check me-2 text-muted"></i>Liability Insurance (recommended)</li>
+        <li class="mb-2"><i class="bi bi-car-front me-2 text-muted"></i>Vehicle Registration (for transport)</li>
+        <li class="mb-2"><i class="bi bi-clipboard-check me-2 text-muted"></i>Background Check (Pro tier)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

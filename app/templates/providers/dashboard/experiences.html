@@ -1,0 +1,76 @@
+{% extends 'providers/dashboard/base_provider.html' %}
+{% block title %}My Experiences{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="fw-bold mb-0">My Experiences</h2>
+  {% if not limit_reached %}
+  <a href="{{ url_for('providers.dashboard_experience_new') }}" class="btn btn-warning fw-semibold">
+    <i class="bi bi-plus me-1"></i>Add Experience
+  </a>
+  {% else %}
+  <span class="text-muted small">
+    Limit reached ({{ provider.experience_limit }}).
+    <a href="{{ url_for('providers.dashboard_subscription') }}">Upgrade to Pro</a> for unlimited.
+  </span>
+  {% endif %}
+</div>
+
+{% if experiences %}
+<div class="card shadow-sm border-0">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Name</th>
+          <th>Category</th>
+          <th>Price</th>
+          <th>Duration</th>
+          <th>Status</th>
+          <th>Listing</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for exp in experiences %}
+        <tr>
+          <td class="fw-semibold">{{ exp.name | truncate(40) }}</td>
+          <td><span class="badge bg-light text-dark border">{{ exp.category }}</span></td>
+          <td>${{ "%.0f"|format(exp.price) }}</td>
+          <td>{{ exp.duration_hours }}h</td>
+          <td>
+            <span class="badge
+              {% if exp.listing_status == 'active' %}bg-success
+              {% elif exp.listing_status == 'pending_review' %}bg-warning text-dark
+              {% else %}bg-secondary{% endif %}">
+              {{ exp.listing_status | replace('_', ' ') | title }}
+            </span>
+          </td>
+          <td>
+            <form method="POST" action="{{ url_for('providers.dashboard_experience_toggle', exp_id=exp.experience_id) }}" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm {% if exp.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}">
+                {{ 'Deactivate' if exp.is_active else 'Activate' }}
+              </button>
+            </form>
+          </td>
+          <td>
+            <a href="{{ url_for('providers.dashboard_experience_edit', exp_id=exp.experience_id) }}"
+               class="btn btn-sm btn-outline-primary">Edit</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="text-center py-5 text-muted">
+  <i class="bi bi-compass display-4 mb-3 d-block"></i>
+  <p>No experiences yet. Create your first listing!</p>
+  {% if provider.can_list_experiences %}
+  <a href="{{ url_for('providers.dashboard_experience_new') }}" class="btn btn-warning">Create Experience</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

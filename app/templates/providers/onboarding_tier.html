@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% block title %}Choose Your Tier — Bay Area Experiences{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width:800px;">
+  <!-- Progress -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item text-success">✓ Application</li>
+      <li class="breadcrumb-item active">Choose Tier</li>
+      <li class="breadcrumb-item text-muted">Connect Stripe</li>
+      <li class="breadcrumb-item text-muted">Documents</li>
+    </ol>
+  </nav>
+
+  <h2 class="fw-bold mb-1">Choose your provider tier</h2>
+  <p class="text-muted mb-5">You can upgrade or downgrade at any time.</p>
+
+  {% if provider and not provider.can_list_experiences %}
+  <div class="alert alert-info">
+    <i class="bi bi-clock me-2"></i>Your application is under review. In the meantime, connect Stripe and upload documents to speed up approval.
+  </div>
+  {% endif %}
+
+  <form method="POST">
+    <div class="row g-4 mb-4">
+      <!-- Free -->
+      <div class="col-md-6">
+        <label class="d-block h-100 cursor-pointer">
+          <input type="radio" name="tier" value="free" class="d-none tier-radio"
+                 {% if not provider or provider.tier == 'free' %}checked{% endif %}>
+          <div class="card h-100 border-2 tier-card p-4" id="card-free">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div>
+                <h4 class="mb-0">Free</h4>
+                <p class="text-muted mb-0">Great to get started</p>
+              </div>
+              <span class="fs-3 fw-bold">$0</span>
+            </div>
+            <ul class="list-unstyled mb-0">
+              <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Up to 5 listings</li>
+              <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>20% platform commission</li>
+              <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>You keep 80%</li>
+              <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Full dashboard</li>
+            </ul>
+          </div>
+        </label>
+      </div>
+
+      <!-- Pro -->
+      <div class="col-md-6">
+        <label class="d-block h-100 cursor-pointer">
+          <input type="radio" name="tier" value="pro" class="d-none tier-radio"
+                 {% if provider and provider.tier == 'pro' %}checked{% endif %}>
+          <div class="card h-100 border-2 tier-card p-4" id="card-pro">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div>
+                <h4 class="mb-0">Pro <span class="badge bg-warning text-dark">Best Value</span></h4>
+                <p class="text-muted mb-0">For serious operators</p>
+              </div>
+              <div class="text-end">
+                <span class="fs-3 fw-bold">$149</span><span class="text-muted">/mo</span><br>
+                <small class="text-muted">or $999/yr (save $789)</small>
+              </div>
+            </div>
+            <ul class="list-unstyled mb-0">
+              <li class="mb-2"><i class="bi bi-check-circle-fill text-warning me-2"></i>Unlimited listings</li>
+              <li class="mb-2"><i class="bi bi-check-circle-fill text-warning me-2"></i>Only 5% processing fee</li>
+              <li class="mb-2"><i class="bi bi-check-circle-fill text-warning me-2"></i>You keep 95%</li>
+              <li class="mb-2"><i class="bi bi-check-circle-fill text-warning me-2"></i>Enhanced verified badge</li>
+              <li class="mb-2"><i class="bi bi-check-circle-fill text-warning me-2"></i>Priority placement</li>
+            </ul>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Economics calc -->
+    <div class="card bg-light border-0 mb-4 p-3">
+      <h6 class="mb-3">Earnings estimator</h6>
+      <div class="row align-items-center">
+        <div class="col-md-5">
+          <label class="form-label small">Monthly revenue ($)</label>
+          <input type="range" class="form-range" id="revenueSlider" min="500" max="20000" step="500" value="5000">
+          <div class="text-center fw-bold" id="revenueDisplay">$5,000/mo</div>
+        </div>
+        <div class="col-md-7">
+          <div class="row text-center">
+            <div class="col-6">
+              <div class="small text-muted">Free payout</div>
+              <div class="fs-5 fw-bold text-success" id="freeEarnings">$4,000</div>
+            </div>
+            <div class="col-6">
+              <div class="small text-muted">Pro payout</div>
+              <div class="fs-5 fw-bold text-warning" id="proEarnings">$4,750</div>
+              <div class="small text-muted" id="proSavings">+$750 more</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-warning fw-bold px-5">
+      Continue to Stripe Connect <i class="bi bi-arrow-right ms-2"></i>
+    </button>
+  </form>
+</div>
+
+<style>
+.tier-card { transition: border-color .15s, box-shadow .15s; cursor: pointer; border-color: #dee2e6 !important; }
+.tier-card.selected { border-color: #ffc107 !important; box-shadow: 0 0 0 3px rgba(255,193,7,.25); }
+</style>
+
+<script>
+document.querySelectorAll('.tier-radio').forEach(function(radio) {
+  radio.addEventListener('change', function() {
+    document.querySelectorAll('.tier-card').forEach(c => c.classList.remove('selected'));
+    if (this.value === 'free') document.getElementById('card-free').classList.add('selected');
+    else document.getElementById('card-pro').classList.add('selected');
+  });
+  if (radio.checked) {
+    var card = document.getElementById('card-' + radio.value);
+    if (card) card.classList.add('selected');
+  }
+});
+
+var slider = document.getElementById('revenueSlider');
+function updateCalc() {
+  var rev = parseInt(slider.value);
+  document.getElementById('revenueDisplay').textContent = '$' + rev.toLocaleString() + '/mo';
+  document.getElementById('freeEarnings').textContent = '$' + (rev * 0.80).toLocaleString();
+  var proNet = rev * 0.95 - 149;
+  document.getElementById('proEarnings').textContent = '$' + proNet.toLocaleString();
+  document.getElementById('proSavings').textContent = '+$' + Math.round(proNet - rev * 0.80).toLocaleString() + ' more';
+}
+slider.addEventListener('input', updateCalc);
+updateCalc();
+</script>
+{% endblock %}

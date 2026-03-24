@@ -38,6 +38,14 @@ class Config:
     TRACKING_RETENTION_DAYS  = int(os.environ.get('TRACKING_RETENTION_DAYS', 90))
     GEOIP_PROVIDER           = os.environ.get('GEOIP_PROVIDER', 'ip-api')
 
+    # Marketplace / Provider tiers
+    STRIPE_PRO_MONTHLY_PRICE_ID = os.environ.get('STRIPE_PRO_MONTHLY_PRICE_ID', '')
+    STRIPE_PRO_ANNUAL_PRICE_ID  = os.environ.get('STRIPE_PRO_ANNUAL_PRICE_ID', '')
+    FREE_TIER_COMMISSION_RATE   = float(os.environ.get('FREE_TIER_COMMISSION_RATE', '20'))
+    PRO_TIER_PROCESSING_RATE    = float(os.environ.get('PRO_TIER_PROCESSING_RATE', '5'))
+    PRO_TIER_MONTHLY_PRICE      = float(os.environ.get('PRO_TIER_MONTHLY_PRICE', '149'))
+    PRO_TIER_ANNUAL_PRICE       = float(os.environ.get('PRO_TIER_ANNUAL_PRICE', '999'))
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

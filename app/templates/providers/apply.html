@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block title %}Become a Provider — Bay Area Experiences{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width:720px;">
+  <h1 class="fw-bold mb-1">Become a Provider</h1>
+  <p class="text-muted mb-4">Share your passion for the Bay Area and earn income doing what you love.</p>
+
+  <!-- Tier teaser -->
+  <div class="row g-3 mb-5">
+    <div class="col-md-6">
+      <div class="card border h-100">
+        <div class="card-body">
+          <h5 class="card-title">Free Tier</h5>
+          <p class="display-6 fw-bold text-dark">$0/mo</p>
+          <ul class="list-unstyled small">
+            <li>✓ Up to 5 experience listings</li>
+            <li>✓ 80% payout (20% platform fee)</li>
+            <li>✓ Full booking & dashboard access</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card border border-warning h-100">
+        <div class="card-body">
+          <h5 class="card-title">Pro Tier <span class="badge bg-warning text-dark">Most Popular</span></h5>
+          <p class="display-6 fw-bold text-dark">$149/mo</p>
+          <ul class="list-unstyled small">
+            <li>✓ Unlimited listings</li>
+            <li>✓ 95% payout (5% processing fee only)</li>
+            <li>✓ Enhanced verification badge</li>
+            <li>✓ Priority placement</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body p-4">
+      <h4 class="mb-4">Provider Application</h4>
+      <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="mb-3">
+          {{ form.business_name.label(class='form-label fw-semibold') }}
+          {{ form.business_name(class='form-control' + (' is-invalid' if form.business_name.errors else '')) }}
+          {% for e in form.business_name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.phone.label(class='form-label fw-semibold') }}
+          {{ form.phone(class='form-control' + (' is-invalid' if form.phone.errors else '')) }}
+          {% for e in form.phone.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.bio.label(class='form-label fw-semibold') }}
+          {{ form.bio(class='form-control', rows=4, placeholder='Tell us about yourself, your background, and what makes your experiences special...') }}
+          {% for e in form.bio.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.experience_types.label(class='form-label fw-semibold') }}
+          {{ form.experience_types(class='form-control', placeholder='e.g. Wine tours, bike rides, food walks...') }}
+          {% for e in form.experience_types.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            {{ form.years_experience.label(class='form-label fw-semibold') }}
+            {{ form.years_experience(class='form-control') }}
+          </div>
+          <div class="col-md-6">
+            {{ form.languages_spoken.label(class='form-label fw-semibold') }}
+            {{ form.languages_spoken(class='form-control', placeholder='e.g. English, Spanish') }}
+          </div>
+        </div>
+
+        <div class="mb-3">
+          {{ form.service_cities.label(class='form-label fw-semibold') }}
+          {{ form.service_cities(class='form-select', size=4) }}
+          <div class="form-text">Hold Ctrl/Cmd to select multiple cities.</div>
+          {% for e in form.service_cities.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.website.label(class='form-label fw-semibold') }}
+          {{ form.website(class='form-control', placeholder='https://') }}
+        </div>
+
+        <div class="mb-3">
+          {{ form.instagram.label(class='form-label fw-semibold') }}
+          <div class="input-group">
+            <span class="input-group-text">@</span>
+            {{ form.instagram(class='form-control') }}
+          </div>
+        </div>
+
+        <div class="mb-4">
+          {{ form.why_join.label(class='form-label fw-semibold') }}
+          {{ form.why_join(class='form-control', rows=4) }}
+          {% for e in form.why_join.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+        </div>
+
+        {{ form.submit(class='btn btn-warning fw-bold px-5') }}
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

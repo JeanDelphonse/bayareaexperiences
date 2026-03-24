@@ -1,0 +1,196 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Provider: {{ provider.business_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <a href="{{ url_for('admin.admin_providers') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h2 class="fw-bold mb-0">{{ provider.business_name }}</h2>
+  <span class="badge {% if provider.tier == 'pro' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+    {{ provider.tier | upper }}
+  </span>
+  {% if provider.can_list_experiences %}
+  <span class="badge bg-success">Approved</span>
+  {% elif not provider.is_active %}
+  <span class="badge bg-danger">Rejected</span>
+  {% else %}
+  <span class="badge bg-warning text-dark">Pending Review</span>
+  {% endif %}
+</div>
+
+<div class="row g-4">
+  <!-- Left: Provider info -->
+  <div class="col-lg-7">
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-white fw-semibold">Provider Information</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Owner</dt>
+          <dd class="col-sm-8">{{ provider.user.first_name }} {{ provider.user.last_name }}<br>
+            <a href="mailto:{{ provider.user.email }}">{{ provider.user.email }}</a></dd>
+          <dt class="col-sm-4">Phone</dt>
+          <dd class="col-sm-8">{{ provider.phone or '—' }}</dd>
+          <dt class="col-sm-4">Bio</dt>
+          <dd class="col-sm-8">{{ provider.bio or '—' }}</dd>
+          <dt class="col-sm-4">Experience types</dt>
+          <dd class="col-sm-8">{{ provider.experience_types or '—' }}</dd>
+          <dt class="col-sm-4">Years exp.</dt>
+          <dd class="col-sm-8">{{ provider.years_experience or '—' }}</dd>
+          <dt class="col-sm-4">Cities</dt>
+          <dd class="col-sm-8">{{ provider.service_cities or '—' }}</dd>
+          <dt class="col-sm-4">Why join</dt>
+          <dd class="col-sm-8">{{ provider.why_join or '—' }}</dd>
+          <dt class="col-sm-4">Website</dt>
+          <dd class="col-sm-8">{{ provider.website or '—' }}</dd>
+          <dt class="col-sm-4">Instagram</dt>
+          <dd class="col-sm-8">{{ provider.instagram or '—' }}</dd>
+          <dt class="col-sm-4">Applied</dt>
+          <dd class="col-sm-8">{{ provider.applied_at.strftime('%b %d, %Y %H:%M') }}</dd>
+          <dt class="col-sm-4">Stripe</dt>
+          <dd class="col-sm-8">
+            {{ provider.stripe_account_id or 'Not connected' }}
+            {% if provider.stripe_onboarding_complete %}<span class="badge bg-success ms-1">Complete</span>{% endif %}
+          </dd>
+          <dt class="col-sm-4">Bookings</dt>
+          <dd class="col-sm-8">{{ booking_count }} confirmed</dd>
+        </dl>
+      </div>
+    </div>
+
+    <!-- Documents -->
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-white fw-semibold">Verification Documents ({{ provider.verification_docs | length }})</div>
+      {% if provider.verification_docs %}
+      <div class="list-group list-group-flush">
+        {% for doc in provider.verification_docs %}
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-semibold">{{ doc.doc_type | replace('_', ' ') | title }}</div>
+            <small class="text-muted">{{ doc.original_filename }}</small>
+            {% if doc.expires_at %}
+            <small class="text-muted ms-2">· Expires {{ doc.expires_at.strftime('%b %d, %Y') }}</small>
+            {% endif %}
+          </div>
+          <span class="badge
+            {% if doc.status == 'approved' %}bg-success
+            {% elif doc.status == 'rejected' %}bg-danger
+            {% else %}bg-secondary{% endif %}">
+            {{ doc.status | title }}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card-body text-muted">No documents uploaded.</div>
+      {% endif %}
+    </div>
+
+    <!-- Experiences -->
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-white fw-semibold">Experiences ({{ experiences | length }})</div>
+      {% if experiences %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+          <thead class="table-light">
+            <tr><th>Name</th><th>Category</th><th>Price</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {% for exp in experiences %}
+            <tr>
+              <td>{{ exp.name | truncate(35) }}</td>
+              <td>{{ exp.category }}</td>
+              <td>${{ "%.0f"|format(exp.price) }}</td>
+              <td>
+                <span class="badge
+                  {% if exp.listing_status == 'active' %}bg-success
+                  {% elif exp.listing_status == 'pending_review' %}bg-warning text-dark
+                  {% else %}bg-secondary{% endif %}">
+                  {{ exp.listing_status | replace('_', ' ') | title }}
+                </span>
+              </td>
+              <td>
+                {% if exp.listing_status == 'pending_review' %}
+                <form method="POST" action="{{ url_for('admin.admin_approve_experience', provider_id=provider.provider_id, exp_id=exp.experience_id) }}" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-xs btn-success btn-sm py-0 px-2">Approve</button>
+                </form>
+                <form method="POST" action="{{ url_for('admin.admin_reject_experience', provider_id=provider.provider_id, exp_id=exp.experience_id) }}" class="d-inline ms-1">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-xs btn-danger btn-sm py-0 px-2">Reject</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body text-muted">No experiences created yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right: Actions -->
+  <div class="col-lg-5">
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-white fw-semibold">Actions</div>
+      <div class="card-body d-grid gap-2">
+        {% if not provider.can_list_experiences and provider.is_active %}
+        <form method="POST" action="{{ url_for('admin.admin_provider_approve', provider_id=provider.provider_id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-success w-100 fw-semibold">
+            <i class="bi bi-check-circle me-1"></i>Approve Provider
+          </button>
+        </form>
+        {% endif %}
+
+        {% if provider.is_active and not provider.can_list_experiences %}
+        <button class="btn btn-danger w-100" data-bs-toggle="modal" data-bs-target="#rejectModal">
+          <i class="bi bi-x-circle me-1"></i>Reject Application
+        </button>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('admin.admin_provider_toggle', provider_id=provider.provider_id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline-{% if provider.is_active %}danger{% else %}success{% endif %} w-100">
+            {% if provider.is_active %}Deactivate Account{% else %}Reactivate Account{% endif %}
+          </button>
+        </form>
+      </div>
+    </div>
+
+    {% if provider.rejection_reason %}
+    <div class="card border-danger mb-4">
+      <div class="card-header text-danger fw-semibold">Rejection Reason</div>
+      <div class="card-body">{{ provider.rejection_reason }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Reject Application</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('admin.admin_provider_reject', provider_id=provider.provider_id) }}">
+        <div class="modal-body">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="form-label">Reason (optional — sent to provider)</label>
+          <textarea name="reason" class="form-control" rows="3"
+            placeholder="e.g. Incomplete application, insufficient experience..."></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Reject</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

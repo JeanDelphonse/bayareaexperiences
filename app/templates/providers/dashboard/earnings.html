@@ -1,0 +1,102 @@
+{% extends 'providers/dashboard/base_provider.html' %}
+{% block title %}Earnings{% endblock %}
+
+{% block content %}
+<h2 class="fw-bold mb-4">Earnings</h2>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center">
+        <div class="small text-muted">Total Transferred</div>
+        <div class="fs-2 fw-bold text-success">${{ "%.2f"|format(total_paid) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center">
+        <div class="small text-muted">Pending Transfer</div>
+        <div class="fs-2 fw-bold text-warning">${{ "%.2f"|format(total_pending) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center">
+        <div class="small text-muted">Your Rate</div>
+        <div class="fs-2 fw-bold">
+          {% if provider.tier == 'pro' %}
+          95% <span class="badge bg-warning text-dark fs-6">Pro</span>
+          {% else %}
+          80%
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-white fw-semibold">Payout History</div>
+  {% if payouts.items %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Date</th>
+          <th>Booking</th>
+          <th>Booking Amt</th>
+          <th>Platform Fee</th>
+          <th>Your Amount</th>
+          <th>Rate</th>
+          <th>Transfer</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in payouts.items %}
+        <tr>
+          <td>{{ p.created_at.strftime('%b %d, %Y') }}</td>
+          <td><code class="small">{{ p.booking_id }}</code></td>
+          <td>${{ "%.2f"|format(p.booking_amount) }}</td>
+          <td class="text-danger">-${{ "%.2f"|format(p.platform_fee) }}</td>
+          <td class="fw-bold text-success">${{ "%.2f"|format(p.provider_amount) }}</td>
+          <td>{{ p.commission_rate_applied }}%</td>
+          <td>
+            <span class="badge
+              {% if p.stripe_transfer_status == 'paid' %}bg-success
+              {% elif p.stripe_transfer_status == 'pending' %}bg-warning text-dark
+              {% else %}bg-danger{% endif %}">
+              {{ p.stripe_transfer_status | title }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if payouts.pages > 1 %}
+  <div class="card-footer bg-white">
+    <nav><ul class="pagination pagination-sm justify-content-center mb-0">
+      {% for page in payouts.iter_pages() %}
+        {% if page %}
+          <li class="page-item {% if page == payouts.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('providers.dashboard_earnings', page=page) }}">{{ page }}</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+    </ul></nav>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="card-body text-center py-5 text-muted">
+    <i class="bi bi-cash display-4 d-block mb-3"></i>
+    <p>No payouts yet.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

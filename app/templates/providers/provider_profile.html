@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}{{ provider.business_name }} — Bay Area Experiences{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <!-- Provider Header -->
+  <div class="row g-4 mb-5 align-items-center">
+    <div class="col-auto">
+      {% if provider.headshot_url %}
+      <img src="{{ url_for('static', filename='images/' + provider.headshot_url) }}"
+           class="rounded-circle" width="100" height="100" style="object-fit:cover;" alt="{{ provider.business_name }}">
+      {% else %}
+      <div class="rounded-circle bg-warning d-flex align-items-center justify-content-center"
+           style="width:100px;height:100px;font-size:2.5rem;">
+        {{ provider.business_name[0] | upper }}
+      </div>
+      {% endif %}
+    </div>
+    <div class="col">
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <h1 class="mb-0 fw-bold">{{ provider.business_name }}</h1>
+        {% if provider.is_enhanced_verified %}
+        <span class="badge bg-warning text-dark"><i class="bi bi-patch-check-fill me-1"></i>Pro Verified</span>
+        {% elif provider.is_verified %}
+        <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Verified</span>
+        {% endif %}
+      </div>
+      {% if provider.service_cities %}
+      <p class="text-muted mb-1"><i class="bi bi-geo-alt me-1"></i>{{ provider.service_cities }}</p>
+      {% endif %}
+      {% if provider.years_experience %}
+      <p class="text-muted mb-1"><i class="bi bi-clock-history me-1"></i>{{ provider.years_experience }} years experience</p>
+      {% endif %}
+      <div class="d-flex gap-3 mt-2">
+        {% if provider.website %}
+        <a href="{{ provider.website }}" target="_blank" rel="noopener" class="text-decoration-none text-muted">
+          <i class="bi bi-globe me-1"></i>Website
+        </a>
+        {% endif %}
+        {% if provider.instagram %}
+        <a href="https://instagram.com/{{ provider.instagram }}" target="_blank" rel="noopener" class="text-decoration-none text-muted">
+          <i class="bi bi-instagram me-1"></i>@{{ provider.instagram }}
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      {% if provider.bio %}
+      <div class="mb-5">
+        <h4 class="fw-bold mb-3">About</h4>
+        <p class="lead">{{ provider.bio }}</p>
+      </div>
+      {% endif %}
+
+      <h4 class="fw-bold mb-3">Experiences ({{ experiences | length }})</h4>
+      {% if experiences %}
+      <div class="row g-3">
+        {% for exp in experiences %}
+        <div class="col-md-6">
+          <div class="card h-100 shadow-sm border-0">
+            {% if exp.photo_url %}
+            <img src="{{ url_for('static', filename='images/' + exp.photo_url) }}"
+                 class="card-img-top" style="height:180px;object-fit:cover;" alt="{{ exp.name }}">
+            {% endif %}
+            <div class="card-body">
+              <span class="badge bg-light text-dark border mb-2">{{ exp.category }}</span>
+              <h6 class="card-title fw-bold mb-1">{{ exp.name }}</h6>
+              <p class="card-text text-muted small">{{ exp.short_description or exp.description[:120] }}...</p>
+              <div class="d-flex justify-content-between align-items-center mt-auto">
+                <span class="fw-bold text-dark">${{ "%.0f"|format(exp.price) }}</span>
+                <a href="{{ url_for('main.experience_detail', experience_id=exp.experience_id) }}"
+                   class="btn btn-sm btn-warning fw-semibold">Book</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-muted">No active experiences yet.</p>
+      {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card border-0 bg-light p-4 sticky-top" style="top:80px;">
+        <h6 class="fw-bold mb-3">Provider Details</h6>
+        {% if provider.languages_spoken %}
+        <p class="mb-2 small"><i class="bi bi-translate me-2 text-muted"></i>{{ provider.languages_spoken }}</p>
+        {% endif %}
+        <p class="mb-2 small"><i class="bi bi-calendar3 me-2 text-muted"></i>Member since {{ provider.applied_at.strftime('%b %Y') }}</p>
+        <p class="mb-0 small"><i class="bi bi-compass me-2 text-muted"></i>{{ experiences | length }} experience{{ 's' if experiences | length != 1 }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

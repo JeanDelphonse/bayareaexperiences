@@ -83,14 +83,24 @@ class Experience(db.Model):
     updated_at             = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc),
                                        onupdate=lambda: datetime.now(timezone.utc))
 
+    # Marketplace additions
+    provider_id          = db.Column(db.String(9),   db.ForeignKey('providers.provider_id'), nullable=True)
+    short_description    = db.Column(db.String(200), nullable=True)
+    inclusions           = db.Column(db.Text,        nullable=True)
+    what_to_bring        = db.Column(db.Text,        nullable=True)
+    cancellation_policy  = db.Column(db.Enum('flexible', 'moderate', 'strict'), nullable=True)
+    listing_status       = db.Column(db.Enum('draft', 'pending_review', 'active'), nullable=False, default='active')
+
     staff        = db.relationship('StaffMember', backref='experiences')
     timeslots    = db.relationship('Timeslot', backref='experience', lazy='dynamic')
     pickup_locations = db.relationship('ExperiencePickupLocation', backref='experience',
                                         cascade='all, delete-orphan')
+    provider     = db.relationship('Provider', backref='experiences', foreign_keys=[provider_id])
 
     __table_args__ = (
         db.Index('ix_experiences_slug', 'slug'),
         db.Index('ix_experiences_sort_order', 'sort_order'),
+        db.Index('ix_experiences_provider_id', 'provider_id'),
     )
 
 
@@ -162,6 +172,10 @@ class Booking(db.Model):
     notes           = db.Column(db.Text)
     stripe_payment_intent_id = db.Column(db.String(200))
     referral_source = db.Column(db.String(100))  # C1: hotel partner program tracking
+
+    # Marketplace: payment split columns
+    platform_fee_amount = db.Column(db.Numeric(10, 2), nullable=False, default=0.00)
+    provider_amount     = db.Column(db.Numeric(10, 2), nullable=False, default=0.00)
 
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc),
@@ -456,4 +470,139 @@ class UtmCampaign(db.Model):
         db.Index('ix_utm_campaigns_stat_date', 'stat_date'),
         db.UniqueConstraint('utm_source', 'utm_medium', 'utm_campaign', 'stat_date',
                             name='uq_utm_campaign_date'),
+    )
+
+# ── Marketplace: Providers ────────────────────────────────────────────────────
+
+class Provider(db.Model):
+    __tablename__ = 'providers'
+
+    provider_id             = db.Column(db.String(9),    primary_key=True, default=generate_pk)
+    user_id                 = db.Column(db.String(9),    db.ForeignKey('users.user_id'), nullable=False, unique=True)
+
+    # Business identity
+    business_name           = db.Column(db.String(200),  nullable=False)
+    business_slug           = db.Column(db.String(100),  nullable=False, unique=True)
+    bio                     = db.Column(db.Text,          nullable=True)
+    headshot_url            = db.Column(db.String(500),  nullable=True)
+    cover_photo_url         = db.Column(db.String(500),  nullable=True)
+    website                 = db.Column(db.String(300),  nullable=True)
+    instagram               = db.Column(db.String(200),  nullable=True)
+    languages_spoken        = db.Column(db.String(200),  nullable=True)
+    years_experience        = db.Column(db.Integer,       nullable=True)
+    service_cities          = db.Column(db.String(500),  nullable=True)   # comma-separated
+
+    # Application fields
+    phone                   = db.Column(db.String(30),   nullable=True)
+    experience_types        = db.Column(db.String(500),  nullable=True)   # what kind of tours
+    why_join                = db.Column(db.Text,          nullable=True)
+
+    # Tier & commission
+    tier                    = db.Column(db.Enum('free', 'pro'), nullable=False, default='free')
+    commission_rate         = db.Column(db.Numeric(4, 2), nullable=False, default=20.00)
+    processing_fee_rate     = db.Column(db.Numeric(4, 2), nullable=False, default=5.00)
+    experience_limit        = db.Column(db.Integer,       nullable=False, default=5)
+
+    # Stripe Connect
+    stripe_account_id       = db.Column(db.String(200),  nullable=True)
+    stripe_customer_id      = db.Column(db.String(200),  nullable=True)
+    stripe_onboarding_complete = db.Column(db.Boolean,   nullable=False, default=False)
+
+    # Pro subscription
+    subscription_id         = db.Column(db.String(200),  nullable=True)
+    subscription_status     = db.Column(db.String(50),   nullable=True)
+    subscription_plan       = db.Column(db.Enum('monthly', 'annual'), nullable=True)
+    current_period_end      = db.Column(db.DateTime,     nullable=True)
+
+    # Verification & status
+    is_verified             = db.Column(db.Boolean,       nullable=False, default=False)
+    verification_level      = db.Column(db.Enum('none', 'basic', 'enhanced'), nullable=False, default='none')
+    can_list_experiences    = db.Column(db.Boolean,       nullable=False, default=False)
+    first_listing_approved  = db.Column(db.Boolean,       nullable=False, default=False)
+    is_active               = db.Column(db.Boolean,       nullable=False, default=True)
+    rejection_reason        = db.Column(db.Text,          nullable=True)
+
+    # Timestamps
+    applied_at              = db.Column(db.DateTime,      nullable=False, default=lambda: datetime.now(timezone.utc))
+    approved_at             = db.Column(db.DateTime,      nullable=True)
+    approved_by             = db.Column(db.String(9),     nullable=True)
+    activated_at            = db.Column(db.DateTime,      nullable=True)
+
+    user = db.relationship('User', backref=db.backref('provider', uselist=False))
+
+    __table_args__ = (
+        db.Index('ix_providers_user_id',       'user_id'),
+        db.Index('ix_providers_business_slug', 'business_slug'),
+        db.Index('ix_providers_tier',          'tier'),
+        db.Index('ix_providers_is_active',     'is_active'),
+    )
+
+    @property
+    def effective_commission_rate(self):
+        if self.tier == 'pro':
+            return float(self.processing_fee_rate)
+        return float(self.commission_rate)
+
+    @property
+    def display_name(self):
+        return self.business_name
+
+    @property
+    def is_enhanced_verified(self):
+        return self.verification_level == 'enhanced' and self.tier == 'pro'
+
+
+# ── Marketplace: Provider Verification Documents ──────────────────────────────
+
+class ProviderVerificationDoc(db.Model):
+    __tablename__ = 'provider_verification_docs'
+
+    doc_id            = db.Column(db.String(9),   primary_key=True, default=generate_pk)
+    provider_id       = db.Column(db.String(9),   db.ForeignKey('providers.provider_id'), nullable=False)
+    doc_type          = db.Column(db.Enum('government_id', 'business_license', 'insurance',
+                                          'vehicle_registration', 'background_check'), nullable=False)
+    file_path         = db.Column(db.String(500), nullable=False)
+    original_filename = db.Column(db.String(200), nullable=False)
+    file_size         = db.Column(db.Integer,     nullable=True)
+    status            = db.Column(db.Enum('pending', 'approved', 'rejected'), nullable=False, default='pending')
+    rejection_reason  = db.Column(db.Text,        nullable=True)
+    expires_at        = db.Column(db.Date,         nullable=True)
+    reviewed_by       = db.Column(db.String(9),   nullable=True)
+    reviewed_at       = db.Column(db.DateTime,    nullable=True)
+    uploaded_at       = db.Column(db.DateTime,    nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    provider = db.relationship('Provider', backref='verification_docs')
+
+    __table_args__ = (
+        db.Index('ix_provider_docs_provider_id', 'provider_id'),
+        db.Index('ix_provider_docs_status',      'status'),
+    )
+
+
+# ── Marketplace: Provider Payouts ─────────────────────────────────────────────
+
+class ProviderPayout(db.Model):
+    __tablename__ = 'provider_payouts'
+
+    payout_id                = db.Column(db.String(9),      primary_key=True, default=generate_pk)
+    provider_id              = db.Column(db.String(9),      db.ForeignKey('providers.provider_id'), nullable=False)
+    booking_id               = db.Column(db.String(9),      db.ForeignKey('bookings.booking_id'), nullable=False)
+    booking_amount           = db.Column(db.Numeric(10, 2), nullable=False)
+    platform_fee             = db.Column(db.Numeric(10, 2), nullable=False)
+    provider_amount          = db.Column(db.Numeric(10, 2), nullable=False)
+    stripe_payment_intent_id = db.Column(db.String(200),    nullable=False)
+    stripe_transfer_id       = db.Column(db.String(200),    nullable=True)
+    stripe_transfer_status   = db.Column(db.Enum('pending', 'paid', 'failed'), nullable=False, default='pending')
+    tier_at_time             = db.Column(db.Enum('free', 'pro'), nullable=False, default='free')
+    commission_rate_applied  = db.Column(db.Numeric(4, 2),  nullable=False)
+    transfer_completed_at    = db.Column(db.DateTime,       nullable=True)
+    created_at               = db.Column(db.DateTime,       nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    provider = db.relationship('Provider', backref='payouts')
+    booking  = db.relationship('Booking',  backref='payout')
+
+    __table_args__ = (
+        db.Index('ix_provider_payouts_provider_id', 'provider_id'),
+        db.Index('ix_provider_payouts_booking_id',  'booking_id'),
+        db.Index('ix_provider_payouts_created_at',  'created_at'),
     )

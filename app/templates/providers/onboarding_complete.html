@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Application Submitted — Bay Area Experiences{% endblock %}
+
+{% block content %}
+<div class="container py-5 text-center" style="max-width:560px;">
+  <div class="mb-4">
+    <span class="display-1">🎉</span>
+  </div>
+  <h2 class="fw-bold mb-3">You're all set!</h2>
+  <p class="text-muted lead mb-4">
+    Your application is under review. We typically respond within 2–3 business days.
+    Once approved, you can create your first experience listing.
+  </p>
+
+  {% if provider %}
+  <div class="card bg-light border-0 p-4 mb-4 text-start">
+    <h6 class="mb-3">Your checklist</h6>
+    <ul class="list-unstyled mb-0">
+      <li class="mb-2">
+        <i class="bi bi-check-circle-fill text-success me-2"></i>
+        Application submitted
+      </li>
+      <li class="mb-2">
+        {% if provider.stripe_onboarding_complete %}
+        <i class="bi bi-check-circle-fill text-success me-2"></i>
+        {% else %}
+        <i class="bi bi-circle text-muted me-2"></i>
+        {% endif %}
+        Stripe account connected
+        {% if not provider.stripe_onboarding_complete %}
+        — <a href="{{ url_for('providers.onboarding_stripe') }}">Connect now</a>
+        {% endif %}
+      </li>
+      <li class="mb-2">
+        {% if provider.verification_docs %}
+        <i class="bi bi-check-circle-fill text-success me-2"></i>
+        {% else %}
+        <i class="bi bi-circle text-muted me-2"></i>
+        {% endif %}
+        Verification documents
+        {% if not provider.verification_docs %}
+        — <a href="{{ url_for('providers.onboarding_documents') }}">Upload now</a>
+        {% endif %}
+      </li>
+      <li class="mb-2">
+        {% if provider.can_list_experiences %}
+        <i class="bi bi-check-circle-fill text-success me-2"></i> Approved
+        {% else %}
+        <i class="bi bi-hourglass-split text-warning me-2"></i> Awaiting admin review
+        {% endif %}
+      </li>
+    </ul>
+  </div>
+  {% endif %}
+
+  <a href="{{ url_for('providers.dashboard') }}" class="btn btn-warning fw-bold px-5">
+    Go to Provider Dashboard
+  </a>
+</div>
+{% endblock %}

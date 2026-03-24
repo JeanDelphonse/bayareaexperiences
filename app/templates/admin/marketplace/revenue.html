@@ -1,0 +1,129 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Marketplace Revenue{% endblock %}
+
+{% block content %}
+<h2 class="fw-bold mb-4">Marketplace Revenue</h2>
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center">
+        <div class="small text-muted">Total GMV</div>
+        <div class="fs-2 fw-bold">${{ "%.2f"|format(total_gmv) }}</div>
+        <div class="small text-muted">gross booking value</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center">
+        <div class="small text-muted">Platform Fees</div>
+        <div class="fs-2 fw-bold text-success">${{ "%.2f"|format(total_platform_fees) }}</div>
+        <div class="small text-muted">BAE revenue</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center">
+        <div class="small text-muted">Provider Payouts</div>
+        <div class="fs-2 fw-bold text-primary">${{ "%.2f"|format(total_provider_payouts) }}</div>
+        <div class="small text-muted">paid to providers</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center">
+        <div class="small text-muted">Pending Transfers</div>
+        <div class="fs-2 fw-bold text-warning">${{ "%.2f"|format(pending_transfers) }}</div>
+        <div class="small text-muted">awaiting transfer</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tier breakdown -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h6 class="fw-bold mb-3">Revenue by Tier</h6>
+        <div class="d-flex justify-content-between mb-2">
+          <span><span class="badge bg-secondary me-2">FREE</span>20% commission fees</span>
+          <strong>${{ "%.2f"|format(free_fees) }}</strong>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span><span class="badge bg-warning text-dark me-2">PRO</span>5% processing fees + subscriptions</span>
+          <strong>${{ "%.2f"|format(pro_fees) }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payout ledger -->
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-white fw-semibold">Payout Ledger</div>
+  {% if payouts.items %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 small">
+      <thead class="table-light">
+        <tr>
+          <th>Date</th>
+          <th>Provider</th>
+          <th>Booking</th>
+          <th>Booking Amt</th>
+          <th>Platform Fee</th>
+          <th>Provider Amt</th>
+          <th>Rate</th>
+          <th>Tier</th>
+          <th>Transfer</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in payouts.items %}
+        <tr>
+          <td>{{ p.created_at.strftime('%b %d') }}</td>
+          <td>{{ p.provider.business_name | truncate(20) }}</td>
+          <td><code>{{ p.booking_id }}</code></td>
+          <td>${{ "%.2f"|format(p.booking_amount) }}</td>
+          <td class="text-success">${{ "%.2f"|format(p.platform_fee) }}</td>
+          <td>${{ "%.2f"|format(p.provider_amount) }}</td>
+          <td>{{ p.commission_rate_applied }}%</td>
+          <td><span class="badge {% if p.tier_at_time == 'pro' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ p.tier_at_time | upper }}</span></td>
+          <td>
+            <span class="badge
+              {% if p.stripe_transfer_status == 'paid' %}bg-success
+              {% elif p.stripe_transfer_status == 'pending' %}bg-warning text-dark
+              {% else %}bg-danger{% endif %}">
+              {{ p.stripe_transfer_status | title }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if payouts.pages > 1 %}
+  <div class="card-footer bg-white">
+    <nav><ul class="pagination pagination-sm justify-content-center mb-0">
+      {% for page in payouts.iter_pages() %}
+        {% if page %}
+          <li class="page-item {% if page == payouts.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.admin_marketplace_revenue', page=page) }}">{{ page }}</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+    </ul></nav>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="card-body text-center py-5 text-muted">No payouts yet.</div>
+  {% endif %}
+</div>
+{% endblock %}
