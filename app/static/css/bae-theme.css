@@ -1,0 +1,1193 @@
+/* =============================================================================
+   BAY AREA EXPERIENCES — bae-theme.css
+   Theme: Bay Area Midnight Gold
+   Version: 1.0 — March 2026
+   Replaces: custom.css
+   ============================================================================= */
+
+/* ── 1. CSS Custom Properties ─────────────────────────────────────────────── */
+:root {
+  /* Core brand colors */
+  --bae-navy:       #1A3557;
+  --bae-gold:       #C9952A;
+  --bae-gold-dark:  #A87B22;
+  --bae-gold-text:  #8B6419;
+  --bae-teal:       #2E7D8C;
+  --bae-white:      #FFFFFF;
+  --bae-off-white:  #F2F5F8;
+
+  /* Text */
+  --bae-text:       #1C1C1E;
+  --bae-muted:      #5A6A7A;
+
+  /* Utility surfaces */
+  --bae-light-blue: #EFF4F9;
+  --bae-light-gold: #FDF6EC;
+  --bae-light-green:#EAF4EE;
+  --bae-light-red:  #FAECEA;
+
+  /* Status colors */
+  --bae-success:    #2D7A4F;
+  --bae-danger:     #B03A2E;
+
+  /* Borders */
+  --bae-border:     #D0D8E0;
+  --bae-border-form:#C8D0D8;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-8: 40px;
+  --space-10: 48px;
+  --space-12: 64px;
+
+  /* Border radius */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-full: 9999px;
+}
+
+/* ── 2. Base & Typography ─────────────────────────────────────────────────── */
+html, body {
+  font-family: 'Inter', system-ui, -apple-system, Arial, sans-serif;
+  color: var(--bae-text);
+  background-color: var(--bae-off-white);
+  font-size: 16px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--bae-navy);
+}
+
+.text-muted { color: var(--bae-muted) !important; }
+
+p { line-height: 1.7; }
+
+code, .font-monospace {
+  font-family: ui-monospace, 'Courier New', monospace;
+  font-size: .875em;
+}
+
+/* Eyebrow labels */
+.bae-eyebrow {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bae-muted);
+}
+
+/* ── 3. Navigation (.bae-navbar) ──────────────────────────────────────────── */
+.bae-navbar {
+  background-color: var(--bae-navy) !important;
+  height: 52px;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.bae-navbar .navbar-brand {
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #fff !important;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.bae-navbar .brand-bay {
+  color: #fff;
+}
+
+.bae-navbar .brand-exp {
+  color: #F5C97A;
+}
+
+.bae-navbar .nav-link {
+  color: rgba(255,255,255,.82) !important;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  padding: 0 14px !important;
+  line-height: 52px;
+  transition: color .15s;
+}
+
+.bae-navbar .nav-link:hover,
+.bae-navbar .nav-link.active {
+  color: #fff !important;
+}
+
+.bae-navbar .navbar-toggler {
+  border-color: rgba(255,255,255,.3);
+  padding: 4px 8px;
+}
+
+.bae-navbar .navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255%2c255%2c255%2c.8%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* Cart badge */
+.bae-navbar .badge-cart {
+  background-color: var(--bae-gold);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 500;
+  border-radius: var(--radius-full);
+}
+
+/* ── 4. Buttons ───────────────────────────────────────────────────────────── */
+
+/* Primary (gold, pill) */
+.btn-bae-primary {
+  background-color: var(--bae-gold);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 10px 24px;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background-color .18s, transform .1s;
+  text-decoration: none;
+  display: inline-block;
+  cursor: pointer;
+}
+.btn-bae-primary:hover,
+.btn-bae-primary:focus {
+  background-color: var(--bae-gold-dark);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.btn-bae-primary:active { transform: translateY(0); }
+
+/* Secondary (gold outline) */
+.btn-bae-secondary {
+  background: transparent;
+  color: var(--bae-gold-text);
+  border: 1.5px solid var(--bae-gold);
+  border-radius: var(--radius-full);
+  padding: 9px 24px;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background-color .18s, color .18s;
+  text-decoration: none;
+  display: inline-block;
+  cursor: pointer;
+}
+.btn-bae-secondary:hover,
+.btn-bae-secondary:focus {
+  background-color: var(--bae-gold);
+  color: #fff;
+}
+
+/* Nav CTA (compact pill) */
+.btn-bae-nav {
+  background-color: var(--bae-gold);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color .15s;
+}
+.btn-bae-nav:hover { background-color: var(--bae-gold-dark); color: #fff; }
+
+/* Danger */
+.btn-bae-danger {
+  background-color: var(--bae-danger);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 10px 24px;
+  font-weight: 500;
+  transition: background-color .18s;
+}
+.btn-bae-danger:hover { background-color: #8B2D23; color: #fff; }
+
+/* Ghost (admin) */
+.btn-bae-ghost {
+  background: transparent;
+  color: var(--bae-navy);
+  border: 1px solid var(--bae-border);
+  border-radius: var(--radius-md);
+  padding: 8px 16px;
+  transition: background-color .15s;
+}
+.btn-bae-ghost:hover { background-color: var(--bae-light-blue); }
+
+/* Override Bootstrap warning to match gold */
+.btn-warning {
+  background-color: var(--bae-gold) !important;
+  border-color: var(--bae-gold) !important;
+  color: #fff !important;
+  border-radius: var(--radius-full) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em;
+}
+.btn-warning:hover, .btn-warning:focus {
+  background-color: var(--bae-gold-dark) !important;
+  border-color: var(--bae-gold-dark) !important;
+  color: #fff !important;
+}
+
+.btn-outline-warning {
+  color: var(--bae-gold-text) !important;
+  border-color: var(--bae-gold) !important;
+  border-radius: var(--radius-full) !important;
+}
+.btn-outline-warning:hover {
+  background-color: var(--bae-gold) !important;
+  color: #fff !important;
+}
+
+/* ── 5. Hero Section (.bae-hero) ──────────────────────────────────────────── */
+.bae-hero {
+  background-color: var(--bae-navy);
+  height: 420px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.bae-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 30% 50%, rgba(46,125,140,.35) 0%, transparent 65%),
+              radial-gradient(ellipse at 75% 20%, rgba(201,149,42,.18) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.bae-hero__bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.18;
+}
+
+.bae-hero__content {
+  position: relative;
+  z-index: 2;
+  color: #fff;
+}
+
+.bae-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.25);
+  color: #F5C97A;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  border-radius: var(--radius-full);
+  padding: 5px 14px;
+  margin-bottom: 20px;
+}
+
+.bae-hero__headline {
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: #fff;
+  margin-bottom: 14px;
+}
+
+.bae-hero__subline {
+  font-size: 16px;
+  color: rgba(255,255,255,.78);
+  margin-bottom: 28px;
+  max-width: 520px;
+}
+
+.bae-hero__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.bae-hero__stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  font-size: 13px;
+  color: rgba(255,255,255,.9);
+}
+
+.bae-hero__stat-chip i {
+  color: var(--bae-gold);
+  font-size: 14px;
+}
+
+@media (max-width: 767px) {
+  .bae-hero { height: 320px; }
+  .bae-hero__headline { font-size: 24px; }
+  .bae-hero__subline { font-size: 14px; }
+}
+
+/* ── 6. Vibe Selector (.bae-vibe-*) ──────────────────────────────────────── */
+.bae-vibe-section {
+  background-color: var(--bae-off-white);
+  padding: var(--space-8) 0 var(--space-6);
+  border-bottom: 0.5px solid var(--bae-border);
+}
+
+.bae-vibe-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  padding: 0 var(--space-5);
+}
+
+.bae-vibe-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border: 1.5px solid var(--bae-border);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  cursor: pointer;
+  transition: border-color .15s, background-color .15s, box-shadow .15s;
+  min-width: 100px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bae-text);
+  text-align: center;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.bae-vibe-btn:hover {
+  border-color: var(--bae-gold);
+  box-shadow: 0 2px 10px rgba(201,149,42,.18);
+}
+
+.bae-vibe-btn.active {
+  border-color: var(--bae-gold);
+  background-color: var(--bae-light-gold);
+  color: var(--bae-navy);
+  box-shadow: 0 2px 10px rgba(201,149,42,.2);
+}
+
+.bae-vibe-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+/* Vibe-specific icon backgrounds */
+.bae-vibe-icon--all      { background: #EFF4F9; color: var(--bae-navy); }
+.bae-vibe-icon--explore  { background: #E1F5EE; color: #1A7A57; }
+.bae-vibe-icon--wine     { background: #FDF6EC; color: var(--bae-gold-dark); }
+.bae-vibe-icon--trails   { background: #EAF3DE; color: #3D6B1A; }
+.bae-vibe-icon--celebrate{ background: #FBEAF0; color: #A02060; }
+.bae-vibe-icon--style    { background: #E6F1FB; color: #1A5A9A; }
+.bae-vibe-icon--team     { background: #EEEDFE; color: #5040A0; }
+
+@media (max-width: 575px) {
+  .bae-vibe-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+  }
+  .bae-vibe-row::-webkit-scrollbar { display: none; }
+  .bae-vibe-btn { min-width: 88px; font-size: 12px; padding: 10px 14px; }
+}
+
+/* ── 7. Results Section ───────────────────────────────────────────────────── */
+.bae-results-section {
+  background-color: var(--bae-off-white);
+  padding: var(--space-6) 0 var(--space-12);
+}
+
+.bae-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: var(--space-5);
+}
+
+.bae-results-count {
+  font-size: 14px;
+  color: var(--bae-muted);
+}
+
+/* Sort chips */
+.bae-sort-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bae-sort-chip {
+  padding: 5px 14px;
+  border: 1px solid var(--bae-border);
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bae-muted);
+  background: #fff;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.bae-sort-chip:hover {
+  border-color: var(--bae-navy);
+  color: var(--bae-navy);
+}
+
+.bae-sort-chip.active {
+  background: var(--bae-navy);
+  border-color: var(--bae-navy);
+  color: #fff;
+}
+
+/* ── 8. Featured Banner (.bae-featured-banner) ───────────────────────────── */
+.bae-featured-banner {
+  background: var(--bae-light-gold);
+  border: 2px solid var(--bae-gold);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6);
+  margin-bottom: var(--space-6);
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.bae-featured-banner__label {
+  display: inline-block;
+  background: var(--bae-gold);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: var(--radius-full);
+  padding: 3px 10px;
+  margin-bottom: 6px;
+}
+
+.bae-featured-banner__title {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--bae-navy);
+  margin-bottom: 4px;
+}
+
+.bae-featured-banner__meta {
+  font-size: 13px;
+  color: var(--bae-muted);
+}
+
+.bae-featured-banner__img {
+  width: 100px;
+  height: 70px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+/* ── 9. Experience Cards (.bae-exp-card) ──────────────────────────────────── */
+.bae-exp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.bae-exp-card {
+  background: #fff;
+  border: 0.5px solid var(--bae-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform .18s, border-color .18s, box-shadow .18s;
+}
+
+.bae-exp-card:hover {
+  transform: translateY(-2px);
+  border-color: #A8B4C0;
+  box-shadow: 0 6px 20px rgba(26,53,87,.1);
+}
+
+.bae-exp-card__img-wrap {
+  position: relative;
+  height: 160px;
+  overflow: hidden;
+}
+
+.bae-exp-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform .3s;
+}
+
+.bae-exp-card:hover .bae-exp-card__img {
+  transform: scale(1.04);
+}
+
+.bae-exp-card__badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(26,53,87,.82);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  backdrop-filter: blur(4px);
+}
+
+.bae-exp-card__provider-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  padding: 3px 7px;
+}
+
+.bae-exp-card__body {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.bae-exp-card__title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--bae-navy);
+  line-height: 1.3;
+  margin-bottom: 6px;
+}
+
+.bae-exp-card__desc {
+  font-size: 13px;
+  color: var(--bae-muted);
+  line-height: 1.5;
+  margin-bottom: var(--space-3);
+  flex: 1;
+}
+
+.bae-exp-card__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+}
+
+.bae-exp-card__duration {
+  font-size: 13px;
+  color: var(--bae-muted);
+}
+
+.bae-exp-card__price {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--bae-navy);
+}
+
+.bae-exp-card__btn {
+  display: block;
+  text-align: center;
+  padding: 8px;
+  border: 1.5px solid var(--bae-gold);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bae-gold-text);
+  text-decoration: none;
+  transition: background-color .15s, color .15s;
+  background: transparent;
+}
+
+.bae-exp-card__btn:hover {
+  background-color: var(--bae-gold);
+  color: #fff;
+}
+
+/* No-results state */
+.bae-no-results {
+  text-align: center;
+  padding: var(--space-12) 0;
+  color: var(--bae-muted);
+  display: none;
+}
+
+/* ── 10. Experience Detail ─────────────────────────────────────────────────── */
+.bae-detail-hero {
+  height: 560px;
+  position: relative;
+  overflow: hidden;
+}
+
+.bae-detail-hero__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.bae-detail-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(26,53,87,.60);
+}
+
+.bae-detail-hero__content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--space-8) var(--space-5);
+  color: #fff;
+}
+
+.bae-detail-hero__category {
+  display: inline-block;
+  background: var(--bae-gold);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  margin-bottom: 10px;
+}
+
+.bae-detail-hero__title {
+  font-size: 28px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 10px;
+  line-height: 1.2;
+}
+
+.bae-detail-hero__price {
+  font-size: 24px;
+  font-weight: 500;
+  color: #F5C97A;
+}
+
+@media (max-width: 767px) {
+  .bae-detail-hero { height: 280px; }
+  .bae-detail-hero__title { font-size: 20px; }
+}
+
+/* Booking sidebar */
+.bae-booking-sidebar {
+  background: #fff;
+  border: 0.5px solid var(--bae-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  position: sticky;
+  top: 68px;
+}
+
+.bae-booking-sidebar__price {
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--bae-navy);
+}
+
+/* Mobile sticky booking bar */
+.bae-mobile-booking-bar {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  height: 52px;
+  background: var(--bae-navy);
+  padding: 0 var(--space-5);
+  align-items: center;
+  justify-content: space-between;
+}
+
+@media (max-width: 991px) {
+  .bae-mobile-booking-bar { display: flex; }
+  body { padding-bottom: 60px; }
+}
+
+/* Provider section on detail page */
+.bae-provider-section {
+  background: var(--bae-light-blue);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.bae-provider-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--bae-navy);
+  color: var(--bae-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 500;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.bae-provider-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── 11. Tier Badges ───────────────────────────────────────────────────────── */
+.bae-tier-free {
+  background: var(--bae-light-blue);
+  color: var(--bae-navy);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+}
+
+.bae-tier-pro {
+  background: var(--bae-light-gold);
+  color: var(--bae-gold-text);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+}
+
+.bae-verified-icon { color: var(--bae-gold); }
+
+/* ── 12. Form Elements ─────────────────────────────────────────────────────── */
+.form-control,
+.form-select {
+  border: 1px solid var(--bae-border-form);
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  color: var(--bae-text);
+  background-color: #fff;
+  padding: 10px 14px;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border: 1.5px solid var(--bae-navy);
+  box-shadow: 0 0 0 3px rgba(26,53,87,.12);
+  outline: none;
+}
+
+.form-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bae-navy);
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.form-text {
+  font-size: 12px;
+  color: var(--bae-muted);
+}
+
+.form-control.is-invalid,
+.form-select.is-invalid {
+  border-color: var(--bae-danger);
+}
+
+.invalid-feedback {
+  color: var(--bae-danger);
+  font-size: 13px;
+}
+
+/* ── 13. Flash Messages / Alerts ──────────────────────────────────────────── */
+.alert {
+  border-radius: var(--radius-md);
+  border: none;
+  border-left: 4px solid transparent;
+  font-size: 14px;
+  padding: 12px 16px;
+}
+
+.alert-success {
+  background: var(--bae-light-green);
+  border-left-color: var(--bae-success);
+  color: var(--bae-success);
+}
+
+.alert-danger {
+  background: var(--bae-light-red);
+  border-left-color: var(--bae-danger);
+  color: var(--bae-danger);
+}
+
+.alert-warning {
+  background: var(--bae-light-gold);
+  border-left-color: var(--bae-gold);
+  color: var(--bae-gold-text);
+}
+
+.alert-info {
+  background: var(--bae-light-blue);
+  border-left-color: var(--bae-teal);
+  color: var(--bae-teal);
+}
+
+/* ── 14. Badges & Status Pills ─────────────────────────────────────────────── */
+.badge {
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+}
+
+.bae-status-confirmed {
+  background: var(--bae-light-green);
+  color: var(--bae-success);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 8px;
+}
+
+.bae-status-cancelled {
+  background: var(--bae-light-red);
+  color: var(--bae-danger);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 8px;
+}
+
+.bae-status-pending {
+  background: var(--bae-light-gold);
+  color: var(--bae-gold-text);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 8px;
+}
+
+/* ── 15. Booking Flow Stepper ─────────────────────────────────────────────── */
+.bae-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: var(--space-5) 0;
+}
+
+.bae-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+
+.bae-step__circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  border: 2px solid var(--bae-border);
+  background: #fff;
+  color: var(--bae-muted);
+}
+
+.bae-step--active .bae-step__circle {
+  background: var(--bae-navy);
+  border-color: var(--bae-navy);
+  color: #fff;
+}
+
+.bae-step--done .bae-step__circle {
+  background: var(--bae-gold);
+  border-color: var(--bae-gold);
+  color: #fff;
+}
+
+.bae-step__label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--bae-muted);
+  white-space: nowrap;
+}
+
+.bae-step--active .bae-step__label { color: var(--bae-navy); }
+.bae-step--done .bae-step__label   { color: var(--bae-gold-text); }
+
+.bae-step-connector {
+  height: 2px;
+  width: 60px;
+  background: var(--bae-border);
+  margin: 0 4px;
+  margin-bottom: 18px;
+  flex-shrink: 0;
+}
+
+.bae-step-connector--done { background: var(--bae-navy); }
+
+/* ── 16. Admin Module ─────────────────────────────────────────────────────── */
+.bae-admin-sidebar {
+  background-color: var(--bae-navy) !important;
+  width: 240px;
+  min-height: 100vh;
+}
+
+.bae-admin-sidebar .nav-link {
+  color: rgba(255,255,255,.72);
+  font-size: 13.5px;
+  border-radius: var(--radius-md);
+  padding: 8px 12px !important;
+  margin-bottom: 2px;
+  transition: background-color .15s, color .15s, border-left .15s;
+  border-left: 3px solid transparent;
+}
+
+.bae-admin-sidebar .nav-link:hover {
+  color: #fff;
+  background: rgba(255,255,255,.08);
+}
+
+.bae-admin-sidebar .nav-link.active {
+  color: #fff;
+  background: rgba(201,149,42,.15);
+  border-left-color: var(--bae-gold);
+}
+
+.bae-admin-sidebar .section-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.35);
+  padding: 12px 12px 4px;
+}
+
+/* Admin KPI cards */
+.bae-kpi-card {
+  background: #fff;
+  border: 0.5px solid var(--bae-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.bae-kpi-card__value {
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--bae-navy);
+  line-height: 1.1;
+}
+
+.bae-kpi-card__label {
+  font-size: 13px;
+  color: var(--bae-muted);
+  margin-top: 4px;
+}
+
+/* Admin tables */
+.bae-admin-table th {
+  background-color: var(--bae-navy);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  border: none;
+  padding: 10px 14px;
+}
+
+.bae-admin-table td {
+  padding: 10px 14px;
+  border-bottom: 0.5px solid var(--bae-border);
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.bae-admin-table tr:nth-child(even) td {
+  background-color: var(--bae-light-blue);
+}
+
+/* ── 17. Footer (.bae-footer) ─────────────────────────────────────────────── */
+.bae-footer {
+  background-color: var(--bae-navy);
+  color: rgba(255,255,255,.65);
+  padding: var(--space-8) 0;
+  margin-top: var(--space-12);
+  font-size: 14px;
+}
+
+.bae-footer a {
+  color: rgba(255,255,255,.65);
+  text-decoration: none;
+  transition: color .15s;
+}
+
+.bae-footer a:hover { color: var(--bae-gold); }
+
+.bae-footer__brand {
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.bae-footer__divider {
+  border-color: rgba(255,255,255,.12);
+  margin: var(--space-5) 0;
+}
+
+/* ── 18. Cards & Surfaces ─────────────────────────────────────────────────── */
+.card {
+  border: 0.5px solid var(--bae-border);
+  border-radius: var(--radius-lg);
+  background: #fff;
+}
+
+.card-header {
+  background: #fff;
+  border-bottom: 0.5px solid var(--bae-border);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--bae-navy);
+}
+
+/* ── 19. Accessibility ─────────────────────────────────────────────────────── */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--bae-navy);
+  outline-offset: 2px;
+}
+
+/* ── 20. Provider Dashboard ────────────────────────────────────────────────── */
+.bae-provider-sidebar {
+  background-color: #1a1a2e;
+  width: 220px;
+  min-height: 100vh;
+}
+
+.bae-provider-sidebar .nav-link {
+  color: rgba(168,178,216,.85);
+  font-size: 13.5px;
+  padding: 8px 12px !important;
+  border-radius: var(--radius-md);
+  transition: color .15s, background-color .15s;
+  margin-bottom: 2px;
+}
+
+.bae-provider-sidebar .nav-link:hover,
+.bae-provider-sidebar .nav-link.active {
+  color: var(--bae-gold);
+  background: rgba(201,149,42,.1);
+}
+
+/* ── 21. Misc Utility ─────────────────────────────────────────────────────── */
+
+/* Admin drag handle */
+#experienceList tr { cursor: grab; }
+#experienceList tr:active { cursor: grabbing; }
+#experienceList tr.sortable-ghost { opacity:.4; background:#FDF6EC; }
+
+/* Timeslot buttons */
+#timeslotList .btn { min-width: 120px; }
+
+/* Override Bootstrap table */
+.table { --bs-table-bg: #fff; --bs-table-striped-bg: var(--bae-light-blue); }
+.table thead th { color: var(--bae-navy); font-weight: 500; font-size: 13px; }
+.table-hover > tbody > tr:hover > * { background-color: var(--bae-light-blue); }
+
+/* Page content area */
+.main-content { background: var(--bae-off-white); min-height: 100vh; }
+
+@media (max-width: 576px) {
+  .bae-detail-hero { height: 240px; }
+  .bae-exp-grid { grid-template-columns: 1fr; }
+}
+
+/* ── 22. Convenience aliases ────────────────────────────────────────────────── */
+
+/* Outline book button (used in card grids) */
+.btn-bae-outline {
+  display: block;
+  text-align: center;
+  padding: 8px;
+  border: 1.5px solid var(--bae-gold);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bae-gold-text);
+  text-decoration: none;
+  transition: background-color .15s, color .15s;
+  background: transparent;
+  cursor: pointer;
+}
+.btn-bae-outline:hover {
+  background-color: var(--bae-gold);
+  color: #fff;
+}
+
+/* Hero image overlay */
+.bae-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(26,53,87,0.50) 0%, rgba(26,53,87,0.72) 100%);
+}
+
+/* Footer link */
+.bae-footer-link {
+  color: rgba(255,255,255,.65);
+  text-decoration: none;
+  transition: color .15s;
+}
+.bae-footer-link:hover { color: var(--bae-gold); }

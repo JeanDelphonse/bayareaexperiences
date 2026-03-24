@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Ride With Us — Bay Area Experiences{% endblock %}
+{% block title %}All Experiences — Bay Area Experiences{% endblock %}
 
 {% block meta_description %}
 <meta name="description" content="Explore the best sights and landmarks around the Bay Area with our expert tour guides. Book your small-group tour today.">
@@ -11,40 +11,54 @@
 {% endblock %}
 
 {% block content %}
+
+<!-- Page Header -->
+<div style="background:var(--bae-navy);padding:48px 0 40px;">
+  <div class="container text-center">
+    <p class="bae-eyebrow mb-1" style="color:var(--bae-gold);">San Francisco Bay Area</p>
+    <h1 class="fw-bold text-white mb-2">All Experiences</h1>
+    <p class="mb-0" style="color:#a8b8c8;max-width:560px;margin:0 auto;">
+      From historical landmarks to natural wonders — choose your Bay Area adventure.
+    </p>
+  </div>
+</div>
+
 <section class="py-5">
   <div class="container">
-    <h1 class="fw-bold text-center mb-2">Ride With Us and Feel</h1>
-    <p class="lead text-center text-muted mb-2">Explore the best sights and landmarks around with our expert tour guides.</p>
-    <p class="text-center text-muted mb-5">
-      From historical landmarks to natural wonders, Bay Area Experiences Sightseeing Tours offers a variety of tours to suit your interests.
-      Book your tour today and discover the beauty of our city with us.
-    </p>
-
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
       {% for exp in experiences %}
       <div class="col">
-        <div class="card h-100 shadow-sm border-0 experience-card">
-          <img src="{{ url_for('main.image', filename=(exp.photo_url or 'jeep.webp')) }}"
-               class="card-img-top experience-card-img"
-               alt="{{ exp.name }}"
-               onerror="this.onerror=null;this.src='{{ url_for('main.image', filename='jeep.webp') }}'">
-          <div class="card-body d-flex flex-column">
-            <span class="badge bg-warning text-dark mb-2 align-self-start">{{ exp.category }}</span>
-            <h5 class="card-title fw-bold">{{ exp.name }}</h5>
-            <p class="card-text text-muted flex-grow-1">
-              {{ exp.description[:140] ~ '...' if exp.description and exp.description|length > 140 else exp.description }}
+        <div class="bae-exp-card h-100">
+          <div class="bae-exp-card__img-wrap">
+            <img src="{{ url_for('main.image', filename=(exp.photo_url or 'jeep.webp')) }}"
+                 class="bae-exp-card__img"
+                 alt="{{ exp.name }}"
+                 onerror="this.onerror=null;this.src='{{ url_for('main.image', filename='jeep.webp') }}'">
+            <span class="bae-exp-card__badge">{{ exp.category }}</span>
+          </div>
+          <div class="bae-exp-card__body d-flex flex-column">
+            <h5 class="bae-exp-card__title">{{ exp.name }}</h5>
+            <p class="bae-exp-card__desc flex-grow-1">
+              {{ (exp.short_description or exp.description)[:120] }}{% if (exp.short_description or exp.description)|length > 120 %}…{% endif %}
             </p>
             <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
-              <span class="text-muted small"><i class="bi bi-clock me-1"></i>{{ exp.duration_hours|int }}{% if exp.duration_hours % 1 %}.{{ ((exp.duration_hours % 1) * 10)|int }}{% endif %} hours</span>
-              <span class="fs-5 fw-bold">${{ "%.0f"|format(exp.price) }}</span>
+              <span class="text-muted small"><i class="bi bi-clock me-1"></i>{{ exp.duration_hours }}h</span>
+              <span class="bae-exp-card__price">${{ "%.0f"|format(exp.price) }}</span>
             </div>
             <a href="{{ url_for('main.experience_detail', slug=exp.slug) }}"
-               class="btn btn-warning w-100 fw-semibold">View & Book</a>
+               class="btn-bae-outline w-100 fw-semibold">View &amp; Book</a>
           </div>
         </div>
       </div>
       {% endfor %}
     </div>
+
+    {% if not experiences %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-compass display-4 d-block mb-3"></i>
+      <p>No experiences available yet. Check back soon!</p>
+    </div>
+    {% endif %}
   </div>
 </section>
 {% endblock %}
