@@ -37,22 +37,74 @@ def _daily_stats_range(start, end):
 @login_required
 @admin_required
 def analytics_overview():
-    from app.models import DailyStat
+    from app.models import DailyStat, SiteSession, PageView, Booking, User
     start, end = _date_range()
     stats = _daily_stats_range(start, end)
 
-    total_sessions  = sum(s.total_sessions      or 0 for s in stats)
-    unique_visitors = sum(s.unique_visitors      or 0 for s in stats)
-    total_pv        = sum(s.total_page_views     or 0 for s in stats)
-    total_revenue   = sum(float(s.revenue_total  or 0) for s in stats)
-    total_bookings  = sum(s.bookings_completed   or 0 for s in stats)
-    avg_bounce      = (sum(float(s.bounce_rate or 0) for s in stats) / len(stats)) if stats else 0
-    avg_duration    = (sum(s.avg_session_duration or 0 for s in stats) / len(stats)) if stats else 0
+    # If aggregated data exists, use it; otherwise fall back to raw tables
+    if stats:
+        total_sessions  = sum(s.total_sessions      or 0 for s in stats)
+        unique_visitors = sum(s.unique_visitors      or 0 for s in stats)
+        total_pv        = sum(s.total_page_views     or 0 for s in stats)
+        total_revenue   = sum(float(s.revenue_total  or 0) for s in stats)
+        total_bookings  = sum(s.bookings_completed   or 0 for s in stats)
+        avg_bounce      = (sum(float(s.bounce_rate or 0) for s in stats) / len(stats)) if stats else 0
+        avg_duration    = (sum(s.avg_session_duration or 0 for s in stats) / len(stats)) if stats else 0
+        chart_labels   = [s.stat_date.strftime('%b %d') for s in stats]
+        chart_sessions = [s.total_sessions or 0 for s in stats]
+        chart_revenue  = [float(s.revenue_total or 0) for s in stats]
+        data_source    = 'aggregated'
+    else:
+        # Live query from raw operational tables
+        start_dt = datetime(start.year, start.month, start.day, tzinfo=timezone.utc)
+        end_dt   = datetime(end.year,   end.month,   end.day,   23, 59, 59, tzinfo=timezone.utc)
 
-    # Chart data — sessions per day
-    chart_labels  = [s.stat_date.strftime('%b %d') for s in stats]
-    chart_sessions = [s.total_sessions or 0 for s in stats]
-    chart_revenue  = [float(s.revenue_total or 0) for s in stats]
+        total_sessions  = SiteSession.query.filter(
+            SiteSession.started_at >= start_dt,
+            SiteSession.started_at <= end_dt).count()
+        unique_visitors = db.session.query(func.count(func.distinct(SiteSession.ip_hash))).filter(
+            SiteSession.started_at >= start_dt,
+            SiteSession.started_at <= end_dt,
+            SiteSession.ip_hash != None).scalar() or 0
+        total_pv = PageView.query.filter(
+            PageView.viewed_at >= start_dt,
+            PageView.viewed_at <= end_dt).count()
+
+        confirmed_bookings = Booking.query.filter(
+            Booking.created_at >= start_dt,
+            Booking.created_at <= end_dt,
+            Booking.booking_status == 'confirmed').all()
+        total_bookings = len(confirmed_bookings)
+        total_revenue  = sum(float(b.amount_total or 0) for b in confirmed_bookings)
+        avg_bounce     = 0
+        avg_duration   = 0
+
+        # Build day-by-day chart data from sessions
+        day_counts = {}
+        day_revenue = {}
+        d = start
+        while d <= end:
+            day_counts[d]  = 0
+            day_revenue[d] = 0.0
+            d += timedelta(days=1)
+
+        sessions_in_range = SiteSession.query.filter(
+            SiteSession.started_at >= start_dt,
+            SiteSession.started_at <= end_dt).all()
+        for s in sessions_in_range:
+            d = s.started_at.date()
+            if d in day_counts:
+                day_counts[d] += 1
+
+        for b in confirmed_bookings:
+            d = b.created_at.date()
+            if d in day_revenue:
+                day_revenue[d] += float(b.amount_total or 0)
+
+        chart_labels   = [d.strftime('%b %d') for d in sorted(day_counts)]
+        chart_sessions = [day_counts[d] for d in sorted(day_counts)]
+        chart_revenue  = [day_revenue[d] for d in sorted(day_counts)]
+        data_source    = 'live'
 
     return render_template('admin/analytics/overview.html',
                            start=start, end=end,
@@ -65,7 +117,8 @@ def analytics_overview():
                            avg_duration=int(avg_duration),
                            chart_labels=json.dumps(chart_labels),
                            chart_sessions=json.dumps(chart_sessions),
-                           chart_revenue=json.dumps(chart_revenue))
+                           chart_revenue=json.dumps(chart_revenue),
+                           data_source=data_source)
 
 
 # ── Traffic ───────────────────────────────────────────────────────────────────
@@ -74,19 +127,41 @@ def analytics_overview():
 @login_required
 @admin_required
 def analytics_traffic():
+    from app.models import SiteSession, PageView
     start, end = _date_range()
     stats = _daily_stats_range(start, end)
 
-    # Aggregate device & referrer breakdowns
     device_totals, ref_totals, top_pages_agg = {}, {}, {}
-    for s in stats:
-        for k, v in (json.loads(s.device_breakdown   or '{}') or {}).items():
-            device_totals[k] = device_totals.get(k, 0) + v
-        for k, v in (json.loads(s.referrer_breakdown  or '{}') or {}).items():
-            ref_totals[k]    = ref_totals.get(k, 0)    + v
-        for p in (json.loads(s.top_pages or '[]') or []):
-            path = p.get('path', '')
-            top_pages_agg[path] = top_pages_agg.get(path, 0) + p.get('views', 0)
+
+    if stats:
+        for s in stats:
+            for k, v in (json.loads(s.device_breakdown  or '{}') or {}).items():
+                device_totals[k] = device_totals.get(k, 0) + v
+            for k, v in (json.loads(s.referrer_breakdown or '{}') or {}).items():
+                ref_totals[k]    = ref_totals.get(k, 0)    + v
+            for p in (json.loads(s.top_pages or '[]') or []):
+                path = p.get('path', '')
+                top_pages_agg[path] = top_pages_agg.get(path, 0) + p.get('views', 0)
+    else:
+        start_dt = datetime(start.year, start.month, start.day, tzinfo=timezone.utc)
+        end_dt   = datetime(end.year,   end.month,   end.day,   23, 59, 59, tzinfo=timezone.utc)
+
+        sessions = SiteSession.query.filter(
+            SiteSession.started_at >= start_dt,
+            SiteSession.started_at <= end_dt).all()
+        for s in sessions:
+            k = s.device_type or 'unknown'
+            device_totals[k] = device_totals.get(k, 0) + 1
+            r = s.referrer_type or 'direct'
+            ref_totals[r] = ref_totals.get(r, 0) + 1
+
+        pages_q = (db.session.query(PageView.url_path, func.count().label('cnt'))
+                   .filter(PageView.viewed_at >= start_dt, PageView.viewed_at <= end_dt)
+                   .group_by(PageView.url_path)
+                   .order_by(func.count().desc())
+                   .limit(10).all())
+        for row in pages_q:
+            top_pages_agg[row.url_path] = row.cnt
 
     top_pages = sorted(top_pages_agg.items(), key=lambda x: x[1], reverse=True)[:10]
 
@@ -107,24 +182,48 @@ def analytics_traffic():
 @login_required
 @admin_required
 def analytics_experiences():
-    from app.models import ExperienceStat, Experience
-    from sqlalchemy import func
+    from app.models import ExperienceStat, Experience, Booking
     start, end = _date_range()
 
-    rows = (db.session.query(
-                Experience.name,
-                func.sum(ExperienceStat.views).label('views'),
-                func.sum(ExperienceStat.booking_starts).label('starts'),
-                func.sum(ExperienceStat.bookings_completed).label('completed'),
-                func.sum(ExperienceStat.revenue).label('revenue'),
-                func.avg(ExperienceStat.conversion_rate).label('conversion'),
-                func.avg(ExperienceStat.abandonment_rate).label('abandonment'),
-            )
-            .join(Experience, ExperienceStat.experience_id == Experience.experience_id)
-            .filter(ExperienceStat.stat_date >= start, ExperienceStat.stat_date <= end)
-            .group_by(Experience.experience_id, Experience.name)
-            .order_by(func.sum(ExperienceStat.revenue).desc())
-            .all())
+    agg_rows = (db.session.query(
+                    Experience.name,
+                    func.sum(ExperienceStat.views).label('views'),
+                    func.sum(ExperienceStat.booking_starts).label('starts'),
+                    func.sum(ExperienceStat.bookings_completed).label('completed'),
+                    func.sum(ExperienceStat.revenue).label('revenue'),
+                    func.avg(ExperienceStat.conversion_rate).label('conversion'),
+                    func.avg(ExperienceStat.abandonment_rate).label('abandonment'),
+                )
+                .join(Experience, ExperienceStat.experience_id == Experience.experience_id)
+                .filter(ExperienceStat.stat_date >= start, ExperienceStat.stat_date <= end)
+                .group_by(Experience.experience_id, Experience.name)
+                .order_by(func.sum(ExperienceStat.revenue).desc())
+                .all())
+
+    if agg_rows:
+        rows = agg_rows
+    else:
+        # Live: query directly from bookings table
+        start_dt = datetime(start.year, start.month, start.day, tzinfo=timezone.utc)
+        end_dt   = datetime(end.year,   end.month,   end.day,   23, 59, 59, tzinfo=timezone.utc)
+        rows = (db.session.query(
+                    Experience.name,
+                    func.count(Booking.booking_id).label('completed'),
+                    func.sum(Booking.amount_total).label('revenue'),
+                )
+                .join(Booking, Booking.experience_id == Experience.experience_id)
+                .filter(Booking.created_at >= start_dt,
+                        Booking.created_at <= end_dt,
+                        Booking.booking_status == 'confirmed')
+                .group_by(Experience.experience_id, Experience.name)
+                .order_by(func.sum(Booking.amount_total).desc())
+                .all())
+        # Patch missing columns for template compatibility
+        rows = [type('R', (), {
+            'name': r.name, 'views': None, 'starts': None,
+            'completed': r.completed, 'revenue': r.revenue,
+            'conversion': None, 'abandonment': None,
+        })() for r in rows]
 
     return render_template('admin/analytics/experiences.html',
                            start=start, end=end, rows=rows)
@@ -145,10 +244,20 @@ def analytics_funnel():
               'Cart Add', 'Checkout Start', 'Payment Attempt', 'Booking Complete']
 
     totals = {step: 0 for step in STEPS}
-    for s in stats:
-        funnel = json.loads(s.booking_funnel or '{}') or {}
+    if stats:
+        for s in stats:
+            funnel = json.loads(s.booking_funnel or '{}') or {}
+            for step in STEPS:
+                totals[step] += funnel.get(step, 0)
+    else:
+        from app.models import FunnelStep
+        start_dt = datetime(start.year, start.month, start.day, tzinfo=timezone.utc)
+        end_dt   = datetime(end.year,   end.month,   end.day,   23, 59, 59, tzinfo=timezone.utc)
         for step in STEPS:
-            totals[step] += funnel.get(step, 0)
+            totals[step] = FunnelStep.query.filter(
+                FunnelStep.entered_at >= start_dt,
+                FunnelStep.entered_at <= end_dt,
+                FunnelStep.step_name == step).count()
 
     funnel_data = [(LABELS[i], totals[step]) for i, step in enumerate(STEPS)]
     top = totals[STEPS[0]] or 1
@@ -170,12 +279,34 @@ def analytics_users():
     start, end = _date_range()
     stats = _daily_stats_range(start, end)
 
-    new_accounts   = sum(s.new_accounts       or 0 for s in stats)
-    contact_subs   = sum(s.contact_submissions or 0 for s in stats)
-    chat_starts    = sum(s.chat_sessions_started or 0 for s in stats)
-
-    chart_labels      = [s.stat_date.strftime('%b %d') for s in stats]
-    chart_new_users   = [s.new_accounts or 0 for s in stats]
+    if stats:
+        new_accounts = sum(s.new_accounts          or 0 for s in stats)
+        contact_subs = sum(s.contact_submissions   or 0 for s in stats)
+        chat_starts  = sum(s.chat_sessions_started or 0 for s in stats)
+        chart_labels    = [s.stat_date.strftime('%b %d') for s in stats]
+        chart_new_users = [s.new_accounts or 0 for s in stats]
+    else:
+        from app.models import User, ContactSubmission, ChatSession as CS
+        start_dt = datetime(start.year, start.month, start.day, tzinfo=timezone.utc)
+        end_dt   = datetime(end.year,   end.month,   end.day,   23, 59, 59, tzinfo=timezone.utc)
+        new_accounts = User.query.filter(
+            User.created_at >= start_dt, User.created_at <= end_dt).count()
+        contact_subs = ContactSubmission.query.filter(
+            ContactSubmission.created_at >= start_dt,
+            ContactSubmission.created_at <= end_dt).count()
+        chat_starts = CS.query.filter(
+            CS.started_at >= start_dt, CS.started_at <= end_dt).count()
+        day_counts = {}
+        d = start
+        while d <= end:
+            day_counts[d] = 0
+            d += timedelta(days=1)
+        for u in User.query.filter(User.created_at >= start_dt, User.created_at <= end_dt).all():
+            d = u.created_at.date()
+            if d in day_counts:
+                day_counts[d] += 1
+        chart_labels    = [d.strftime('%b %d') for d in sorted(day_counts)]
+        chart_new_users = [day_counts[d] for d in sorted(day_counts)]
 
     return render_template('admin/analytics/users.html',
                            start=start, end=end,
@@ -226,12 +357,25 @@ def analytics_errors():
     start, end = _date_range()
     stats = _daily_stats_range(start, end)
 
-    total_404 = sum(s.error_404_count or 0 for s in stats)
-    total_500 = sum(s.error_500_count or 0 for s in stats)
-
-    chart_labels = [s.stat_date.strftime('%b %d') for s in stats]
-    chart_404    = [s.error_404_count or 0 for s in stats]
-    chart_500    = [s.error_500_count or 0 for s in stats]
+    if stats:
+        total_404    = sum(s.error_404_count or 0 for s in stats)
+        total_500    = sum(s.error_500_count or 0 for s in stats)
+        chart_labels = [s.stat_date.strftime('%b %d') for s in stats]
+        chart_404    = [s.error_404_count or 0 for s in stats]
+        chart_500    = [s.error_500_count or 0 for s in stats]
+    else:
+        from app.models import UserEvent
+        start_dt = datetime(start.year, start.month, start.day, tzinfo=timezone.utc)
+        end_dt   = datetime(end.year,   end.month,   end.day,   23, 59, 59, tzinfo=timezone.utc)
+        total_404 = UserEvent.query.filter(
+            UserEvent.occurred_at >= start_dt, UserEvent.occurred_at <= end_dt,
+            UserEvent.event_type == 'page_not_found').count()
+        total_500 = UserEvent.query.filter(
+            UserEvent.occurred_at >= start_dt, UserEvent.occurred_at <= end_dt,
+            UserEvent.event_type == 'server_error').count()
+        chart_labels = []
+        chart_404    = []
+        chart_500    = []
 
     return render_template('admin/analytics/errors.html',
                            start=start, end=end,

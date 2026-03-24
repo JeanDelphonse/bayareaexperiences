@@ -7,7 +7,12 @@
 
 {% block content %}
 <div class="d-flex align-items-center justify-content-between mb-3">
-  <h2 class="h4 mb-0"><i class="bi bi-bar-chart-line me-2 text-warning"></i>Analytics</h2>
+  <h2 class="h4 mb-0">
+    <i class="bi bi-bar-chart-line me-2 text-warning"></i>Analytics
+    {% if data_source == 'live' %}
+      <span class="badge bg-success ms-2" title="Queried directly from operational tables — nightly aggregation not yet run">Live</span>
+    {% endif %}
+  </h2>
 </div>
 
 {% include 'admin/analytics/_nav.html' %}
