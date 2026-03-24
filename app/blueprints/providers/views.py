@@ -35,14 +35,17 @@ def _unique_slug(base):
 # ── Apply ─────────────────────────────────────────────────────────────────────
 
 @providers_bp.route('/providers/apply', methods=['GET', 'POST'])
-@login_required
 def apply():
-    # Redirect if already a provider
-    if current_user.provider:
+    # Redirect logged-in providers straight to their dashboard
+    if current_user.is_authenticated and current_user.provider:
         return redirect(url_for('providers.onboarding_tier'))
 
     form = ProviderApplicationForm()
     if form.validate_on_submit():
+        # Must be signed in to submit — send them to register/login first
+        if not current_user.is_authenticated:
+            flash('Please create an account or sign in to submit your provider application.', 'info')
+            return redirect(url_for('auth.register', next=url_for('providers.apply')))
         from app.models import Provider
         slug = _unique_slug(form.business_name.data)
         provider = Provider(
