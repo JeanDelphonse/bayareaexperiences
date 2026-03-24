@@ -1,4 +1,5 @@
 """Provider dashboard routes — /provider/dashboard/*"""
+import re
 from decimal import Decimal
 from datetime import datetime, timezone
 from flask import (render_template, redirect, url_for, flash, request,
@@ -9,6 +10,40 @@ from app.blueprints.providers.forms import ProviderExperienceForm, ProviderProfi
 from app.blueprints.providers.decorators import provider_required, provider_active_required, current_provider
 from app.extensions import db
 from app.utils import generate_pk
+
+
+def _slugify_exp(name):
+    slug = name.lower().strip()
+    slug = re.sub(r'[^\w\s-]', '', slug)
+    slug = re.sub(r'[\s_-]+', '-', slug)
+    slug = re.sub(r'^-+|-+$', '', slug)
+    return slug[:190]
+
+
+def _unique_exp_slug(name):
+    from app.models import Experience
+    base = _slugify_exp(name)
+    if not Experience.query.filter_by(slug=base).first():
+        return base
+    i = 2
+    while Experience.query.filter_by(slug=f'{base}-{i}').first():
+        i += 1
+    return f'{base}-{i}'
+
+
+def _save_pickup_cities(exp, cities):
+    from app.models import ExperiencePickupLocation
+    ExperiencePickupLocation.query.filter_by(experience_id=exp.experience_id).delete()
+    for city in cities:
+        db.session.add(ExperiencePickupLocation(
+            id=generate_pk(),
+            experience_id=exp.experience_id,
+            pickup_city=city,
+        ))
+
+
+def _get_pickup_cities(exp):
+    return [loc.pickup_city for loc in exp.pickup_locations]
 
 
 # ── Dashboard Overview ────────────────────────────────────────────────────────
@@ -54,7 +89,7 @@ def dashboard():
 
 @providers_bp.route('/provider/dashboard/experiences')
 @login_required
-@provider_active_required
+@provider_required                  # list visible to all active providers, approved or not
 def dashboard_experiences():
     from app.models import Experience
     p = current_provider()
@@ -62,7 +97,7 @@ def dashboard_experiences():
                    .filter_by(provider_id=p.provider_id)
                    .order_by(Experience.created_at.desc())
                    .all())
-    limit_reached = len(experiences) >= p.experience_limit
+    limit_reached = p.can_list_experiences and len(experiences) >= p.experience_limit
     return render_template('providers/dashboard/experiences.html',
                            provider=p, experiences=experiences,
                            limit_reached=limit_reached)
@@ -84,6 +119,7 @@ def dashboard_experience_new():
     if form.validate_on_submit():
         exp = Experience(
             experience_id        = generate_pk(),
+            slug                 = _unique_exp_slug(form.name.data),
             provider_id          = p.provider_id,
             name                 = form.name.data,
             short_description    = form.short_description.data,
@@ -92,7 +128,6 @@ def dashboard_experience_new():
             duration_hours       = float(form.duration_hours.data),
             price                = float(form.price.data),
             max_guests           = form.max_guests.data,
-            pickup_cities        = ','.join(form.pickup_cities.data),
             inclusions           = form.inclusions.data,
             what_to_bring        = form.what_to_bring.data or None,
             cancellation_policy  = form.cancellation_policy.data,
@@ -102,6 +137,8 @@ def dashboard_experience_new():
             listing_status       = 'pending_review' if not p.first_listing_approved else 'active',
         )
         db.session.add(exp)
+        db.session.flush()   # get experience_id before saving pickup cities
+        _save_pickup_cities(exp, form.pickup_cities.data)
         db.session.commit()
         if exp.listing_status == 'pending_review':
             flash('Experience submitted for review. It will go live once approved.', 'info')
@@ -130,20 +167,20 @@ def dashboard_experience_edit(exp_id):
         exp.duration_hours       = float(form.duration_hours.data)
         exp.price                = float(form.price.data)
         exp.max_guests           = form.max_guests.data
-        exp.pickup_cities        = ','.join(form.pickup_cities.data)
         exp.inclusions           = form.inclusions.data
         exp.what_to_bring        = form.what_to_bring.data or None
         exp.cancellation_policy  = form.cancellation_policy.data
         exp.advance_booking_days = int(form.advance_booking_days.data)
         exp.photo_url            = form.photo_url.data or None
         exp.is_active            = form.is_active.data
+        _save_pickup_cities(exp, form.pickup_cities.data)
         db.session.commit()
         flash('Experience updated.', 'success')
         return redirect(url_for('providers.dashboard_experiences'))
 
-    # Pre-fill multi-select
-    if exp.pickup_cities:
-        form.pickup_cities.data = [c.strip() for c in exp.pickup_cities.split(',')]
+    # Pre-fill pickup cities multi-select from related table
+    if not form.pickup_cities.data:
+        form.pickup_cities.data = _get_pickup_cities(exp)
 
     return render_template('providers/dashboard/experience_form.html',
                            provider=p, form=form, is_edit=True, experience=exp)
@@ -151,7 +188,7 @@ def dashboard_experience_edit(exp_id):
 
 @providers_bp.route('/provider/dashboard/experiences/<exp_id>/toggle', methods=['POST'])
 @login_required
-@provider_active_required
+@provider_required
 def dashboard_experience_toggle(exp_id):
     from app.models import Experience
     p = current_provider()
