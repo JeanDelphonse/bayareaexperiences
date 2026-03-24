@@ -116,6 +116,8 @@ def dashboard_experience_new():
         return redirect(url_for('providers.dashboard_experiences'))
 
     form = ProviderExperienceForm()
+    if request.method == 'POST' and not form.validate():
+        flash('Please fix the errors below before saving.', 'danger')
     if form.validate_on_submit():
         exp = Experience(
             experience_id        = generate_pk(),
@@ -159,6 +161,8 @@ def dashboard_experience_edit(exp_id):
     exp = Experience.query.filter_by(experience_id=exp_id, provider_id=p.provider_id).first_or_404()
 
     form = ProviderExperienceForm(obj=exp)
+    if request.method == 'POST' and not form.validate():
+        flash('Please fix the errors below before saving.', 'danger')
     if form.validate_on_submit():
         exp.name                 = form.name.data
         exp.short_description    = form.short_description.data

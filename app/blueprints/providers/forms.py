@@ -72,7 +72,7 @@ class ProviderExperienceForm(FlaskForm):
     short_description    = StringField('Short Description (shown on cards)',
                                        validators=[DataRequired(), Length(max=200)])
     description          = TextAreaField('Full Description',
-                                          validators=[DataRequired(), Length(min=100)])
+                                          validators=[DataRequired(), Length(min=20)])
     category             = SelectField('Category', choices=CATEGORIES,
                                        validators=[DataRequired()])
     duration_hours       = DecimalField('Duration (hours)', places=1,
@@ -82,7 +82,7 @@ class ProviderExperienceForm(FlaskForm):
     max_guests           = IntegerField('Max guests', default=4,
                                          validators=[DataRequired(), NumberRange(min=1, max=8)])
     pickup_cities        = SelectMultipleField('Pickup cities', choices=PICKUP_CITIES,
-                                               validators=[DataRequired()])
+                                               validators=[Optional()])
     inclusions           = TextAreaField('What is included',
                                           validators=[DataRequired(), Length(max=1000)])
     what_to_bring        = TextAreaField('What guests should bring (optional)',

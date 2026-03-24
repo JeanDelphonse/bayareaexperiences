@@ -11,6 +11,21 @@
 
 <div class="card shadow-sm border-0" style="max-width:760px;">
   <div class="card-body p-4">
+
+    {# Top error summary #}
+    {% set all_errors = [] %}
+    {% for field in form if field.errors %}
+      {% for e in field.errors %}{% set _ = all_errors.append(field.label.text ~ ': ' ~ e) %}{% endfor %}
+    {% endfor %}
+    {% if all_errors %}
+    <div class="alert alert-danger mb-4">
+      <strong>Please fix the following before saving:</strong>
+      <ul class="mb-0 mt-1">
+        {% for msg in all_errors %}<li>{{ msg }}</li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
     <form method="POST" novalidate>
       {{ form.hidden_tag() }}
 
@@ -22,30 +37,33 @@
 
       <div class="mb-3">
         {{ form.short_description.label(class='form-label fw-semibold') }}
-        {{ form.short_description(class='form-control', placeholder='One-line description shown on listing cards') }}
-        {% for e in form.short_description.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+        {{ form.short_description(class='form-control' + (' is-invalid' if form.short_description.errors else ''), placeholder='One-line description shown on listing cards') }}
+        {% for e in form.short_description.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
       </div>
 
       <div class="mb-3">
         {{ form.description.label(class='form-label fw-semibold') }}
-        {{ form.description(class='form-control', rows=6, placeholder='Full description for the experience detail page...') }}
-        {% for e in form.description.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+        {{ form.description(class='form-control' + (' is-invalid' if form.description.errors else ''), rows=6, placeholder='Full description for the experience detail page...') }}
+        {% for e in form.description.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
       </div>
 
       <div class="row g-3 mb-3">
         <div class="col-md-4">
           {{ form.category.label(class='form-label fw-semibold') }}
-          {{ form.category(class='form-select') }}
+          {{ form.category(class='form-select' + (' is-invalid' if form.category.errors else '')) }}
+          {% for e in form.category.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
         </div>
         <div class="col-md-4">
           {{ form.duration_hours.label(class='form-label fw-semibold') }}
-          {{ form.duration_hours(class='form-control', placeholder='2.5') }}
+          {{ form.duration_hours(class='form-control' + (' is-invalid' if form.duration_hours.errors else ''), placeholder='2.5') }}
+          {% for e in form.duration_hours.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
         </div>
         <div class="col-md-4">
           {{ form.price.label(class='form-label fw-semibold') }}
-          <div class="input-group">
+          <div class="input-group {% if form.price.errors %}has-validation{% endif %}">
             <span class="input-group-text">$</span>
-            {{ form.price(class='form-control', placeholder='150.00') }}
+            {{ form.price(class='form-control' + (' is-invalid' if form.price.errors else ''), placeholder='150.00') }}
+            {% for e in form.price.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
           </div>
         </div>
       </div>
@@ -53,7 +71,8 @@
       <div class="row g-3 mb-3">
         <div class="col-md-4">
           {{ form.max_guests.label(class='form-label fw-semibold') }}
-          {{ form.max_guests(class='form-control') }}
+          {{ form.max_guests(class='form-control' + (' is-invalid' if form.max_guests.errors else '')) }}
+          {% for e in form.max_guests.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
         </div>
         <div class="col-md-4">
           {{ form.advance_booking_days.label(class='form-label fw-semibold') }}
@@ -61,19 +80,22 @@
         </div>
         <div class="col-md-4">
           {{ form.cancellation_policy.label(class='form-label fw-semibold') }}
-          {{ form.cancellation_policy(class='form-select') }}
+          {{ form.cancellation_policy(class='form-select' + (' is-invalid' if form.cancellation_policy.errors else '')) }}
+          {% for e in form.cancellation_policy.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
         </div>
       </div>
 
       <div class="mb-3">
         {{ form.pickup_cities.label(class='form-label fw-semibold') }}
+        <span class="text-muted small">(optional)</span>
         {{ form.pickup_cities(class='form-select', size=4) }}
-        <div class="form-text">Hold Ctrl/Cmd to select multiple.</div>
+        <div class="form-text">Hold Ctrl/Cmd to select multiple cities.</div>
       </div>
 
       <div class="mb-3">
         {{ form.inclusions.label(class='form-label fw-semibold') }}
-        {{ form.inclusions(class='form-control', rows=3, placeholder='What is included in the price...') }}
+        {{ form.inclusions(class='form-control' + (' is-invalid' if form.inclusions.errors else ''), rows=3, placeholder='What is included in the price...') }}
+        {% for e in form.inclusions.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
       </div>
 
       <div class="mb-3">
