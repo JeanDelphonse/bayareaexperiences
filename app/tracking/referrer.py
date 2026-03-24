@@ -16,7 +16,7 @@ _EMAIL = {
 }
 
 
-def parse_domain(url: str) -> str | None:
+def parse_domain(url: str):
     """Extract bare domain from a URL (strips www.)."""
     if not url:
         return None
