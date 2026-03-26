@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif;color:#1C1C1E;max-width:560px;margin:0 auto;padding:24px;">
+  <div style="background:#1A3557;padding:20px 24px;border-radius:8px 8px 0 0;">
+    <h1 style="color:#fff;font-size:20px;margin:0;">Bay Area Experiences</h1>
+    <p style="color:rgba(255,255,255,0.7);margin:4px 0 0;font-size:14px;">Tour Assignment</p>
+  </div>
+  <div style="background:#fff;border:1px solid #E8ECF0;border-top:none;padding:24px;border-radius:0 0 8px 8px;">
+    <p style="font-size:16px;">Hi {{ staff_name }},</p>
+    <p>You've been assigned to a tour. Here are the details:</p>
+
+    <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+      <tr>
+        <td style="padding:8px 12px;background:#F5F7FA;font-weight:500;width:36%;border-radius:4px 0 0 4px;">Experience</td>
+        <td style="padding:8px 12px;background:#F5F7FA;">{{ booking.experience.name }}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 12px;font-weight:500;">Date</td>
+        <td style="padding:8px 12px;">{{ booking.timeslot.slot_date.strftime('%A, %B %-d, %Y') }}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 12px;background:#F5F7FA;font-weight:500;">Time</td>
+        <td style="padding:8px 12px;background:#F5F7FA;">{{ booking.timeslot.start_time.strftime('%I:%M %p') }}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 12px;font-weight:500;">Guests</td>
+        <td style="padding:8px 12px;">{{ booking.guest_count }}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 12px;background:#F5F7FA;font-weight:500;">Pickup City</td>
+        <td style="padding:8px 12px;background:#F5F7FA;">{{ booking.pickup_city }}</td>
+      </tr>
+    </table>
+
+    <p>View your full staff briefing in the portal:</p>
+    <div style="text-align:center;margin:20px 0;">
+      <a href="{{ url_for('itinerary.staff_briefing', booking_id=booking.booking_id, _external=True) }}"
+         style="background:#C9952A;color:#fff;text-decoration:none;padding:10px 24px;
+                border-radius:9999px;font-size:14px;font-weight:500;display:inline-block;">
+        View Staff Briefing
+      </a>
+    </div>
+
+    <hr style="border:none;border-top:1px solid #E8ECF0;margin:20px 0;">
+    <p style="font-size:12px;color:#8A9AAA;margin:0;">
+      Bay Area Experiences &bull; bayareaexperiences.com
+    </p>
+  </div>
+</body>
+</html>

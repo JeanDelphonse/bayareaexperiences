@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}My Bookings — Bay Area Experiences{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="fw-bold mb-0" style="color:#1A3557;">My Bookings</h1>
+    <span style="background:#EFF4F9;color:#1A3557;font-size:13px;padding:6px 14px;border-radius:9999px;">
+      {{ staff_member.full_name }}
+    </span>
+  </div>
+
+  {# Upcoming #}
+  <h2 style="font-size:17px;font-weight:600;color:#1A3557;margin-bottom:12px;">
+    Upcoming ({{ upcoming | length }})
+  </h2>
+
+  {% if upcoming %}
+  <div class="card border-0 shadow-sm mb-5">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Experience</th>
+            <th>Guest Name</th>
+            <th>Guests</th>
+            <th>Pickup City</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in upcoming %}
+          <tr>
+            <td class="fw-semibold">{{ b.timeslot.slot_date.strftime('%b %-d, %Y') }}</td>
+            <td>{{ b.timeslot.start_time.strftime('%I:%M %p') }}</td>
+            <td>{{ b.experience.name | truncate(28) }}</td>
+            <td>{{ b.guest_first_name }} {{ b.guest_last_name }}</td>
+            <td>{{ b.guest_count }}</td>
+            <td>{{ b.pickup_city }}</td>
+            <td>
+              <span class="badge bg-success">Confirmed</span>
+            </td>
+            <td>
+              <a href="{{ url_for('itinerary.staff_briefing', booking_id=b.booking_id) }}"
+                 target="_blank"
+                 class="btn btn-sm btn-outline-warning">
+                View Briefing
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div style="background:#EFF4F9;border-radius:12px;padding:24px;text-align:center;margin-bottom:32px;">
+    <p style="color:#5A6A7A;margin:0;font-size:14px;">
+      No upcoming bookings assigned to you. Check back after your coordinator assigns you to a tour.
+    </p>
+  </div>
+  {% endif %}
+
+  {# Past (collapsed) #}
+  {% if past %}
+  <div>
+    <button class="btn btn-sm btn-outline-secondary mb-3"
+            data-bs-toggle="collapse" data-bs-target="#pastBookings">
+      Past Bookings ({{ past | length }})
+    </button>
+    <div class="collapse" id="pastBookings">
+      <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Experience</th>
+                <th>Guest Name</th>
+                <th>Guests</th>
+                <th>Pickup City</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for b in past %}
+              <tr>
+                <td>{{ b.timeslot.slot_date.strftime('%b %-d, %Y') }}</td>
+                <td>{{ b.timeslot.start_time.strftime('%I:%M %p') }}</td>
+                <td>{{ b.experience.name | truncate(28) }}</td>
+                <td>{{ b.guest_first_name }} {{ b.guest_last_name }}</td>
+                <td>{{ b.guest_count }}</td>
+                <td>{{ b.pickup_city }}</td>
+                <td>
+                  <a href="{{ url_for('itinerary.staff_briefing', booking_id=b.booking_id) }}"
+                     target="_blank"
+                     class="btn btn-sm btn-outline-secondary">
+                    View Briefing
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

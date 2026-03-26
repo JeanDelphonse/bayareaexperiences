@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Staff Portal — Bay Area Experiences{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width:560px;text-align:center;">
+  <div style="background:#EFF4F9;border-radius:16px;padding:40px 32px;">
+    <div style="font-size:48px;margin-bottom:16px;">🔒</div>
+    <h1 style="font-size:22px;font-weight:600;color:#1A3557;margin-bottom:12px;">
+      No Staff Access
+    </h1>
+    <p style="color:#5A6A7A;font-size:15px;margin-bottom:24px;">
+      Your account is not linked to a staff record.
+      If you were invited to the staff portal, please use the setup link in your invite email.
+    </p>
+    <a href="{{ url_for('main.index') }}"
+       style="background:#C9952A;color:#fff;text-decoration:none;padding:10px 24px;
+              border-radius:9999px;font-size:14px;">
+      Back to Site
+    </a>
+  </div>
+</div>
+{% endblock %}

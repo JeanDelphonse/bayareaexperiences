@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Staff Portal Setup — Bay Area Experiences{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width:480px;">
+
+  {% if error == 'invalid' %}
+  <div style="background:#FAECEA;border-radius:12px;padding:32px;text-align:center;">
+    <div style="font-size:40px;margin-bottom:12px;">🔗</div>
+    <h2 style="color:#7A1F1F;font-size:20px;">Invalid Invite Link</h2>
+    <p style="color:#7A1F1F;font-size:14px;">This invite link is not valid. Please contact your administrator.</p>
+  </div>
+
+  {% elif error == 'expired' %}
+  <div style="background:#FAECEA;border-radius:12px;padding:32px;text-align:center;">
+    <div style="font-size:40px;margin-bottom:12px;">⏰</div>
+    <h2 style="color:#7A1F1F;font-size:20px;">Invite Link Expired</h2>
+    <p style="color:#7A1F1F;font-size:14px;">
+      This invite link has expired (valid for 7 days).
+      Please ask your administrator to send a new invite.
+    </p>
+  </div>
+
+  {% else %}
+  <div style="background:#fff;border:1px solid #E8ECF0;border-radius:12px;padding:32px;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="background:#1A3557;display:inline-flex;align-items:center;justify-content:center;
+                  width:56px;height:56px;border-radius:50%;margin-bottom:12px;">
+        <span style="font-size:24px;">🧭</span>
+      </div>
+      <h1 style="font-size:20px;font-weight:600;color:#1A3557;margin:0;">
+        Set Up Your Staff Portal
+      </h1>
+      {% if staff %}
+      <p style="color:#5A6A7A;font-size:14px;margin-top:6px;">Welcome, {{ staff.full_name }}!</p>
+      {% endif %}
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }} alert-dismissible" role="alert">
+          {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Password</label>
+        <input type="password" class="form-control" name="password"
+               minlength="8" required placeholder="At least 8 characters">
+      </div>
+      <div class="mb-4">
+        <label class="form-label fw-semibold">Confirm Password</label>
+        <input type="password" class="form-control" name="confirm_password"
+               minlength="8" required placeholder="Repeat your password">
+      </div>
+      <button type="submit" class="btn btn-warning w-100 fw-semibold">
+        Create Account &amp; Log In
+      </button>
+    </form>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

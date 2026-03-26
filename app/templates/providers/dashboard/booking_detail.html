@@ -1,0 +1,216 @@
+{% extends 'providers/dashboard/base_provider.html' %}
+{% block title %}Booking {{ booking.booking_id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('providers.dashboard_bookings') }}" class="btn btn-outline-secondary btn-sm me-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h2 class="fw-bold mb-0">Booking <span class="font-monospace">{{ booking.booking_id }}</span></h2>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+
+    {# Booking Details #}
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white fw-bold">Booking Details</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Experience</dt>
+          <dd class="col-sm-8">{{ booking.experience.name }}</dd>
+          <dt class="col-sm-4">Date &amp; Time</dt>
+          <dd class="col-sm-8">
+            {{ booking.timeslot.slot_date.strftime('%A, %B %-d, %Y') }}
+            at {{ booking.timeslot.start_time.strftime('%I:%M %p') }}
+          </dd>
+          <dt class="col-sm-4">Guest</dt>
+          <dd class="col-sm-8">{{ booking.guest_first_name }} {{ booking.guest_last_name }}</dd>
+          <dt class="col-sm-4">Guests</dt>
+          <dd class="col-sm-8">{{ booking.guest_count }}</dd>
+          <dt class="col-sm-4">Pickup City</dt>
+          <dd class="col-sm-8">{{ booking.pickup_city }}</dd>
+          {% if booking.pickup_address %}
+          <dt class="col-sm-4">Pickup Address</dt>
+          <dd class="col-sm-8">{{ booking.pickup_address }}</dd>
+          {% endif %}
+          {% if booking.special_requests %}
+          <dt class="col-sm-4">Special Requests</dt>
+          <dd class="col-sm-8">{{ booking.special_requests }}</dd>
+          {% endif %}
+          <dt class="col-sm-4">Status</dt>
+          <dd class="col-sm-8">
+            <span class="badge
+              {% if booking.booking_status == 'confirmed' %}bg-success
+              {% elif booking.booking_status == 'completed' %}bg-secondary
+              {% elif booking.booking_status == 'cancelled' %}bg-danger
+              {% else %}bg-warning text-dark{% endif %}">
+              {{ booking.booking_status | capitalize }}
+            </span>
+          </dd>
+        </dl>
+      </div>
+    </div>
+
+    {# Payout Summary #}
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white fw-bold">Your Payout</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Your Payout</dt>
+          <dd class="col-sm-8 fw-semibold text-success">${{ "%.2f"|format(booking.provider_amount) }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    {# Assignment History #}
+    {% if assignment_logs %}
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white fw-bold">Assignment History</div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush">
+          {% for log in assignment_logs | sort(attribute='changed_at', reverse=true) %}
+          <li class="list-group-item" style="font-size:13px;">
+            <div class="d-flex justify-content-between">
+              <span>
+                {% if log.new_provider_staff_id %}
+                  &#10003; Assigned
+                {% else %}
+                  &#8722; Cleared
+                {% endif %}
+              </span>
+              <span class="text-muted">{{ log.changed_at.strftime('%b %-d, %Y %H:%M UTC') }}</span>
+            </div>
+            {% if log.reason %}
+            <div class="text-muted mt-1">Note: {{ log.reason }}</div>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <div class="col-lg-4">
+
+    {# Staff Assignment Widget #}
+    <div class="card border-0 shadow-sm mb-4" id="staffCard">
+      <div class="card-header bg-white fw-bold">Staff Assignment</div>
+      <div class="card-body">
+
+        {# Current assignment display #}
+        <div class="mb-3" id="currentAssignment">
+          {% if booking.provider_staff %}
+          <div class="d-flex align-items-center gap-2 p-2 rounded"
+               style="background:#EFF4F9;">
+            <div style="width:36px;height:36px;border-radius:50%;background:#1A3557;
+                        color:#fff;display:flex;align-items:center;justify-content:center;
+                        font-weight:600;font-size:14px;flex-shrink:0;">
+              {{ booking.provider_staff.full_name[0] }}
+            </div>
+            <div>
+              <div class="fw-semibold" style="font-size:14px;">{{ booking.provider_staff.full_name }}</div>
+              {% if booking.provider_staff.title %}
+              <div class="text-muted" style="font-size:12px;">{{ booking.provider_staff.title }}</div>
+              {% endif %}
+            </div>
+          </div>
+          {% else %}
+          <div class="text-center py-2">
+            <span class="text-danger fw-semibold small">NOT ASSIGNED</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <select class="form-select form-select-sm mb-2" id="staffSelect">
+          <option value="">— Unassign —</option>
+          {% for s in team %}
+          <option value="{{ s.provider_staff_id }}"
+                  {% if booking.provider_staff_id == s.provider_staff_id %}selected{% endif %}>
+            {{ s.full_name }}{% if s.title %} ({{ s.title }}){% endif %}
+          </option>
+          {% endfor %}
+        </select>
+
+        <input type="text" class="form-control form-control-sm mb-2" id="staffReason"
+               placeholder="Reason for change (optional)">
+
+        <button type="button" class="btn btn-warning btn-sm w-100" id="assignBtn"
+                onclick="assignStaff()">
+          Assign
+        </button>
+
+        <div id="assignMsg" class="mt-2 small" style="display:none;"></div>
+
+        {% if not team %}
+        <div class="text-center mt-2">
+          <a href="{{ url_for('providers.dashboard_staff_new') }}"
+             class="small text-muted">Add staff members first</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Staff Briefing #}
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center">
+        <a href="{{ url_for('itinerary.staff_briefing', booking_id=booking.booking_id) }}"
+           target="_blank"
+           class="btn btn-outline-dark w-100">
+          <i class="bi bi-phone me-1"></i>Staff Briefing
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function assignStaff() {
+  const staffId = document.getElementById('staffSelect').value;
+  const reason  = document.getElementById('staffReason').value;
+  const btn     = document.getElementById('assignBtn');
+  const msg     = document.getElementById('assignMsg');
+
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  fetch('{{ url_for("providers.provider_assign_staff", booking_id=booking.booking_id) }}', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': '{{ csrf_token() }}',
+    },
+    body: JSON.stringify({ provider_staff_id: staffId, reason: reason }),
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      msg.style.display = 'block';
+      msg.style.color = '#2D7A4F';
+      msg.textContent = '✓ ' + (staffId ? data.staff_name + ' assigned' : 'Assignment cleared');
+      // Reload to update UI
+      setTimeout(() => location.reload(), 900);
+    } else {
+      msg.style.display = 'block';
+      msg.style.color = '#B03A2E';
+      msg.textContent = data.error || 'Failed — please try again';
+    }
+  })
+  .catch(() => {
+    msg.style.display = 'block';
+    msg.style.color = '#B03A2E';
+    msg.textContent = 'Network error — please try again';
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.textContent = 'Assign';
+  });
+}
+</script>
+{% endblock %}

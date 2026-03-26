@@ -15,7 +15,7 @@
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0">
       <thead class="table-light">
-        <tr><th>Name</th><th>Title</th><th>Email</th><th>Phone</th><th>Status</th><th>Actions</th></tr>
+        <tr><th>Name</th><th>Title</th><th>Email</th><th>Phone</th><th>Portal</th><th>Status</th><th>Actions</th></tr>
       </thead>
       <tbody>
         {% for s in staff.items %}
@@ -25,6 +25,15 @@
           <td>{{ s.email }}</td>
           <td>{{ s.phone or '—' }}</td>
           <td>
+            {% if s.user_id %}
+              <span class="badge bg-success">Active</span>
+            {% elif s.staff_portal_token %}
+              <span class="badge bg-warning text-dark">Invite Sent</span>
+            {% else %}
+              <span class="badge bg-secondary">Not Invited</span>
+            {% endif %}
+          </td>
+          <td>
             {% if s.is_active %}
               <span class="badge bg-success">Active</span>
             {% else %}
@@ -32,12 +41,20 @@
             {% endif %}
           </td>
           <td>
-            <a href="{{ url_for('admin.edit_staff', staff_id=s.staff_id) }}"
-               class="btn btn-sm btn-outline-primary">Edit</a>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('admin.edit_staff', staff_id=s.staff_id) }}"
+                 class="btn btn-sm btn-outline-primary">Edit</a>
+              <form method="POST"
+                    action="{{ url_for('admin.admin_send_staff_invite', staff_id=s.staff_id) }}"
+                    style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-warning">Send Invite</button>
+              </form>
+            </div>
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="6" class="text-center text-muted py-4">No staff members yet.</td></tr>
+        <tr><td colspan="7" class="text-center text-muted py-4">No staff members yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>

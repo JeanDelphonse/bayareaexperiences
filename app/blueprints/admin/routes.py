@@ -1,16 +1,17 @@
 import csv
 import io
+import threading
 from datetime import date, time as dt_time, timedelta
 from flask import (render_template, redirect, url_for, flash,
-                   request, jsonify, Response)
-from flask_login import login_required
+                   request, jsonify, Response, current_app)
+from flask_login import login_required, current_user
 from sqlalchemy import func
 from app.blueprints.admin import admin_bp
 from app.extensions import db
 from app.models import (Experience, ExperiencePickupLocation, Timeslot,
                         Booking, StaffMember, User, ContactSubmission,
                         ChatSession, ChatMessage)
-from app.utils import admin_required, generate_pk, paginate
+from app.utils import admin_required, generate_pk, paginate, send_email
 
 PICKUP_CITIES = [
     'Cupertino, CA', 'Fremont, CA', 'Los Gatos, CA', 'Menlo Park, CA',
@@ -326,6 +327,8 @@ def booking_detail(booking_id):
         except (ValueError, TypeError):
             itinerary = None
     itinerary_versions = get_all_itinerary_versions(booking_id)
+    all_staff = StaffMember.query.filter_by(is_active=True).order_by(StaffMember.full_name).all()
+    assignment_logs = (booking.assignment_logs if hasattr(booking, 'assignment_logs') else [])
     return render_template(
         'admin/booking_detail.html',
         booking=booking,
@@ -333,7 +336,89 @@ def booking_detail(booking_id):
         itinerary_record=itinerary_record,
         itinerary_versions=itinerary_versions,
         is_admin_view=True,
+        all_staff=all_staff,
+        assignment_logs=assignment_logs,
     )
+
+
+# ── Admin: Assign BAE Staff to Booking (AJAX) ─────────────────────────────────
+
+@admin_bp.route('/bookings/<booking_id>/assign-staff', methods=['POST'])
+@login_required
+@admin_required
+def admin_assign_staff(booking_id):
+    from app.models import StaffAssignmentLog
+    booking = Booking.query.get_or_404(booking_id)
+    data = request.get_json(silent=True) or {}
+    staff_id = (data.get('staff_id') or '').strip() or None
+    reason   = (data.get('reason')   or '').strip() or None
+
+    member = None
+    if staff_id:
+        member = StaffMember.query.filter_by(staff_id=staff_id, is_active=True).first()
+        if not member:
+            return jsonify({'ok': False, 'error': 'Staff member not found'}), 400
+
+    log = StaffAssignmentLog(
+        log_id=generate_pk(),
+        booking_id=booking_id,
+        changed_by_user_id=current_user.user_id,
+        changed_by_role='admin',
+        previous_staff_id=booking.staff_id,
+        new_staff_id=staff_id,
+        reason=reason,
+    )
+    db.session.add(log)
+    booking.staff_id = staff_id
+    db.session.commit()
+
+    if member and member.email:
+        _notify_bae_staff_assigned(booking, member)
+
+    staff_name = member.full_name if member else 'Unassigned'
+    return jsonify({'ok': True, 'staff_name': staff_name})
+
+
+@admin_bp.route('/staff/<staff_id>/send-invite', methods=['POST'])
+@login_required
+@admin_required
+def admin_send_staff_invite(staff_id):
+    from app.extensions import mail as _mail
+    from app.staff.portal import send_staff_portal_invite
+    member = StaffMember.query.get_or_404(staff_id)
+    send_staff_portal_invite(member, _mail)
+    flash(f'Portal invite sent to {member.email}.', 'success')
+    return redirect(url_for('admin.staff'))
+
+
+def _notify_bae_staff_assigned(booking, member):
+    try:
+        body_html = render_template(
+            'staff/email_assignment_notification.html',
+            booking=booking,
+            staff_name=member.full_name,
+        )
+        _app   = current_app._get_current_object()
+        _email = member.email
+        _bid   = booking.booking_id
+        from app.extensions import mail as _mail
+        _m = _mail
+
+        def _send():
+            with _app.app_context():
+                try:
+                    send_email(
+                        _m,
+                        subject=f'New Assignment: {booking.experience.name} — {booking.timeslot.slot_date}',
+                        recipients=[_email],
+                        body_html=body_html,
+                    )
+                except Exception as e:
+                    _app.logger.error(f'Staff assignment email failed for booking {_bid}: {e}')
+
+        threading.Thread(target=_send, daemon=True).start()
+    except Exception as e:
+        current_app.logger.error(f'Failed to prepare staff assignment email: {e}')
 
 
 # ── Staff ──────────────────────────────────────────────────────────────────────

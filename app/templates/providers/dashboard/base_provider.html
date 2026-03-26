@@ -35,6 +35,8 @@
         <i class="bi bi-compass me-2"></i>Experiences</a></li>
       <li><a href="{{ url_for('providers.dashboard_bookings') }}" class="nav-link px-2 py-1 {% if 'booking' in request.endpoint %}active{% endif %}">
         <i class="bi bi-calendar-check me-2"></i>Bookings</a></li>
+      <li><a href="{{ url_for('providers.dashboard_staff') }}" class="nav-link px-2 py-1 {% if 'staff' in request.endpoint %}active{% endif %}">
+        <i class="bi bi-people me-2"></i>Staff</a></li>
       <li><a href="{{ url_for('providers.dashboard_earnings') }}" class="nav-link px-2 py-1 {% if 'earning' in request.endpoint %}active{% endif %}">
         <i class="bi bi-cash-stack me-2"></i>Earnings</a></li>
       <li><a href="{{ url_for('providers.dashboard_profile') }}" class="nav-link px-2 py-1 {% if 'profile' in request.endpoint %}active{% endif %}">

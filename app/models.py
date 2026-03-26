@@ -48,14 +48,19 @@ class User(db.Model, UserMixin):
 class StaffMember(db.Model):
     __tablename__ = 'staff_members'
 
-    staff_id   = db.Column(db.String(9),   primary_key=True, default=generate_pk)
-    full_name  = db.Column(db.String(150), nullable=False)
-    title      = db.Column(db.String(100))
-    phone      = db.Column(db.String(30))
-    email      = db.Column(db.String(150), unique=True, nullable=False)
-    notes      = db.Column(db.Text)
-    is_active  = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    staff_id                   = db.Column(db.String(9),   primary_key=True, default=generate_pk)
+    full_name                  = db.Column(db.String(150), nullable=False)
+    title                      = db.Column(db.String(100))
+    phone                      = db.Column(db.String(30))
+    email                      = db.Column(db.String(150), unique=True, nullable=False)
+    notes                      = db.Column(db.Text)
+    is_active                  = db.Column(db.Boolean, default=True)
+    user_id                    = db.Column(db.String(9),   db.ForeignKey('users.user_id'), nullable=True)
+    staff_portal_token         = db.Column(db.String(64),  nullable=True)
+    staff_portal_token_expires = db.Column(db.DateTime,    nullable=True)
+    created_at                 = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    user = db.relationship('User', backref='bae_staff_record', foreign_keys=[user_id])
 
 
 # ── Experiences ────────────────────────────────────────────────────────────────
@@ -158,7 +163,8 @@ class Booking(db.Model):
     user_id         = db.Column(db.String(9),   db.ForeignKey('users.user_id'), nullable=True)
     experience_id   = db.Column(db.String(9),   db.ForeignKey('experiences.experience_id'), nullable=False)
     timeslot_id     = db.Column(db.String(9),   db.ForeignKey('timeslots.timeslot_id'), nullable=False)
-    staff_id        = db.Column(db.String(9),   db.ForeignKey('staff_members.staff_id'), nullable=True)
+    staff_id              = db.Column(db.String(9),   db.ForeignKey('staff_members.staff_id'), nullable=True)
+    provider_staff_id     = db.Column(db.String(9),   db.ForeignKey('provider_staff_members.provider_staff_id'), nullable=True)
 
     guest_first_name  = db.Column(db.String(80),  nullable=False)
     guest_last_name   = db.Column(db.String(80),  nullable=False)
@@ -188,9 +194,10 @@ class Booking(db.Model):
     updated_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc),
                            onupdate=lambda: datetime.now(timezone.utc))
 
-    experience = db.relationship('Experience', backref='bookings')
-    timeslot   = db.relationship('Timeslot',   backref='bookings')
-    staff      = db.relationship('StaffMember', backref='bookings')
+    experience     = db.relationship('Experience',          backref='bookings')
+    timeslot       = db.relationship('Timeslot',            backref='bookings')
+    staff          = db.relationship('StaffMember',         backref='bookings', foreign_keys=[staff_id])
+    provider_staff = db.relationship('ProviderStaffMember', backref='bookings', foreign_keys=[provider_staff_id])
     review_tokens  = db.relationship('ReviewToken', backref='booking', lazy='dynamic')
 
     __table_args__ = (
@@ -739,4 +746,64 @@ class BookingItinerary(db.Model):
     __table_args__ = (
         db.Index('ix_booking_itineraries_booking_id', 'booking_id'),
         db.Index('ix_booking_itineraries_tour_date', 'tour_date'),
+    )
+
+
+# ── Staff: Provider Staff Members ─────────────────────────────────────────────
+
+class ProviderStaffMember(db.Model):
+    __tablename__ = 'provider_staff_members'
+
+    provider_staff_id          = db.Column(db.String(9),   primary_key=True, default=generate_pk)
+    provider_id                = db.Column(db.String(9),   db.ForeignKey('providers.provider_id'), nullable=False)
+    user_id                    = db.Column(db.String(9),   db.ForeignKey('users.user_id'), nullable=True)
+    first_name                 = db.Column(db.String(80),  nullable=False)
+    last_name                  = db.Column(db.String(80),  nullable=False)
+    full_name                  = db.Column(db.String(160), nullable=False)
+    title                      = db.Column(db.String(100), nullable=True)
+    email                      = db.Column(db.String(150), nullable=False)
+    phone                      = db.Column(db.String(30),  nullable=True)
+    bio                        = db.Column(db.Text,        nullable=True)
+    photo_url                  = db.Column(db.String(500), nullable=True)
+    languages_spoken           = db.Column(db.String(200), nullable=True)
+    is_active                  = db.Column(db.Boolean,     nullable=False, default=True)
+    can_login                  = db.Column(db.Boolean,     nullable=False, default=False)
+    staff_portal_token         = db.Column(db.String(64),  nullable=True)
+    staff_portal_token_expires = db.Column(db.DateTime,    nullable=True)
+    notes                      = db.Column(db.Text,        nullable=True)
+    created_at                 = db.Column(db.DateTime,    nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at                 = db.Column(db.DateTime,    nullable=False, default=lambda: datetime.now(timezone.utc),
+                                           onupdate=lambda: datetime.now(timezone.utc))
+
+    provider = db.relationship('Provider', backref='staff_members')
+    user     = db.relationship('User',     backref='provider_staff_records', foreign_keys=[user_id])
+
+    __table_args__ = (
+        db.Index('ix_provider_staff_provider_id', 'provider_id'),
+        db.Index('ix_provider_staff_is_active',   'is_active'),
+    )
+
+
+# ── Staff: Assignment Log ──────────────────────────────────────────────────────
+
+class StaffAssignmentLog(db.Model):
+    __tablename__ = 'staff_assignment_log'
+
+    log_id                     = db.Column(db.String(9),  primary_key=True, default=generate_pk)
+    booking_id                 = db.Column(db.String(9),  db.ForeignKey('bookings.booking_id'), nullable=False)
+    changed_by_user_id         = db.Column(db.String(9),  db.ForeignKey('users.user_id'), nullable=False)
+    changed_by_role            = db.Column(db.Enum('admin', 'provider'), nullable=False)
+    previous_staff_id          = db.Column(db.String(9),  nullable=True)
+    new_staff_id               = db.Column(db.String(9),  nullable=True)
+    previous_provider_staff_id = db.Column(db.String(9),  nullable=True)
+    new_provider_staff_id      = db.Column(db.String(9),  nullable=True)
+    reason                     = db.Column(db.String(300), nullable=True)
+    changed_at                 = db.Column(db.DateTime,   nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    booking    = db.relationship('Booking', backref='assignment_logs')
+    changed_by = db.relationship('User', backref='staff_assignment_logs', foreign_keys=[changed_by_user_id])
+
+    __table_args__ = (
+        db.Index('ix_staff_assignment_log_booking_id', 'booking_id'),
+        db.Index('ix_staff_assignment_log_changed_at', 'changed_at'),
     )

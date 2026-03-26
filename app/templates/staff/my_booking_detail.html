@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Booking {{ booking.booking_id }} — Staff Portal{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width:760px;">
+
+  <div class="mb-4">
+    <a href="{{ url_for('staff_portal.my_bookings') }}" class="text-muted text-decoration-none small">
+      &larr; My Bookings
+    </a>
+  </div>
+
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+        <div>
+          <h1 class="fw-bold fs-4 mb-1">{{ booking.experience.name }}</h1>
+          <span class="font-monospace text-muted small">Ref: {{ booking.booking_id }}</span>
+        </div>
+        <span class="badge bg-success fs-6">Confirmed</span>
+      </div>
+      <hr>
+      <dl class="row mb-3">
+        <dt class="col-sm-4">Date</dt>
+        <dd class="col-sm-8">{{ booking.timeslot.slot_date.strftime('%A, %B %-d, %Y') }}</dd>
+        <dt class="col-sm-4">Time</dt>
+        <dd class="col-sm-8">
+          {{ booking.timeslot.start_time.strftime('%I:%M %p') }} &ndash;
+          {{ booking.timeslot.end_time.strftime('%I:%M %p') }}
+        </dd>
+        <dt class="col-sm-4">Guests</dt>
+        <dd class="col-sm-8">{{ booking.guest_count }}</dd>
+        <dt class="col-sm-4">Guest Name</dt>
+        <dd class="col-sm-8">{{ booking.guest_first_name }} {{ booking.guest_last_name }}</dd>
+        <dt class="col-sm-4">Pickup City</dt>
+        <dd class="col-sm-8">{{ booking.pickup_city }}</dd>
+        {% if booking.pickup_address %}
+        <dt class="col-sm-4">Pickup Address</dt>
+        <dd class="col-sm-8">{{ booking.pickup_address }}</dd>
+        {% endif %}
+        {% if booking.special_requests %}
+        <dt class="col-sm-4">Special Requests</dt>
+        <dd class="col-sm-8">{{ booking.special_requests }}</dd>
+        {% endif %}
+      </dl>
+      <a href="{{ url_for('itinerary.staff_briefing', booking_id=booking.booking_id) }}"
+         target="_blank"
+         class="btn btn-warning">
+        <i class="bi bi-phone me-1"></i>Open Full Staff Briefing
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -26,18 +26,28 @@
           <th>Guests</th>
           <th>Amount</th>
           <th>Your Payout</th>
+          <th>Staff</th>
           <th>Status</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
         {% for b in bookings.items %}
-        <tr>
+        <tr style="cursor:pointer;"
+            onclick="window.location='{{ url_for('providers.dashboard_booking_detail', booking_id=b.booking_id) }}'">
           <td class="fw-semibold">{{ b.experience.name | truncate(30) }}</td>
-          <td>{{ b.timeslot.start_time.strftime('%b %d, %Y') if b.timeslot else '—' }}</td>
-          <td>{{ b.user.first_name }} {{ b.user.last_name[0] }}.</td>
+          <td>{{ b.timeslot.slot_date.strftime('%b %-d, %Y') if b.timeslot else '—' }}</td>
+          <td>{{ b.guest_first_name }} {{ b.guest_last_name[0] }}.</td>
           <td>{{ b.guest_count }}</td>
           <td>${{ "%.2f"|format(b.amount_total) }}</td>
           <td class="text-success fw-semibold">${{ "%.2f"|format(b.provider_amount) }}</td>
+          <td>
+            {% if b.provider_staff %}
+              <span class="small">{{ b.provider_staff.full_name }}</span>
+            {% else %}
+              <span class="text-danger small fw-semibold">Unassigned</span>
+            {% endif %}
+          </td>
           <td>
             <span class="badge
               {% if b.booking_status == 'confirmed' %}bg-success
@@ -46,6 +56,10 @@
               {% else %}bg-secondary{% endif %}">
               {{ b.booking_status | title }}
             </span>
+          </td>
+          <td onclick="event.stopPropagation();">
+            <a href="{{ url_for('providers.dashboard_booking_detail', booking_id=b.booking_id) }}"
+               class="btn btn-sm btn-outline-dark">View</a>
           </td>
         </tr>
         {% endfor %}

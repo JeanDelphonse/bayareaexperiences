@@ -37,7 +37,10 @@
           <dd class="col-sm-8">{{ booking.special_requests or '—' }}</dd>
           <dt class="col-sm-4">Staff Assigned</dt>
           <dd class="col-sm-8">
-            {% if booking.staff %}
+            {% if booking.provider_staff %}
+              {{ booking.provider_staff.full_name }}
+              <small class="text-muted">(provider staff)</small>
+            {% elif booking.staff %}
               {{ booking.staff.full_name }}
             {% else %}
               <span class="text-danger fw-semibold">NOT ASSIGNED</span>
@@ -91,7 +94,7 @@
     </div>
 
     <!-- Internal Notes -->
-    <div class="card border-0 shadow-sm">
+    <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-white fw-bold">Internal Notes</div>
       <div class="card-body">
         <form method="POST" action="{{ url_for('admin.booking_detail', booking_id=booking.booking_id) }}">
@@ -102,6 +105,80 @@
         </form>
       </div>
     </div>
+
+    <!-- Staff Assignment Widget (BAE bookings only) -->
+    {% if not booking.experience.provider_id %}
+    <div class="card border-0 shadow-sm mb-4" id="staffAssignCard">
+      <div class="card-header bg-white fw-bold">Assign Staff</div>
+      <div class="card-body">
+        <div class="mb-3" id="currentStaffDisplay">
+          {% if booking.staff %}
+          <div class="d-flex align-items-center gap-2 p-2 rounded" style="background:#EFF4F9;">
+            <div style="width:34px;height:34px;border-radius:50%;background:#1A3557;color:#fff;
+                        display:flex;align-items:center;justify-content:center;
+                        font-weight:600;font-size:13px;flex-shrink:0;">
+              {{ booking.staff.full_name[0] }}
+            </div>
+            <div class="fw-semibold" style="font-size:14px;">{{ booking.staff.full_name }}</div>
+          </div>
+          {% else %}
+          <div class="text-center py-1">
+            <span class="text-danger fw-semibold small">NOT ASSIGNED</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <select class="form-select form-select-sm mb-2" id="staffSelect">
+          <option value="">— Unassign —</option>
+          {% for s in all_staff %}
+          <option value="{{ s.staff_id }}"
+                  {% if booking.staff_id == s.staff_id %}selected{% endif %}>
+            {{ s.full_name }}{% if s.title %} ({{ s.title }}){% endif %}
+          </option>
+          {% endfor %}
+        </select>
+
+        <input type="text" class="form-control form-control-sm mb-2"
+               id="staffReason" placeholder="Reason (optional)">
+
+        <button type="button" class="btn btn-warning btn-sm w-100" onclick="assignStaff()">
+          Assign
+        </button>
+        <div id="assignMsg" class="mt-2 small" style="display:none;"></div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Assignment History -->
+    {% if assignment_logs %}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-bold">Assignment History</div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush" style="font-size:13px;">
+          {% for log in assignment_logs | sort(attribute='changed_at', reverse=true) %}
+          <li class="list-group-item">
+            <div class="d-flex justify-content-between">
+              <span>
+                {% if log.new_staff_id or log.new_provider_staff_id %}
+                  &#10003; Assigned
+                {% else %}
+                  &#8722; Cleared
+                {% endif %}
+              </span>
+              <span class="text-muted">{{ log.changed_at.strftime('%b %-d %H:%M UTC') }}</span>
+            </div>
+            <div class="text-muted">by {{ log.changed_by.email if log.changed_by else '—' }}
+              ({{ log.changed_by_role }})</div>
+            {% if log.reason %}
+            <div class="text-muted fst-italic">{{ log.reason }}</div>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
   </div>
 </div>
 
@@ -272,4 +349,40 @@ Eventbrite:   {{ itinerary_record.eventbrite_events or '[]' }}</pre>
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function assignStaff() {
+  const staffId = document.getElementById('staffSelect').value;
+  const reason  = document.getElementById('staffReason').value;
+  const msg     = document.getElementById('assignMsg');
+
+  fetch('{{ url_for("admin.admin_assign_staff", booking_id=booking.booking_id) }}', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': '{{ csrf_token() }}',
+    },
+    body: JSON.stringify({ staff_id: staffId, reason: reason }),
+  })
+  .then(r => r.json())
+  .then(data => {
+    msg.style.display = 'block';
+    if (data.ok) {
+      msg.style.color = '#2D7A4F';
+      msg.textContent = '\u2713 ' + (staffId ? data.staff_name + ' assigned' : 'Assignment cleared');
+      setTimeout(() => location.reload(), 900);
+    } else {
+      msg.style.color = '#B03A2E';
+      msg.textContent = data.error || 'Failed \u2014 try again';
+    }
+  })
+  .catch(() => {
+    msg.style.display = 'block';
+    msg.style.color = '#B03A2E';
+    msg.textContent = 'Network error';
+  });
+}
+</script>
 {% endblock %}

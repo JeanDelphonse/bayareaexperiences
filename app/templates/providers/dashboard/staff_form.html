@@ -1,0 +1,95 @@
+{% extends 'providers/dashboard/base_provider.html' %}
+{% block title %}{{ 'Edit' if member else 'Add' }} Staff Member{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('providers.dashboard_staff') }}" class="btn btn-outline-secondary btn-sm me-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h2 class="fw-bold mb-0">{{ 'Edit' if member else 'Add' }} Staff Member</h2>
+</div>
+
+<div class="card border-0 shadow-sm" style="max-width:640px;">
+  <div class="card-body p-4">
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="row g-3 mb-3">
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" name="first_name" required
+                 value="{{ member.first_name if member else '' }}">
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" name="last_name" required
+                 value="{{ member.last_name if member else '' }}">
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
+        <input type="email" class="form-control" name="email" required
+               value="{{ member.email if member else '' }}">
+        <div class="form-text">Used for booking assignment notifications.</div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold">Title / Role</label>
+          <input type="text" class="form-control" name="title" placeholder="e.g., Lead Guide"
+                 value="{{ member.title or '' if member else '' }}">
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold">Phone Number</label>
+          <input type="tel" class="form-control" name="phone"
+                 value="{{ member.phone or '' if member else '' }}">
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Languages Spoken</label>
+        <div class="d-flex flex-wrap gap-2">
+          {% for lang in languages %}
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="languages"
+                   value="{{ lang }}" id="lang_{{ loop.index }}"
+                   {% if member and member.languages_spoken and lang in member.languages_spoken %}checked{% endif %}>
+            <label class="form-check-label small" for="lang_{{ loop.index }}">{{ lang }}</label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Bio <span class="text-muted fw-normal">(optional, max 300 chars)</span></label>
+        <textarea class="form-control" name="bio" rows="3" maxlength="300"
+                  placeholder="Short bio shown on your public profile if enabled.">{{ member.bio or '' if member else '' }}</textarea>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Internal Notes</label>
+        <textarea class="form-control" name="notes" rows="2"
+                  placeholder="Never shown publicly.">{{ member.notes or '' if member else '' }}</textarea>
+      </div>
+
+      {% if not member %}
+      <div class="form-check mb-4">
+        <input class="form-check-input" type="checkbox" name="send_invite" id="sendInvite">
+        <label class="form-check-label" for="sendInvite">
+          Send portal invite email after saving
+          <small class="text-muted d-block">Lets this staff member view their assigned bookings and briefings.</small>
+        </label>
+      </div>
+      {% endif %}
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-warning">
+          {{ 'Save Changes' if member else 'Add Staff Member' }}
+        </button>
+        <a href="{{ url_for('providers.dashboard_staff') }}" class="btn btn-outline-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
