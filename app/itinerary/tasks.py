@@ -11,14 +11,15 @@ def queue_itinerary_generation(booking_id: str, trigger: str = 'booking_confirme
     Non-blocking — does not affect the HTTP response.
     For higher volume, replace threading with Celery or APScheduler.
     """
+    from flask import current_app
+    app = current_app._get_current_object()
+
     def _run():
         try:
-            from app import create_app
             from app.models import Booking
             from app.itinerary.generator import generate_itinerary
             from app.itinerary.storage import save_itinerary
 
-            app = create_app('production')
             with app.app_context():
                 booking = Booking.query.get(booking_id)
                 if not booking:

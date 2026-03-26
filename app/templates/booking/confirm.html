@@ -99,9 +99,9 @@
           </div>
           <script>
             (function() {
-              var bookingId = '{{ booking.booking_id }}';
+              var statusUrl = '{{ url_for("itinerary.itinerary_status", booking_id=booking.booking_id) }}';
               var pollInterval = setInterval(function() {
-                fetch('/booking/' + bookingId + '/itinerary/status')
+                fetch(statusUrl)
                   .then(function(r) { return r.json(); })
                   .then(function(data) {
                     if (data.ready) {

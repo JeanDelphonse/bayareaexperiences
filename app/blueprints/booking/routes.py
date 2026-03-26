@@ -1,3 +1,4 @@
+import threading
 from datetime import date, timedelta
 from flask import (render_template, redirect, url_for, flash,
                    request, jsonify, current_app, session, abort)
@@ -131,23 +132,32 @@ def confirm_booking():
     except Exception:
         pass
 
-    # Send confirmation email
+    # Render email templates now (request context required), then send async
     try:
-        send_email(
-            mail,
-            subject=f'Booking Confirmed — {exp.name} (Ref: {booking.booking_id})',
-            recipients=[guest_email],
-            body_html=render_template('booking/email_confirm.html', booking=booking, experience=exp),
-        )
-        # Notify admin
-        send_email(
-            mail,
-            subject=f'New Booking: {exp.name} — {first_name} {last_name}',
-            recipients=[current_app.config['ADMIN_EMAIL']],
-            body_html=render_template('booking/email_admin_notify.html', booking=booking, experience=exp),
-        )
+        customer_html = render_template('booking/email_confirm.html', booking=booking, experience=exp)
+        admin_html    = render_template('booking/email_admin_notify.html', booking=booking, experience=exp)
+        _app          = current_app._get_current_object()
+        _bid          = booking.booking_id
+        _exp_name     = exp.name
+        _guest_email  = guest_email
+        _admin_email  = current_app.config['ADMIN_EMAIL']
+        _fn, _ln      = first_name, last_name
+
+        def _send_emails():
+            with _app.app_context():
+                try:
+                    send_email(mail,
+                               subject=f'Booking Confirmed — {_exp_name} (Ref: {_bid})',
+                               recipients=[_guest_email], body_html=customer_html)
+                    send_email(mail,
+                               subject=f'New Booking: {_exp_name} — {_fn} {_ln}',
+                               recipients=[_admin_email], body_html=admin_html)
+                except Exception as e:
+                    _app.logger.error(f'Email send failed for booking {_bid}: {e}')
+
+        threading.Thread(target=_send_emails, daemon=True).start()
     except Exception as e:
-        current_app.logger.error(f'Email send failed for booking {booking.booking_id}: {e}')
+        current_app.logger.error(f'Email setup failed for booking {booking.booking_id}: {e}')
 
     return redirect(url_for('booking.booking_confirm', booking_id=booking.booking_id))
 
