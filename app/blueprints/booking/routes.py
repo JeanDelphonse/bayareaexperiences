@@ -116,6 +116,13 @@ def confirm_booking():
 
     db.session.commit()
 
+    # Queue itinerary generation asynchronously
+    try:
+        from app.itinerary.tasks import queue_itinerary_generation
+        queue_itinerary_generation(booking.booking_id, trigger='booking_confirmed')
+    except Exception:
+        pass
+
     try:
         from app.tracking.events import track_event, track_funnel_step
         track_event('booking_completed', category='ecommerce',
@@ -147,8 +154,10 @@ def confirm_booking():
 
 @booking_bp.route('/booking/confirm/<booking_id>')
 def booking_confirm(booking_id):
-    booking = Booking.query.get_or_404(booking_id)
-    return render_template('booking/confirm.html', booking=booking)
+    from app.itinerary.storage import get_itinerary_data
+    booking   = Booking.query.get_or_404(booking_id)
+    itinerary = get_itinerary_data(booking_id)
+    return render_template('booking/confirm.html', booking=booking, itinerary=itinerary)
 
 
 @booking_bp.route('/booking/ics/<booking_id>')

@@ -78,6 +78,13 @@ def _handle_checkout_completed(session):
 
     db.session.commit()
 
+    # Queue itinerary generation asynchronously
+    try:
+        from app.itinerary.tasks import queue_itinerary_generation
+        queue_itinerary_generation(booking_id, trigger='booking_confirmed')
+    except Exception:
+        pass
+
 
 def _handle_transfer_paid(transfer):
     from app.models import ProviderPayout

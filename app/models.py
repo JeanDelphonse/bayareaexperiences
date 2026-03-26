@@ -95,6 +95,9 @@ class Experience(db.Model):
     avg_star_rating  = db.Column(db.Numeric(3, 2),  nullable=True)
     review_count     = db.Column(db.Integer, nullable=False, default=0)
 
+    # AI itinerary generation
+    core_stops       = db.Column(db.Text,        nullable=True)
+
     staff        = db.relationship('StaffMember', backref='experiences')
     timeslots    = db.relationship('Timeslot', backref='experience', lazy='dynamic')
     pickup_locations = db.relationship('ExperiencePickupLocation', backref='experience',
@@ -705,4 +708,35 @@ class ReviewFlag(db.Model):
 
     __table_args__ = (
         db.Index('ix_review_flags_review_id', 'review_id'),
+    )
+
+
+# ── Booking Itineraries ────────────────────────────────────────────────────────
+
+class BookingItinerary(db.Model):
+    __tablename__ = 'booking_itineraries'
+
+    itinerary_id       = db.Column(db.String(9),   primary_key=True, default=generate_pk)
+    booking_id         = db.Column(db.String(9),   db.ForeignKey('bookings.booking_id'), nullable=False)
+    version            = db.Column(db.SmallInteger, nullable=False, default=1)
+    is_active          = db.Column(db.Boolean,      nullable=False, default=True)
+    itinerary_json     = db.Column(db.Text,         nullable=False)
+    pickup_city        = db.Column(db.String(100),  nullable=False)
+    tour_date          = db.Column(db.Date,         nullable=False)
+    local_events_found = db.Column(db.SmallInteger, nullable=False, default=0)
+    ticketmaster_events = db.Column(db.Text,        nullable=True)
+    eventbrite_events  = db.Column(db.Text,         nullable=True)
+    is_fallback        = db.Column(db.Boolean,      nullable=False, default=False)
+    generation_trigger = db.Column(
+        db.Enum('booking_confirmed', '48hr_refresh', 'manual_regen', 'admin'),
+        nullable=False, default='booking_confirmed')
+    generated_at       = db.Column(db.DateTime,     nullable=False,
+                                   default=lambda: datetime.now(timezone.utc))
+    staff_notified_at  = db.Column(db.DateTime,     nullable=True)
+
+    booking = db.relationship('Booking', backref='itineraries')
+
+    __table_args__ = (
+        db.Index('ix_booking_itineraries_booking_id', 'booking_id'),
+        db.Index('ix_booking_itineraries_tour_date', 'tour_date'),
     )

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Briefing — {{ booking.experience.name }}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+           background: #F2F5F8; margin: 0; padding: 0; color: #1a1a1a; }
+    .brief-header { background: #1A3557; color: #fff; padding: 20px 16px; }
+    .brief-header h1 { font-size: 1.2rem; font-weight: 700; margin: 0 0 6px; }
+    .brief-meta { font-size: 0.85rem; opacity: 0.8; }
+    .brief-meta span { margin-right: 12px; }
+    .brief-body { padding: 16px; max-width: 600px; margin: 0 auto; }
+    .brief-pickup-box { background: #fff; border-left: 4px solid #C9952A;
+                        border-radius: 8px; padding: 16px; margin-bottom: 16px;
+                        box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .brief-pickup-time { font-size: 2rem; font-weight: 800; color: #C9952A; line-height: 1; }
+    .brief-pickup-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .05em;
+                          color: #888; margin-bottom: 4px; }
+    .brief-pickup-address { font-size: 0.95rem; color: #1A3557; font-weight: 600; margin-top: 6px; }
+    .brief-pickup-address a { color: #1A3557; }
+    .brief-flag { background: #fff8e1; border: 1px solid #ffe082; border-radius: 8px;
+                  padding: 12px 16px; margin-bottom: 12px; font-size: 0.9rem; }
+    .brief-flag strong { color: #c17f00; display: block; margin-bottom: 4px; }
+    .brief-section { background: #fff; border-radius: 8px; padding: 16px;
+                     margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .brief-section h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: .06em;
+                        color: #888; margin: 0 0 12px; }
+    .brief-stop { padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+    .brief-stop:last-child { border-bottom: none; }
+    .brief-stop-header { display: flex; justify-content: space-between; align-items: baseline; }
+    .brief-stop-name { font-weight: 700; font-size: 0.95rem; color: #1A3557; }
+    .brief-stop-time { font-size: 0.85rem; color: #C9952A; font-weight: 600; }
+    .brief-stop-meta { font-size: 0.8rem; color: #888; margin-top: 2px; }
+    .brief-stop-drive { font-size: 0.78rem; color: #aaa; font-style: italic; margin-top: 2px; }
+    .brief-dropoff { display: flex; justify-content: space-between; align-items: baseline;
+                     padding: 10px 0 0; }
+    .brief-buzz-item { padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+    .brief-buzz-item:last-child { border-bottom: none; }
+    .brief-buzz-title { font-weight: 600; font-size: 0.9rem; color: #1A3557; }
+    .brief-buzz-desc { font-size: 0.82rem; color: #555; margin-top: 2px; }
+    .brief-buzz-venue { font-size: 0.78rem; color: #888; }
+    .brief-cta { text-align: center; padding: 16px 0 32px; }
+    .btn-call { display: inline-block; background: #1A3557; color: #fff;
+                padding: 14px 28px; border-radius: 8px; text-decoration: none;
+                font-weight: 700; font-size: 1rem; letter-spacing: .02em; }
+    .fallback-card { background: #fff; border-radius: 8px; padding: 20px;
+                     text-align: center; color: #555; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  </style>
+</head>
+<body>
+
+<div class="brief-header">
+  <h1>{{ booking.experience.name }}</h1>
+  <div class="brief-meta">
+    <span><strong>{{ booking.timeslot.slot_date.strftime('%A, %B %-d, %Y') }}</strong></span>
+    <span>{{ booking.guest_count }} guest{% if booking.guest_count != 1 %}s{% endif %}</span>
+    <span>Ref: {{ booking.booking_id }}</span>
+  </div>
+</div>
+
+<div class="brief-body">
+
+  {% if itinerary %}
+
+  {# Pickup box #}
+  <div class="brief-pickup-box">
+    <div class="brief-pickup-label">Pickup Time</div>
+    <div class="brief-pickup-time">{{ itinerary.pickup.time }}</div>
+    <div class="brief-pickup-address">
+      <a href="https://maps.google.com/?q={{ itinerary.pickup.address | urlencode }}"
+         target="_blank">{{ itinerary.pickup.address }}</a>
+    </div>
+    {% if itinerary.pickup.note %}
+    <div style="font-size:0.82rem;color:#555;margin-top:6px;">{{ itinerary.pickup.note }}</div>
+    {% endif %}
+  </div>
+
+  {# Staff notes flag #}
+  {% if itinerary.staff_notes %}
+  <div class="brief-flag">
+    <strong>Guide Notes</strong>
+    {{ itinerary.staff_notes }}
+  </div>
+  {% endif %}
+
+  {# Special requests flag #}
+  {% if booking.special_requests %}
+  <div class="brief-flag">
+    <strong>Special Requests</strong>
+    {{ booking.special_requests }}
+  </div>
+  {% endif %}
+
+  {# Local Buzz #}
+  {% if itinerary.local_buzz %}
+  <div class="brief-section">
+    <h2>Local Buzz Today</h2>
+    {% for item in itinerary.local_buzz %}
+    <div class="brief-buzz-item">
+      <div class="brief-buzz-title">{{ item.title }}</div>
+      <div class="brief-buzz-desc">{{ item.description }}</div>
+      <div class="brief-buzz-venue">{{ item.venue }}
+        {% if item.url %}&nbsp;·&nbsp;<a href="{{ item.url }}" target="_blank">Link</a>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# Stops #}
+  {% if itinerary.stops %}
+  <div class="brief-section">
+    <h2>Tour Stops</h2>
+    {% for stop in itinerary.stops %}
+    <div class="brief-stop">
+      <div class="brief-stop-header">
+        <span class="brief-stop-name">{{ stop.order }}. {{ stop.name }}</span>
+        <span class="brief-stop-time">{{ stop.arrival_time }}</span>
+      </div>
+      <div class="brief-stop-meta">{{ stop.duration_minutes }} min</div>
+      {% if stop.drive_from_prev %}
+      <div class="brief-stop-drive">{{ stop.drive_from_prev }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+    <div class="brief-dropoff">
+      <span class="brief-stop-name">Drop-off</span>
+      <span class="brief-stop-time">{{ itinerary.return.estimated_time }}</span>
+    </div>
+    <div style="font-size:0.82rem;color:#888;margin-top:2px;">{{ itinerary.return.drop_off }}</div>
+  </div>
+  {% endif %}
+
+  {% else %}
+
+  {# No itinerary fallback #}
+  <div class="fallback-card">
+    <p style="font-size:1rem;font-weight:600;margin-bottom:8px;">Itinerary not yet generated</p>
+    <p style="font-size:0.88rem;">Please check the admin panel or contact support.</p>
+    <hr>
+    <p style="font-size:0.9rem;"><strong>Guest:</strong>
+      {{ booking.guest_first_name }} {{ booking.guest_last_name }}
+      ({{ booking.guest_count }} guest{% if booking.guest_count != 1 %}s{% endif %})</p>
+    <p style="font-size:0.9rem;"><strong>Pickup:</strong>
+      {{ booking.pickup_address or booking.pickup_city }}</p>
+    <p style="font-size:0.9rem;"><strong>Time:</strong>
+      {{ booking.timeslot.start_time.strftime('%I:%M %p') }}</p>
+    {% if booking.special_requests %}
+    <p style="font-size:0.9rem;"><strong>Special Requests:</strong>
+      {{ booking.special_requests }}</p>
+    {% endif %}
+  </div>
+
+  {% endif %}
+
+  <div class="brief-cta">
+    <a href="tel:+14088312101" class="btn-call">Call BAE HQ: (408) 831-2101</a>
+  </div>
+
+</div>
+</body>
+</html>

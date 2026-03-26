@@ -58,6 +58,64 @@
         <a href="{{ url_for('main.index') }}" class="btn btn-warning">Back to Home</a>
         {% endif %}
       </div>
+
+      {# ── Itinerary Section ────────────────────────────────────────────────── #}
+      <div class="mt-4" id="itinerary-section">
+        {% if itinerary %}
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-4 text-start">
+              <h5 class="fw-bold mb-3" style="color:#1A3557;">
+                <i class="bi bi-map me-2" style="color:#C9952A;"></i>Your Personalized Itinerary
+              </h5>
+              <p class="mb-3 text-muted">{{ itinerary.greeting }}</p>
+              {% if itinerary.stops %}
+              <ul class="list-group list-group-flush mb-3">
+                {% for stop in itinerary.stops %}
+                <li class="list-group-item px-0">
+                  <div class="d-flex justify-content-between">
+                    <span class="fw-semibold">{{ stop.order }}. {{ stop.name }}</span>
+                    <span class="text-muted small">{{ stop.arrival_time }}</span>
+                  </div>
+                  <div class="text-muted small">{{ stop.description }}</div>
+                  {% if stop.drive_from_prev %}
+                  <div class="text-muted small fst-italic">{{ stop.drive_from_prev }}</div>
+                  {% endif %}
+                </li>
+                {% endfor %}
+              </ul>
+              {% endif %}
+              <a href="{{ url_for('itinerary.booking_itinerary', booking_id=booking.booking_id) }}"
+                 class="btn btn-sm" style="background:#C9952A;color:#fff;">
+                View Full Itinerary
+              </a>
+            </div>
+          </div>
+        {% else %}
+          <div class="card border-0 shadow-sm" id="itinerary-pending-card">
+            <div class="card-body p-4 text-center">
+              <div class="spinner-border spinner-border-sm text-warning me-2" role="status"></div>
+              <span class="text-muted">Your personalized itinerary is being prepared. Check back shortly.</span>
+            </div>
+          </div>
+          <script>
+            (function() {
+              var bookingId = '{{ booking.booking_id }}';
+              var pollInterval = setInterval(function() {
+                fetch('/booking/' + bookingId + '/itinerary/status')
+                  .then(function(r) { return r.json(); })
+                  .then(function(data) {
+                    if (data.ready) {
+                      clearInterval(pollInterval);
+                      window.location.reload();
+                    }
+                  })
+                  .catch(function() { clearInterval(pollInterval); });
+              }, 5000);
+            })();
+          </script>
+        {% endif %}
+      </div>
+
     </div>
   </div>
 </div>

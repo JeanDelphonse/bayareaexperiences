@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Your Itinerary — {{ booking.experience.name }}{% endblock %}
+
+{% block content %}
+<style>
+  .itin-nav-gold    { background: #C9952A; }
+  .itin-header      { background: #1A3557; color: #fff; padding: 2.5rem 0 2rem; }
+  .itin-header h1   { font-weight: 800; font-size: 1.6rem; margin-bottom: .4rem; }
+  .itin-header p    { opacity: .85; margin: 0; }
+  .itin-body        { background: #F2F5F8; padding: 2rem 0 4rem; }
+  .itin-card        { background: #fff; border-radius: 12px; padding: 1.5rem;
+                      box-shadow: 0 2px 8px rgba(0,0,0,.07); margin-bottom: 1.25rem; }
+  .itin-pickup      { border-left: 5px solid #C9952A; }
+  .itin-stop        { border-left: 5px solid #1A3557; }
+  .itin-return      { border-left: 5px solid #6c757d; }
+  .itin-stop-label  { font-size:.7rem; text-transform:uppercase; letter-spacing:.06em;
+                      color:#C9952A; font-weight:700; margin-bottom:.25rem; }
+  .itin-stop-name   { font-size:1.05rem; font-weight:700; color:#1A3557; }
+  .itin-stop-time   { font-size:.85rem; color:#C9952A; font-weight:600; }
+  .itin-stop-desc   { font-size:.9rem; color:#444; margin-top:.4rem; }
+  .itin-highlight   { background:#fffbf0; border-radius:6px; padding:.5rem .75rem;
+                      font-size:.85rem; color:#8a6200; margin-top:.5rem;
+                      border-left:3px solid #C9952A; }
+  .itin-drive       { font-size:.78rem; color:#aaa; font-style:italic; margin-top:.35rem; }
+  .itin-chip        { display:inline-block; background:#e8f0fe; color:#1A3557;
+                      border-radius:20px; padding:4px 12px; font-size:.8rem;
+                      margin:3px 4px 3px 0; font-weight:500; }
+  .itin-buzz-item   { border-bottom:1px solid #f0f0f0; padding:.75rem 0; }
+  .itin-buzz-item:last-child { border-bottom:none; }
+  .itin-buzz-title  { font-weight:600; color:#1A3557; font-size:.9rem; }
+  .itin-buzz-desc   { font-size:.82rem; color:#555; margin-top:2px; }
+  .itin-pending     { text-align:center; padding:3rem 1rem; color:#888; }
+  .itin-pending .spinner-border { color:#C9952A; }
+</style>
+
+<div class="itin-header">
+  <div class="container">
+    <h1>{{ booking.experience.name }}</h1>
+    <p>
+      {{ booking.timeslot.slot_date.strftime('%A, %B %-d, %Y') }}
+      &nbsp;·&nbsp;
+      {{ booking.guest_count }} guest{% if booking.guest_count != 1 %}s{% endif %}
+      &nbsp;·&nbsp;
+      Ref: <span class="font-monospace">{{ booking.booking_id }}</span>
+    </p>
+  </div>
+</div>
+
+<div class="itin-body">
+  <div class="container" style="max-width:680px;">
+
+    {% if itinerary %}
+
+    {# Greeting #}
+    {% if itinerary.greeting %}
+    <div class="itin-card mb-4">
+      <p class="mb-0" style="font-size:.95rem;color:#333;">{{ itinerary.greeting }}</p>
+    </div>
+    {% endif %}
+
+    {# Local Buzz #}
+    {% if itinerary.local_buzz %}
+    <div class="itin-card mb-4">
+      <div class="itin-stop-label mb-2">Local Buzz on Your Tour Day</div>
+      {% for item in itinerary.local_buzz %}
+      <div class="itin-buzz-item">
+        <div class="itin-buzz-title">{{ item.title }}
+          {% if item.url %}
+          <a href="{{ item.url }}" target="_blank" rel="noopener"
+             style="font-size:.78rem;color:#C9952A;font-weight:400;margin-left:6px;">Link</a>
+          {% endif %}
+        </div>
+        <div class="itin-buzz-desc">{{ item.description }}</div>
+        {% if item.venue %}
+        <div style="font-size:.78rem;color:#aaa;">{{ item.venue }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Pickup #}
+    {% if itinerary.pickup %}
+    <div class="itin-card itin-pickup">
+      <div class="itin-stop-label">Pickup</div>
+      <div class="d-flex justify-content-between align-items-start">
+        <div class="itin-stop-name">{{ itinerary.pickup.address }}</div>
+        <div class="itin-stop-time ms-3 text-nowrap">{{ itinerary.pickup.time }}</div>
+      </div>
+      {% if itinerary.pickup.note %}
+      <div class="itin-stop-desc">{{ itinerary.pickup.note }}</div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {# Stops #}
+    {% for stop in itinerary.stops %}
+    <div class="itin-card itin-stop">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="itin-stop-label">Stop {{ stop.order }}</div>
+          <div class="itin-stop-name">{{ stop.name }}</div>
+        </div>
+        <div class="itin-stop-time ms-3 text-nowrap">{{ stop.arrival_time }}</div>
+      </div>
+      {% if stop.description %}
+      <div class="itin-stop-desc">{{ stop.description }}</div>
+      {% endif %}
+      {% if stop.highlight %}
+      <div class="itin-highlight">{{ stop.highlight }}</div>
+      {% endif %}
+      {% if stop.drive_from_prev %}
+      <div class="itin-drive">{{ stop.drive_from_prev }}</div>
+      {% endif %}
+      {% if stop.duration_minutes %}
+      <div style="font-size:.78rem;color:#aaa;margin-top:.35rem;">
+        Approx. {{ stop.duration_minutes }} min at this stop
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    {# Return #}
+    {% if itinerary.return %}
+    <div class="itin-card itin-return">
+      <div class="itin-stop-label">Return / Drop-off</div>
+      <div class="d-flex justify-content-between align-items-start">
+        <div class="itin-stop-name">{{ itinerary.return.drop_off }}</div>
+        <div class="itin-stop-time ms-3 text-nowrap">{{ itinerary.return.estimated_time }}</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {# Inclusions #}
+    {% if itinerary.inclusions %}
+    <div class="itin-card">
+      <div class="itin-stop-label mb-2">What's Included</div>
+      {% for item in itinerary.inclusions %}
+      <span class="itin-chip">{{ item }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% else %}
+
+    <div class="itin-card itin-pending">
+      <div class="spinner-border mb-3" role="status"></div>
+      <p class="mb-0">Your personalized itinerary is being prepared. Check back shortly.</p>
+    </div>
+    <script>
+      (function() {
+        var bookingId = '{{ booking.booking_id }}';
+        var pollInterval = setInterval(function() {
+          fetch('/booking/' + bookingId + '/itinerary/status')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (data.ready) { clearInterval(pollInterval); window.location.reload(); }
+            })
+            .catch(function() { clearInterval(pollInterval); });
+        }, 5000);
+      })();
+    </script>
+
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

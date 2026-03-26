@@ -1,0 +1,77 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Itinerary {{ record.itinerary_id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4 gap-3">
+  <a href="{{ url_for('itinerary.admin_itineraries') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>All Itineraries
+  </a>
+  <h1 class="fw-bold mb-0 fs-4">Itinerary {{ record.itinerary_id }}</h1>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body">
+        <h6 class="fw-bold text-muted text-uppercase small mb-3">Metadata</h6>
+        <dl class="row mb-0 small">
+          <dt class="col-5">Booking</dt>
+          <dd class="col-7 font-monospace">
+            <a href="{{ url_for('admin.booking_detail', booking_id=record.booking_id) }}">
+              {{ record.booking_id }}</a>
+          </dd>
+          <dt class="col-5">Version</dt>
+          <dd class="col-7">
+            <span class="badge {% if record.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+              v{{ record.version }} {% if record.is_active %}(active){% else %}(superseded){% endif %}
+            </span>
+          </dd>
+          <dt class="col-5">Pickup City</dt>
+          <dd class="col-7">{{ record.pickup_city }}</dd>
+          <dt class="col-5">Tour Date</dt>
+          <dd class="col-7">{{ record.tour_date.strftime('%b %-d, %Y') if record.tour_date else '—' }}</dd>
+          <dt class="col-5">Trigger</dt>
+          <dd class="col-7"><span class="badge bg-info text-dark">{{ record.generation_trigger }}</span></dd>
+          <dt class="col-5">Fallback</dt>
+          <dd class="col-7">
+            {% if record.is_fallback %}
+            <span class="badge bg-warning text-dark">Yes</span>
+            {% else %}No{% endif %}
+          </dd>
+          <dt class="col-5">Events Found</dt>
+          <dd class="col-7">{{ record.local_events_found }}</dd>
+          <dt class="col-5">Generated</dt>
+          <dd class="col-7">{{ record.generated_at.strftime('%Y-%m-%d %H:%M UTC') if record.generated_at else '—' }}</dd>
+          <dt class="col-5">Staff Notified</dt>
+          <dd class="col-7">{{ record.staff_notified_at.strftime('%H:%M UTC') if record.staff_notified_at else '—' }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    {# Regenerate button #}
+    <form method="POST"
+          action="{{ url_for('itinerary.admin_regen_itinerary', booking_id=record.booking_id) }}"
+          onsubmit="return confirm('Queue itinerary regeneration for this booking?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-warning w-100">
+        <i class="bi bi-arrow-clockwise me-2"></i>Regenerate Itinerary
+      </button>
+    </form>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-dark text-white d-flex justify-content-between">
+        <span class="fw-semibold">itinerary_json</span>
+        <a href="{{ url_for('itinerary.booking_itinerary', booking_id=record.booking_id) }}"
+           target="_blank" class="btn btn-sm btn-outline-light">
+          Customer View <i class="bi bi-box-arrow-up-right ms-1"></i>
+        </a>
+      </div>
+      <div class="card-body p-0">
+        <pre class="mb-0 p-3" style="max-height:600px;overflow-y:auto;font-size:.78rem;background:#1e1e1e;color:#d4d4d4;border-radius:0 0 .375rem .375rem;">{{ pretty_json }}</pre>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

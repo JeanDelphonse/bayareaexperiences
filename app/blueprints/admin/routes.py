@@ -85,6 +85,7 @@ def experiences():
             staff_id=staff_id, is_active=is_active,
             photo_url=photo_url,
             sort_order=Experience.query.count() + 1,
+            core_stops=request.form.get('core_stops', '').strip() or None,
         )
         db.session.add(exp)
         db.session.flush()
@@ -128,6 +129,7 @@ def edit_experience(experience_id):
         exp.staff_id     = request.form.get('staff_id') or None
         exp.is_active    = request.form.get('is_active') == 'on'
         exp.photo_url    = request.form.get('photo_url', '').strip()
+        exp.core_stops   = request.form.get('core_stops', '').strip() or None
 
         # Update pickup locations
         ExperiencePickupLocation.query.filter_by(experience_id=experience_id).delete()
