@@ -60,42 +60,34 @@
       </div>
 
       {# ── Itinerary Section ────────────────────────────────────────────────── #}
-      <div class="mt-4" id="itinerary-section">
+      <div class="mt-5" id="itinerary-section">
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <div style="width:40px;height:40px;border-radius:50%;background:#FDF6EC;
+               display:flex;align-items:center;justify-content:center;
+               color:#C9952A;font-size:20px;flex-shrink:0;">&#128205;</div>
+          <div>
+            <h2 style="color:#1A3557;font-size:22px;font-weight:500;margin:0;">
+              Your Day Itinerary
+            </h2>
+            <p style="color:#5A6A7A;font-size:13px;margin:0;">
+              Personalized for your {{ booking.pickup_city }} pickup
+            </p>
+          </div>
+        </div>
+
         {% if itinerary %}
-          <div class="card border-0 shadow-sm">
-            <div class="card-body p-4 text-start">
-              <h5 class="fw-bold mb-3" style="color:#1A3557;">
-                <i class="bi bi-map me-2" style="color:#C9952A;"></i>Your Personalized Itinerary
-              </h5>
-              <p class="mb-3 text-muted">{{ itinerary.greeting }}</p>
-              {% if itinerary.stops %}
-              <ul class="list-group list-group-flush mb-3">
-                {% for stop in itinerary.stops %}
-                <li class="list-group-item px-0">
-                  <div class="d-flex justify-content-between">
-                    <span class="fw-semibold">{{ stop.order }}. {{ stop.name }}</span>
-                    <span class="text-muted small">{{ stop.arrival_time }}</span>
-                  </div>
-                  <div class="text-muted small">{{ stop.description }}</div>
-                  {% if stop.drive_from_prev %}
-                  <div class="text-muted small fst-italic">{{ stop.drive_from_prev }}</div>
-                  {% endif %}
-                </li>
-                {% endfor %}
-              </ul>
-              {% endif %}
-              <a href="{{ url_for('itinerary.booking_itinerary', booking_id=booking.booking_id) }}"
-                 class="btn btn-sm" style="background:#C9952A;color:#fff;">
-                View Full Itinerary
-              </a>
-            </div>
+          {% include 'itinerary/_itinerary_panel.html' %}
+          <div class="mt-3 text-center">
+            <a href="{{ url_for('itinerary.booking_itinerary', booking_id=booking.booking_id) }}"
+               style="background:#C9952A;color:#fff;font-size:13px;padding:7px 20px;
+                      border-radius:9999px;text-decoration:none;">
+              View Full Itinerary
+            </a>
           </div>
         {% else %}
-          <div class="card border-0 shadow-sm" id="itinerary-pending-card">
-            <div class="card-body p-4 text-center">
-              <div class="spinner-border spinner-border-sm text-warning me-2" role="status"></div>
-              <span class="text-muted">Your personalized itinerary is being prepared. Check back shortly.</span>
-            </div>
+          <div id="itinLoading" class="text-center py-4">
+            <div class="spinner-border" style="color:#C9952A;" role="status"></div>
+            <p class="mt-3" style="color:#5A6A7A;">Personalizing your itinerary&hellip;</p>
           </div>
           <script>
             (function() {
@@ -104,10 +96,7 @@
                 fetch(statusUrl)
                   .then(function(r) { return r.json(); })
                   .then(function(data) {
-                    if (data.ready) {
-                      clearInterval(pollInterval);
-                      window.location.reload();
-                    }
+                    if (data.ready) { clearInterval(pollInterval); window.location.reload(); }
                   })
                   .catch(function() { clearInterval(pollInterval); });
               }, 5000);

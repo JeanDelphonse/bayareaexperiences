@@ -304,6 +304,8 @@ def bookings():
 @login_required
 @admin_required
 def booking_detail(booking_id):
+    import json
+    from app.itinerary.storage import get_active_itinerary, get_all_itinerary_versions
     booking = Booking.query.get_or_404(booking_id)
     if request.method == 'POST':
         action = request.form.get('action')
@@ -316,7 +318,22 @@ def booking_detail(booking_id):
             db.session.commit()
             flash('Notes saved.', 'success')
         return redirect(url_for('admin.booking_detail', booking_id=booking_id))
-    return render_template('admin/booking_detail.html', booking=booking)
+    itinerary_record = get_active_itinerary(booking_id)
+    itinerary = None
+    if itinerary_record:
+        try:
+            itinerary = json.loads(itinerary_record.itinerary_json)
+        except (ValueError, TypeError):
+            itinerary = None
+    itinerary_versions = get_all_itinerary_versions(booking_id)
+    return render_template(
+        'admin/booking_detail.html',
+        booking=booking,
+        itinerary=itinerary,
+        itinerary_record=itinerary_record,
+        itinerary_versions=itinerary_versions,
+        is_admin_view=True,
+    )
 
 
 # ── Staff ──────────────────────────────────────────────────────────────────────

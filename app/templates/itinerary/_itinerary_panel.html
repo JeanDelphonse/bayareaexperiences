@@ -1,0 +1,113 @@
+{# templates/itinerary/_itinerary_panel.html #}
+{# Used by: booking/confirm.html, account/booking_detail.html, admin/booking_detail.html #}
+{# Context required: itinerary (dict) #}
+{# Context optional: is_admin_view (bool, default false) #}
+
+{% set is_admin = is_admin_view | default(false) %}
+
+{# Greeting #}
+<div style="background:#EFF4F9;border-radius:10px;padding:16px;
+     margin-bottom:20px;font-size:15px;color:#1C1C1E;line-height:1.7;">
+  {{ itinerary.greeting }}
+</div>
+
+{# Local Buzz #}
+{% if itinerary.local_buzz %}
+<div style="background:#FDF6EC;border:1px solid #F0E0C0;border-radius:10px;
+     padding:16px;margin-bottom:20px;">
+  <div style="font-size:10px;font-weight:500;letter-spacing:.08em;
+       color:#8B6419;margin-bottom:12px;">LOCAL BUZZ ON YOUR TOUR DATE</div>
+  {% for event in itinerary.local_buzz %}
+  <div style="{% if not loop.last %}margin-bottom:12px;padding-bottom:12px;
+              border-bottom:0.5px solid #F0E0C0;{% endif %}">
+    <div style="font-size:14px;font-weight:500;color:#1C1C1E;">{{ event.title }}</div>
+    <div style="font-size:13px;color:#5A6A7A;margin-top:3px;">{{ event.description }}</div>
+    {% if event.url %}
+    <a href="{{ event.url }}" target="_blank" rel="noopener"
+       style="font-size:12px;color:#1A3557;margin-top:4px;display:inline-block;">
+      Learn more &rarr;</a>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{# Timeline: Pickup → Stops → Drop-off #}
+<div style="position:relative;">
+  <div style="position:absolute;left:20px;top:28px;bottom:28px;
+       width:2px;background:#E8ECF0;"></div>
+
+  {# Pickup #}
+  <div style="display:flex;gap:16px;margin-bottom:20px;position:relative;">
+    <div style="width:40px;height:40px;border-radius:50%;background:#C9952A;
+         display:flex;align-items:center;justify-content:center;
+         flex-shrink:0;z-index:1;">
+      <span style="color:#fff;font-size:16px;">&#128205;</span>
+    </div>
+    <div style="padding-top:6px;">
+      <div style="font-size:13px;font-weight:500;color:#C9952A;">
+        {{ itinerary.pickup.time }} &mdash; Pickup</div>
+      <div style="font-size:15px;font-weight:500;color:#1C1C1E;margin-top:2px;">
+        {{ itinerary.pickup.address }}</div>
+      {% if itinerary.pickup.note %}
+      <div style="font-size:13px;color:#5A6A7A;margin-top:3px;">
+        {{ itinerary.pickup.note }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Experience stops #}
+  {% for stop in itinerary.stops %}
+  <div style="display:flex;gap:16px;margin-bottom:20px;position:relative;">
+    <div style="width:40px;height:40px;border-radius:50%;background:#1A3557;
+         display:flex;align-items:center;justify-content:center;
+         flex-shrink:0;z-index:1;font-size:14px;font-weight:500;color:#fff;">
+      {{ stop.order }}
+    </div>
+    <div style="padding-top:6px;flex:1;">
+      <div style="font-size:13px;font-weight:500;color:#5A6A7A;">
+        {{ stop.arrival_time }}
+        {% if stop.duration_minutes %}&bull; ~{{ stop.duration_minutes }} min{% endif %}
+      </div>
+      <div style="font-size:15px;font-weight:500;color:#1C1C1E;margin-top:2px;">
+        {{ stop.name }}</div>
+      <div style="font-size:13px;color:#5A6A7A;margin-top:4px;line-height:1.5;">
+        {{ stop.description }}</div>
+      {% if stop.highlight %}
+      <div style="font-size:13px;color:#C9952A;margin-top:5px;font-weight:500;">
+        &#9733; {{ stop.highlight }}</div>
+      {% endif %}
+      {% if stop.drive_from_prev %}
+      <div style="font-size:11px;color:#2E7D8C;margin-top:5px;">
+        {{ stop.drive_from_prev }}</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  {# Drop-off #}
+  <div style="display:flex;gap:16px;margin-bottom:20px;position:relative;">
+    <div style="width:40px;height:40px;border-radius:50%;background:#2D7A4F;
+         display:flex;align-items:center;justify-content:center;
+         flex-shrink:0;z-index:1;">
+      <span style="color:#fff;font-size:16px;">&#10003;</span>
+    </div>
+    <div style="padding-top:6px;">
+      <div style="font-size:13px;font-weight:500;color:#2D7A4F;">
+        ~{{ itinerary.return.estimated_time }} &mdash; Drop-off</div>
+      <div style="font-size:15px;font-weight:500;color:#1C1C1E;margin-top:2px;">
+        {{ itinerary.return.drop_off }}</div>
+    </div>
+  </div>
+
+</div>
+
+{# Inclusions #}
+{% if itinerary.inclusions %}
+<div style="margin-top:20px;display:flex;flex-wrap:wrap;gap:8px;">
+  {% for item in itinerary.inclusions %}
+  <span style="background:#EAF4EE;color:#1A5230;font-size:12px;font-weight:500;
+         padding:4px 12px;border-radius:9999px;">&#10003; {{ item }}</span>
+  {% endfor %}
+</div>
+{% endif %}

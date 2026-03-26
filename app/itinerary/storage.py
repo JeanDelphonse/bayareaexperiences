@@ -64,8 +64,18 @@ def save_itinerary(booking_id: str, itinerary: dict, trigger: str = 'booking_con
 
 def get_active_itinerary(booking_id: str):
     """Return the active BookingItinerary record for a booking, or None."""
-    return BookingItinerary.query.filter_by(
-        booking_id=booking_id, is_active=True).first()
+    return (BookingItinerary.query
+            .filter_by(booking_id=booking_id, is_active=True)
+            .order_by(BookingItinerary.version.desc())
+            .first())
+
+
+def get_all_itinerary_versions(booking_id: str) -> list:
+    """Return all BookingItinerary records for a booking, newest first."""
+    return (BookingItinerary.query
+            .filter_by(booking_id=booking_id)
+            .order_by(BookingItinerary.version.desc())
+            .all())
 
 
 def get_itinerary_data(booking_id: str) -> dict | None:

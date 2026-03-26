@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Booking {{ booking.booking_id }} — Bay Area Experiences{% endblock %}
+
+{% block head_extra %}
+<style>
+@media print {
+  nav, footer, .btn, .no-print { display: none !important; }
+  body { background: white !important; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width:760px;">
+
+  <div class="mb-4">
+    <a href="{{ url_for('account.bookings') }}" class="text-muted text-decoration-none small">
+      &larr; My Bookings
+    </a>
+  </div>
+
+  {# Booking Summary #}
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-4">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+        <div>
+          <h1 class="fw-bold fs-4 mb-1">{{ booking.experience.name }}</h1>
+          <span class="font-monospace text-muted small">Ref: {{ booking.booking_id }}</span>
+        </div>
+        <div>
+          {% if booking.booking_status == 'confirmed' %}
+            <span class="badge bg-success fs-6">Confirmed</span>
+          {% elif booking.booking_status == 'completed' %}
+            <span class="badge bg-secondary fs-6">Completed</span>
+          {% elif booking.booking_status == 'cancelled' %}
+            <span class="badge bg-danger fs-6">Cancelled</span>
+          {% elif booking.booking_status == 'rescheduled' %}
+            <span class="badge bg-warning text-dark fs-6">Rescheduled</span>
+          {% endif %}
+        </div>
+      </div>
+      <hr>
+      <dl class="row mb-0">
+        <dt class="col-sm-4">Date</dt>
+        <dd class="col-sm-8">{{ booking.timeslot.slot_date.strftime('%A, %B %-d, %Y') }}</dd>
+        <dt class="col-sm-4">Time</dt>
+        <dd class="col-sm-8">
+          {{ booking.timeslot.start_time.strftime('%I:%M %p') }} &ndash;
+          {{ booking.timeslot.end_time.strftime('%I:%M %p') }}
+        </dd>
+        <dt class="col-sm-4">Guests</dt>
+        <dd class="col-sm-8">{{ booking.guest_count }}</dd>
+        <dt class="col-sm-4">Pickup</dt>
+        <dd class="col-sm-8">
+          {{ booking.pickup_city }}
+          {% if booking.pickup_address %}
+          <br><small class="text-muted">{{ booking.pickup_address }}</small>
+          {% endif %}
+        </dd>
+        {% if booking.special_requests %}
+        <dt class="col-sm-4">Special Requests</dt>
+        <dd class="col-sm-8">{{ booking.special_requests }}</dd>
+        {% endif %}
+        <dt class="col-sm-4">Amount Paid</dt>
+        <dd class="col-sm-8 fw-semibold">${{ "%.2f"|format(booking.amount_paid) }}</dd>
+        {% if booking.amount_due > 0 %}
+        <dt class="col-sm-4">Amount Due</dt>
+        <dd class="col-sm-8 text-danger fw-semibold">${{ "%.2f"|format(booking.amount_due) }}</dd>
+        {% endif %}
+      </dl>
+      <div class="mt-3 d-flex gap-2 flex-wrap no-print">
+        <a href="{{ url_for('booking.booking_ics', booking_id=booking.booking_id) }}"
+           class="btn btn-outline-dark btn-sm">
+          <i class="bi bi-calendar-plus me-1"></i>Add to Calendar
+        </a>
+        {% if itinerary %}
+        <a href="{{ url_for('itinerary.booking_itinerary', booking_id=booking.booking_id) }}"
+           class="btn btn-outline-dark btn-sm">
+          <i class="bi bi-map me-1"></i>Full Itinerary
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# Itinerary Section #}
+  <section id="itinerary">
+    <div class="d-flex align-items-center justify-content-between mb-3 no-print">
+      <h2 style="color:#1A3557;font-size:22px;font-weight:500;margin:0;">Your Itinerary</h2>
+      {% if itinerary %}
+      <div class="d-flex gap-2 align-items-center">
+        {% if itinerary_version and itinerary_version > 1 %}
+        <span style="background:#EFF4F9;color:#2E7D8C;font-size:11px;font-weight:500;
+               padding:3px 10px;border-radius:9999px;">
+          Updated {{ itinerary_generated_at.strftime('%b %-d') if itinerary_generated_at }}
+        </span>
+        {% endif %}
+        <button onclick="window.print()"
+                style="background:none;border:1.5px solid #C9952A;color:#8B6419;
+                       font-size:12px;padding:5px 14px;border-radius:9999px;cursor:pointer;">
+          &#128438; Save / Print
+        </button>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if itinerary %}
+      {% include 'itinerary/_itinerary_panel.html' %}
+    {% elif booking.booking_status == 'confirmed' %}
+      <div style="background:#EFF4F9;border-radius:12px;padding:24px;text-align:center;">
+        <div class="spinner-border mb-3" style="color:#C9952A;" role="status"></div>
+        <p style="color:#5A6A7A;margin:0;">
+          Your personalized itinerary is being prepared. Check back shortly or refresh this page.
+        </p>
+      </div>
+    {% else %}
+      <p style="color:#5A6A7A;font-size:15px;">No itinerary is available for this booking.</p>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}

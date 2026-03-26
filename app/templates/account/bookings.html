@@ -22,11 +22,12 @@
             <th>Guests</th>
             <th>Total</th>
             <th>Status</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
           {% for b in bookings %}
-          <tr>
+          <tr style="cursor:pointer;" onclick="window.location='{{ url_for('account.booking_detail', booking_id=b.booking_id) }}'">
             <td><span class="font-monospace small">{{ b.booking_id }}</span></td>
             <td>{{ b.experience.name }}</td>
             <td>
@@ -45,6 +46,10 @@
               {% elif b.booking_status == 'rescheduled' %}
                 <span class="badge bg-warning text-dark">Rescheduled</span>
               {% endif %}
+            </td>
+            <td>
+              <a href="{{ url_for('account.booking_detail', booking_id=b.booking_id) }}"
+                 class="btn btn-sm btn-outline-dark">View</a>
             </td>
           </tr>
           {% endfor %}

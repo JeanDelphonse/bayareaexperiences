@@ -21,6 +21,32 @@ def bookings():
     return render_template('account/bookings.html', bookings=user_bookings)
 
 
+@account_bp.route('/dashboard/bookings/<booking_id>')
+@login_required
+def booking_detail(booking_id):
+    import json
+    from app.itinerary.storage import get_active_itinerary
+    booking = Booking.query.filter_by(
+        booking_id=booking_id,
+        user_id=current_user.user_id,
+    ).first_or_404()
+    itinerary_record = get_active_itinerary(booking_id)
+    itinerary = None
+    if itinerary_record:
+        try:
+            itinerary = json.loads(itinerary_record.itinerary_json)
+        except (ValueError, TypeError):
+            itinerary = None
+    return render_template(
+        'account/booking_detail.html',
+        booking=booking,
+        itinerary=itinerary,
+        itinerary_version=itinerary_record.version if itinerary_record else None,
+        itinerary_generated_at=itinerary_record.generated_at if itinerary_record else None,
+        is_fallback=itinerary_record.is_fallback if itinerary_record else False,
+    )
+
+
 @account_bp.route('/dashboard/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
