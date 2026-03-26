@@ -1,0 +1,1355 @@
+BAY AREA EXPERIENCES
+bayareaexperiences.com
+PROJECT REQUIREMENTS DOCUMENT
+Customer Feedback & Reviews System
+Per-Experience Star Rating · Best Moment Question · Detail Page Display · Follow-Up Email
+Document Version
+1.0 — Initial Release
+Date
+March 25, 2026
+Prepared By
+JD (Jean M. Delphonse)
+Document Code
+BAE-PRD-REVIEWS-v1.0
+Status
+Ready for Development
+Parent PRDs
+BAE-PRD-CORE v3.0 · BAE-PRD-THEME-v1.0 · BAE-CONTEXT-v1.0
+Rating Format
+1–5 stars (integer; no half-stars)
+Feedback Question
+"What was the single best moment of your experience?"
+Eligibility
+Verified bookers only (booking record required)
+Guest Support
+Yes — via unique one-time token link in post-tour email
+Publishing
+Auto-publish immediately; admin can flag/remove
+Low-Score Moderation
+Reviews 1–2 stars held 24 hrs for admin awareness before going live
+Provider Responses
+Schema supports it; UI deferred to v2.0
+Display Location
+Bottom of each experience detail page
+Feedback is collected 3 hours after tour completion via automated email.
+Reviews display publicly on the experience detail page — name, stars, and best moment.
+1. Feature Overview
+1.1 Purpose
+This PRD defines the requirements for a customer feedback and review system for bayareaexperiences.com. After completing a tour, customers receive an automated follow-up email with a direct feedback link. They provide a 1–5 star rating and answer one focused question: "What was the single best moment of your experience?" Reviews are published on the corresponding experience detail page at the bottom, building social proof that drives future bookings.
+1.2 Design Decisions
+Decision
+Rationale
+One rating (stars) + one question only
+Higher completion rate than multi-question surveys. The 'best moment' question yields emotional, specific, quotable content — far more persuasive than generic ratings.
+Verified bookers only
+Prevents fake reviews. Every review is backed by a real booking record, which is displayed to admin and optionally to customers as a 'Verified Experience' badge.
+Guest bookers supported via token link
+Guests without accounts represent a significant share of bookings. Excluding them from feedback would bias the review pool toward account holders.
+Auto-publish with 24-hour hold on 1–2 star reviews
+Instant publishing maximizes review volume and customer trust. The 24-hour hold on very low scores gives admin time to review and optionally reach out to the customer before the negative review goes live.
+Provider response schema in DB, UI deferred
+The marketplace model (BAE-PRD-MARKETPLACE) means providers will eventually want to respond to reviews publicly. Building the schema now avoids a future migration.
+3-hour post-tour email trigger
+Customers are home, relaxed, and still emotionally warm. Completion rates peak at 2–4 hours post-experience. Earlier feels rushed; later the moment has faded.
+Display: newest first, max 10 per page
+Freshest reviews are most relevant. Pagination prevents detail page from becoming infinitely long.
+1.3 Scope
+New page: /feedback/<token> — one-screen feedback form for verified bookers
+Updated page: /experience/<slug> — review display section appended at bottom
+New admin section: /admin/reviews — moderation, flagging, and analytics
+New email template: post_tour_feedback.html — sent 3 hours after timeslot end time
+New background job: send_feedback_requests() — triggered by nightly scheduler or APScheduler
+5 new database tables: experience_reviews, review_tokens, review_votes, review_flags, review_responses
+2. Database Schema
+2.1 experience_reviews
+Core table. One record per submitted review. Tied to a specific booking, experience, and optionally a user account.
+Column
+Type
+Constraints
+Notes
+review_id
+CHAR(9)
+PK
+9-char alphanumeric
+booking_id
+CHAR(9)
+FK bookings UNIQUE
+One review per booking — enforced at DB and app layer
+experience_id
+CHAR(9)
+FK experiences NOT NULL
+Denormalized for fast experience-level queries
+user_id
+CHAR(9)
+FK users / NULL
+NULL for guest reviewers
+provider_id
+CHAR(9)
+FK providers / NULL
+Denormalized from experience — supports per-provider review queries
+star_rating
+TINYINT
+NOT NULL
+1 through 5 — integer only; no decimals
+best_moment
+TEXT
+NOT NULL
+Answer to 'What was the single best moment?' — min 10 chars, max 1000
+reviewer_first_name
+VARCHAR(80)
+NOT NULL
+From booking record; displayed publicly as 'Sarah M.'
+reviewer_last_name_initial
+CHAR(1)
+NOT NULL
+First letter of last name only — privacy
+reviewer_display_name
+VARCHAR(100)
+NOT NULL
+Computed: '{first_name} {last_initial}.' — stored for display
+is_verified_booking
+BOOLEAN
+DEFAULT TRUE
+Always TRUE — reviews require booking record
+status
+ENUM('pending','published','held','flagged','removed')
+DEFAULT 'pending'
+See status flow Section 2.6
+published_at
+DATETIME
+NULLABLE
+UTC — set when status transitions to published
+held_until
+DATETIME
+NULLABLE
+UTC — for 1–2 star reviews: now() + 24 hours
+is_featured
+BOOLEAN
+DEFAULT FALSE
+Admin marks as featured — shown first on detail page
+helpful_count
+INT
+DEFAULT 0
+Number of 'Was this helpful?' upvotes
+flag_count
+INT
+DEFAULT 0
+Number of customer flag reports
+provider_response
+TEXT
+NULLABLE
+Provider's public reply (schema ready; UI in v2.0)
+provider_response_at
+DATETIME
+NULLABLE
+UTC — when provider responded
+admin_notes
+TEXT
+NULLABLE
+Internal notes — never shown publicly
+feedback_token_id
+CHAR(9)
+FK review_tokens
+Links back to the token used for submission
+submitted_at
+DATETIME
+NOT NULL
+UTC — when form was submitted
+ip_address
+VARCHAR(45)
+NULLABLE
+For abuse detection — never shown publicly
+2.2 review_tokens
+One unique token per booking. Generated when the post-tour feedback email is queued. The token is embedded in the feedback form URL and is valid for 30 days after the tour date. It can only be used once.
+Column
+Type
+Constraints
+Notes
+token_id
+CHAR(9)
+PK
+token
+CHAR(64)
+UNIQUE NOT NULL
+Cryptographically random 64-char hex string — used in the feedback URL
+booking_id
+CHAR(9)
+FK bookings UNIQUE
+One token per booking
+experience_id
+CHAR(9)
+FK experiences NOT NULL
+user_id
+CHAR(9)
+FK users / NULL
+NULL for guest bookings
+email_sent_to
+VARCHAR(150)
+NOT NULL
+Email address the feedback request was sent to
+email_sent_at
+DATETIME
+NULLABLE
+UTC — when the post-tour email was dispatched
+is_used
+BOOLEAN
+DEFAULT FALSE
+Set TRUE when review is submitted via this token
+used_at
+DATETIME
+NULLABLE
+UTC — when token was consumed
+expires_at
+DATETIME
+NOT NULL
+UTC — tour_date + 30 days
+created_at
+DATETIME
+NOT NULL
+UTC
+2.3 review_votes
+'Was this helpful?' votes on individual reviews. Anonymous (IP-based) for guests; user_id-based for authenticated users. Prevents voting on your own review.
+Column
+Type
+Constraints
+Notes
+vote_id
+CHAR(9)
+PK
+review_id
+CHAR(9)
+FK experience_reviews
+user_id
+CHAR(9)
+FK users / NULL
+NULL for anonymous votes
+ip_address
+VARCHAR(45)
+NOT NULL
+Used to prevent duplicate anonymous votes
+voted_at
+DATETIME
+NOT NULL
+UTC
+2.4 review_flags
+Customer-reported flags on reviews they believe are fake, offensive, or inappropriate. Admin reviews flagged content from the /admin/reviews/flagged queue.
+Column
+Type
+Constraints
+Notes
+flag_id
+CHAR(9)
+PK
+review_id
+CHAR(9)
+FK experience_reviews
+reported_by_user_id
+CHAR(9)
+FK users / NULL
+reported_by_ip
+VARCHAR(45)
+NOT NULL
+reason
+ENUM('fake','offensive','spam','irrelevant','other')
+NOT NULL
+notes
+TEXT
+NULLABLE
+Optional explanation from reporter
+flagged_at
+DATETIME
+NOT NULL
+UTC
+2.5 Modification to experiences table
+Add two pre-aggregated columns to the existing experiences table. Updated by a nightly job and on every new review publication. Prevents expensive real-time aggregation on the detail page.
+Column to Add
+Type
+Notes
+avg_star_rating
+DECIMAL(3,2) DEFAULT NULL
+Rounded to 2 decimal places; NULL if no reviews yet
+review_count
+INT DEFAULT 0
+Total published reviews for this experience
+Migration Safety: ALTER TABLE experiences ADD COLUMN avg_star_rating DECIMAL(3,2) NULL DEFAULT NULL, ADD COLUMN review_count INT NOT NULL DEFAULT 0; — Safe, non-breaking. All existing rows get NULL rating and 0 count.
+2.6 Review Status Flow
+Status
+Description / Trigger
+pending
+Initial state on submission. Not yet visible publicly. Transitions immediately to published or held.
+published
+Visible on the experience detail page. For 3–5 star reviews: set immediately on submission. For 1–2 star reviews: set after held_until timestamp passes (24 hours).
+held
+Automatically set for 1–2 star reviews. System schedules transition to published after 24 hours. Admin may intervene during this window: publish early, flag, or remove.
+flagged
+Admin or automated flag threshold (3+ customer flags) triggers this. Hidden from public. Requires admin review before any action.
+removed
+Admin permanently removes the review. Not shown publicly. Soft delete — record remains in DB with status=removed.
+3. Feedback Collection — Post-Tour Email
+3.1 Trigger Logic
+The feedback email is sent automatically 3 hours after the timeslot's scheduled end time. A background job checks for eligible bookings every 30 minutes and dispatches emails as they become due.
+# app/reviews/scheduler.py
+from datetime import datetime, timezone, timedelta
+from app.models import Booking, Timeslot, ReviewToken
+from app.extensions import db, mail
+from app.utils import generate_pk
+from app.reviews.email import send_feedback_request
+import secrets
+
+def process_pending_feedback_requests():
+    """
+    Called every 30 minutes (cron or APScheduler).
+    Finds completed bookings whose timeslot ended 3+ hours ago
+    and where no feedback token has been sent yet.
+    """
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(hours=3)   # 3 hours ago
+    max_age = now - timedelta(days=7)   # Don't email tours older than 7 days
+
+    # Find eligible bookings: confirmed + timeslot ended 3–7 days ago + no token sent
+    eligible = (
+        Booking.query
+        .join(Timeslot, Booking.timeslot_id == Timeslot.timeslot_id)
+        .filter(
+            Booking.booking_status == 'confirmed',
+            Timeslot.slot_end_datetime <= cutoff,     # Tour has ended
+            Timeslot.slot_end_datetime >= max_age,    # Not too old
+            ~Booking.review_tokens.any(),             # No token sent yet
+        )
+        .all()
+    )
+
+    for booking in eligible:
+        # Generate unique 64-char token
+        token_str = secrets.token_hex(32)  # 64 hex chars
+        expires   = now + timedelta(days=30)
+
+        token = ReviewToken(
+            token_id    = generate_pk(),
+            token       = token_str,
+            booking_id  = booking.booking_id,
+            experience_id = booking.experience_id,
+            user_id     = booking.user_id,
+            email_sent_to = booking.guest_email or booking.user.email,
+            expires_at  = expires,
+        )
+        db.session.add(token)
+        db.session.flush()  # Get token_id before commit
+
+        # Send email
+        success = send_feedback_request(booking, token)
+        if success:
+            token.email_sent_at = now
+
+    db.session.commit()
+
+# Cron schedule (GoDaddy cPanel Cron Jobs):
+# */30 * * * *  cd /home/user/bayareaexperiences && python -c
+#   'from app import create_app; from app.reviews.scheduler import ...'
+3.2 Post-Tour Email Template
+The email is warm and personal — it should feel like a note from Jean, not a survey from a company. Subject line and body are designed for maximum open and click rate.
+Subject: How was your Bay Area Experience? (we'd love to know)
+
+{# app/templates/email/post_tour_feedback.html #}
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; max-width: 580px; margin: auto; color: #1C1C1E;">
+
+  <div style="background:#1A3557; padding:24px; border-radius:8px 8px 0 0; text-align:center;">
+    <h2 style="color:#fff; margin:0; font-size:20px;">Bay Area Experiences</h2>
+    <p style="color:#F5C97A; margin:6px 0 0; font-size:13px;">{{ booking.experience.name }}</p>
+  </div>
+
+  <div style="background:#f8f9fa; padding:28px; border:1px solid #dee2e6;">
+    <p style="font-size:16px; margin:0 0 16px;">
+      Hi {{ booking.guest_first_name }},
+    </p>
+    <p style="font-size:15px; line-height:1.7; margin:0 0 16px;">
+      Thank you for spending the day with us on the
+      <strong>{{ booking.experience.name }}</strong> experience.
+      We hope it was everything you were hoping for — and then some.
+    </p>
+    <p style="font-size:15px; line-height:1.7; margin:0 0 24px;">
+      We have just one question for you:
+    </p>
+
+    <div style="background:#fff; border:1px solid #dee2e6; border-radius:10px;
+                padding:20px; text-align:center; margin:0 0 24px;">
+      <p style="font-size:18px; font-weight:500; color:#1A3557; margin:0 0 20px;">
+        How was your experience?
+      </p>
+      {# Star rating links — each links to the feedback form pre-filled with the rating #}
+      <div style="font-size:36px; margin:0 0 20px; letter-spacing:4px;">
+        {% for star in [1,2,3,4,5] %}
+        <a href="{{ feedback_url }}&rating={{ star }}"
+           style="text-decoration:none; color:#C9952A;">&#9733;</a>
+        {% endfor %}
+      </div>
+      <p style="font-size:12px; color:#5A6A7A; margin:0 0 16px;">
+        Click a star — or click below to share more</p>
+      <a href="{{ feedback_url }}"
+         style="background:#C9952A; color:#ffffff; padding:12px 28px;
+                border-radius:9999px; text-decoration:none; font-size:14px;
+                font-weight:500; display:inline-block;">
+        Share your experience
+      </a>
+    </div>
+
+    <p style="font-size:13px; color:#5A6A7A; line-height:1.6;">
+      This link is for your booking only and expires in 30 days.
+      If you have any questions or concerns, reply directly to this email
+      or call us at (408) 831-2101.
+    </p>
+  </div>
+
+  <div style="background:#1A3557; padding:14px; border-radius:0 0 8px 8px; text-align:center;">
+    <p style="color:#F5C97A; margin:0; font-size:12px;">
+      Bay Area Experiences &bull; (408) 831-2101 &bull; bayareaexperiences.com
+    </p>
+  </div>
+
+</body>
+</html>
+Star Links: The 5 clickable stars in the email each link to the feedback form with ?rating=N pre-filled. This lets customers who want to simply tap a star and be done submit in 2 taps without typing. The full form is still shown so they can write their best moment.
+4. Feedback Form — /feedback/<token>
+4.1 Route Behaviour
+Method
+Route
+Description
+GET
+/feedback/<token>
+Validate token; render the feedback form pre-filled with experience info
+POST
+/feedback/<token>
+Process submission; create review record; mark token used; redirect to thank-you
+GET
+/feedback/<token>/thankyou
+Confirmation page after successful submission
+4.2 Token Validation
+# app/blueprints/reviews/views.py
+from flask import render_template, redirect, url_for, request, abort
+from app.models import ReviewToken, ExperienceReview
+from app.extensions import db
+from datetime import datetime, timezone
+
+@bp.route('/feedback/<token>', methods=['GET','POST'])
+def feedback_form(token):
+    # Look up the token
+    rt = ReviewToken.query.filter_by(token=token).first()
+
+    # Reject invalid, expired, or already-used tokens
+    if not rt:
+        abort(404)  # Token not found
+    if rt.is_used:
+        return render_template('reviews/already_submitted.html', experience=rt.experience)
+    if rt.expires_at < datetime.now(timezone.utc):
+        return render_template('reviews/token_expired.html',
+                               experience=rt.experience,
+                               phone='(408) 831-2101')
+
+    booking     = rt.booking
+    experience  = rt.experience
+
+    if request.method == 'POST':
+        return process_feedback_submission(rt, booking, experience)
+
+    # Pre-fill rating from email star link if provided
+    prefill_rating = request.args.get('rating', type=int)
+    if prefill_rating and not (1 <= prefill_rating <= 5):
+        prefill_rating = None
+
+    return render_template('reviews/feedback_form.html',
+                           booking=booking,
+                           experience=experience,
+                           prefill_rating=prefill_rating)
+4.3 Form Fields & Validation
+Field
+Required
+Validation
+Star rating (1–5)
+Yes
+Integer 1–5; rendered as clickable star icons; no half-stars; must select one before submit
+Best moment (textarea)
+Yes
+Min 10 characters; max 1000 characters; character counter shown
+Reviewer display name
+Pre-filled, read-only
+Auto-populated from booking: '{first_name} {last_initial}.' — shown as-is; not editable (privacy)
+Experience name
+Pre-filled, read-only
+Auto-populated; shown to give context to the reviewer
+Tour date
+Pre-filled, read-only
+Formatted: 'March 15, 2026' — shown above the form
+CSRF token
+Hidden
+Flask-WTF CSRF protection
+4.4 Feedback Form HTML (Jinja2)
+{# app/templates/reviews/feedback_form.html #}
+{% extends 'base.html' %}
+{% block title %}Share Your Experience — Bay Area Experiences{% endblock %}
+{% block content %}
+<div class='container py-5'>
+  <div class='row justify-content-center'>
+    <div class='col-lg-6'>
+
+      {# Experience context card #}
+      <div class='text-center mb-4'>
+        <span class='badge' style='background:#FDF6EC;color:#8B6419;
+              font-size:12px;padding:6px 14px;border-radius:9999px;'>
+          Verified Experience
+        </span>
+        <h1 class='mt-3 mb-1' style='color:#1A3557;font-size:24px;font-weight:500;'>
+          {{ experience.name }}
+        </h1>
+        <p class='text-muted' style='font-size:14px;'>
+          {{ booking.timeslot.slot_date.strftime('%B %d, %Y') }}
+          &middot; {{ booking.guest_first_name }} {{ booking.guest_last_name[0] }}.
+        </p>
+      </div>
+
+      <div class='card border-0 shadow-sm' style='border-radius:14px;'>
+        <div class='card-body p-4'>
+          <form method='POST' id='feedbackForm'>
+            {{ form.hidden_tag() }}
+
+            {# Star rating selector #}
+            <div class='mb-4 text-center'>
+              <label class='form-label fw-500 d-block mb-3'
+                     style='font-size:16px;color:#1C1C1E;'>
+                How would you rate your experience?
+              </label>
+              <div class='bae-star-selector' id='starSelector'>
+                {% for i in [1,2,3,4,5] %}
+                <span class='bae-star
+                      {{ " bae-star-selected" if prefill_rating and i <= prefill_rating }}'
+                      data-value='{{ i }}'
+                      onclick='selectStar({{ i }})'>&#9733;</span>
+                {% endfor %}
+              </div>
+              <input type='hidden' name='star_rating' id='starInput'
+                     value='{{ prefill_rating or "" }}'>
+              <div class='invalid-feedback d-block' id='starError'
+                   style='display:none!important;'>
+                Please select a star rating before submitting.
+              </div>
+            </div>
+
+            {# Best moment textarea #}
+            <div class='mb-4'>
+              <label class='form-label' style='font-size:15px;font-weight:500;color:#1C1C1E;'>
+                What was the single best moment of your experience?
+              </label>
+              <textarea name='best_moment' id='bestMoment'
+                        class='form-control' rows='5'
+                        minlength='10' maxlength='1000'
+                        placeholder='Tell us about the moment that stood out most...'
+                        required></textarea>
+              <div class='d-flex justify-content-end mt-1'>
+                <span class='char-counter' id='charCount'>0 / 1000</span>
+              </div>
+            </div>
+
+            {# Submit #}
+            <button type='submit' id='submitBtn'
+                    class='btn w-100 fw-500'
+                    style='background:#C9952A;color:#fff;border:none;
+                           padding:12px;border-radius:9999px;font-size:15px;'>
+              Submit My Review
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <p class='text-center mt-3' style='font-size:12px;color:#5A6A7A;'>
+        Your review will appear on the {{ experience.name }} page.
+        Have a question? Call us at
+        <a href='tel:+14088312101' style='color:#1A3557;'>(408) 831-2101</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<style>
+.bae-star-selector { font-size: 48px; letter-spacing: 6px; cursor: pointer; color: #D0D8E0; }
+.bae-star { transition: color 0.1s; }
+.bae-star-selected { color: #C9952A; }
+.bae-star:hover, .bae-star:hover ~ .bae-star { color: #D0D8E0 !important; }
+.bae-star-selector:hover .bae-star { color: #C9952A; }
+</style>
+
+<script>
+function selectStar(n) {
+  document.getElementById('starInput').value = n;
+  document.querySelectorAll('.bae-star').forEach((s, i) => {
+    s.classList.toggle('bae-star-selected', i < n);
+  });
+  document.getElementById('starError').style.display = 'none';
+}
+// Character counter
+const ta = document.getElementById('bestMoment');
+const cc = document.getElementById('charCount');
+ta.addEventListener('input', () => {
+  const n = ta.value.length;
+  cc.textContent = n + ' / 1000';
+  cc.style.color = n > 900 ? '#C0622B' : '#5A6A7A';
+});
+// Client-side star validation on submit
+document.getElementById('feedbackForm').addEventListener('submit', function(e) {
+  if (!document.getElementById('starInput').value) {
+    e.preventDefault();
+    document.getElementById('starError').style.removeProperty('display');
+    document.getElementById('starSelector').scrollIntoView({behavior:'smooth'});
+  }
+});
+</script>
+{% endblock %}
+4.5 Form Submission Processing
+# app/blueprints/reviews/views.py  (continued)
+from app.models import ExperienceReview, Experience
+from datetime import datetime, timezone, timedelta
+
+def process_feedback_submission(rt, booking, experience):
+    star_rating  = request.form.get('star_rating', type=int)
+    best_moment  = request.form.get('best_moment', '').strip()
+
+    # Server-side validation
+    errors = []
+    if not star_rating or not (1 <= star_rating <= 5):
+        errors.append('Please select a star rating.')
+    if len(best_moment) < 10:
+        errors.append('Please write at least 10 characters about your best moment.')
+    if len(best_moment) > 1000:
+        errors.append('Your response must be 1000 characters or fewer.')
+    if errors:
+        return render_template('reviews/feedback_form.html',
+                               booking=booking, experience=experience,
+                               errors=errors)
+
+    # Determine publish status — hold 1–2 star reviews for 24 hours
+    now = datetime.now(timezone.utc)
+    if star_rating <= 2:
+        status     = 'held'
+        held_until = now + timedelta(hours=24)
+        published_at = None
+    else:
+        status     = 'published'
+        held_until = None
+        published_at = now
+
+    # Build display name from booking
+    first  = booking.guest_first_name or (booking.user.first_name if booking.user else 'Guest')
+    last_i = (booking.guest_last_name or (booking.user.last_name if booking.user else ''))[0:1].upper()
+    display_name = f'{first} {last_i}.' if last_i else first
+
+    review = ExperienceReview(
+        review_id              = generate_pk(),
+        booking_id             = booking.booking_id,
+        experience_id          = experience.experience_id,
+        user_id                = booking.user_id,
+        provider_id            = experience.provider_id,
+        star_rating            = star_rating,
+        best_moment            = best_moment,
+        reviewer_first_name    = first,
+        reviewer_last_name_initial = last_i,
+        reviewer_display_name  = display_name,
+        status                 = status,
+        published_at           = published_at,
+        held_until             = held_until,
+        feedback_token_id      = rt.token_id,
+        ip_address             = request.remote_addr,
+    )
+    db.session.add(review)
+
+    # Mark token as used
+    rt.is_used  = True
+    rt.used_at  = now
+
+    # Update experience aggregate stats if publishing immediately
+    if status == 'published':
+        update_experience_rating(experience.experience_id)
+
+    db.session.commit()
+
+    # Notify admin of 1–2 star held reviews
+    if status == 'held':
+        notify_admin_low_score(review, booking, experience)
+
+    return redirect(url_for('reviews.thankyou', token=rt.token))
+
+
+def update_experience_rating(experience_id):
+    """Recompute avg_star_rating and review_count on the experiences table."""
+    from sqlalchemy import func
+    result = db.session.query(
+        func.avg(ExperienceReview.star_rating).label('avg'),
+        func.count(ExperienceReview.review_id).label('cnt'),
+    ).filter(
+        ExperienceReview.experience_id == experience_id,
+        ExperienceReview.status == 'published',
+    ).one()
+
+    db.session.query(Experience).filter_by(
+        experience_id=experience_id).update({
+            'avg_star_rating': round(float(result.avg), 2) if result.avg else None,
+            'review_count':    result.cnt,
+    })
+5. Public Review Display — Experience Detail Page
+5.1 Rating Summary Block
+Displayed at the top of the reviews section — a single-line aggregate with the average star score, a visual star bar, and the total count. This renders from the experiences.avg_star_rating and experiences.review_count columns — no live query at render time.
+{# In templates/main/experience_detail.html — reviews section #}
+
+<section class='bae-reviews-section' id='reviews'>
+  <div class='container py-5'>
+
+    <h2 style='color:#1A3557;font-size:22px;font-weight:500;margin-bottom:8px;'>
+      Guest Reviews
+    </h2>
+
+    {% if experience.review_count > 0 %}
+
+    {# ── Rating summary ──────────────────────────────────── #}
+    <div class='bae-rating-summary d-flex align-items-center gap-3 mb-4'>
+      <span class='bae-rating-big' style='font-size:48px;font-weight:500;color:#1A3557;'>
+        {{ '%.1f' | format(experience.avg_star_rating) }}
+      </span>
+      <div>
+        <div class='bae-stars-display'>
+          {# Render filled / half / empty stars #}
+          {% set avg = experience.avg_star_rating %}
+          {% for i in range(1,6) %}
+            {% if avg >= i %}
+              <span style='color:#C9952A;font-size:22px;'>&#9733;</span>
+            {% elif avg >= i - 0.5 %}
+              <span style='color:#C9952A;font-size:22px;'>&#9734;</span>
+            {% else %}
+              <span style='color:#D0D8E0;font-size:22px;'>&#9733;</span>
+            {% endif %}
+          {% endfor %}
+        </div>
+        <span style='font-size:14px;color:#5A6A7A;'>
+          {{ experience.review_count }} verified review{{ 's' if experience.review_count != 1 }}
+        </span>
+      </div>
+    </div>
+
+    {# ── Star distribution bar chart ─────────────────────── #}
+    <div class='bae-rating-bars mb-5'>
+      {% for star in [5,4,3,2,1] %}
+        {% set count = star_counts[star] %}
+        {% set pct = (count / experience.review_count * 100) | round | int %}
+        <div class='d-flex align-items-center gap-2 mb-1'>
+          <span style='font-size:13px;color:#5A6A7A;min-width:12px;'>{{ star }}</span>
+          <span style='color:#C9952A;font-size:13px;'>&#9733;</span>
+          <div style='flex:1;background:#EFF4F9;border-radius:9999px;height:8px;overflow:hidden;'>
+            <div style='background:#C9952A;height:100%;width:{{ pct }}%;border-radius:9999px;'></div>
+          </div>
+          <span style='font-size:12px;color:#5A6A7A;min-width:28px;text-align:right;'>{{ count }}</span>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <p style='color:#5A6A7A;font-size:15px;margin-bottom:2rem;'>
+      No reviews yet — be the first to share your experience!
+    </p>
+    {% endif %}
+
+    {# ── Individual reviews ───────────────────────────────── #}
+    {% for review in reviews %}
+    <div class='bae-review-card' style='
+         background:#fff; border:0.5px solid #D0D8E0;
+         border-radius:14px; padding:20px; margin-bottom:16px;'>
+
+      {# Review header: avatar, name, date, stars #}
+      <div class='d-flex align-items-start justify-content-between gap-3 mb-3'>
+        <div class='d-flex align-items-center gap-3'>
+          <div style='width:40px;height:40px;border-radius:50%;background:#EFF4F9;
+               display:flex;align-items:center;justify-content:center;
+               color:#1A3557;font-weight:500;font-size:15px;flex-shrink:0;'>
+            {{ review.reviewer_first_name[0] | upper }}
+          </div>
+          <div>
+            <div style='font-weight:500;font-size:15px;color:#1C1C1E;'>
+              {{ review.reviewer_display_name }}
+            </div>
+            <div style='font-size:12px;color:#5A6A7A;'>
+              {{ review.published_at.strftime('%B %Y') }}
+              &middot;
+              <span style='color:#2D7A4F;font-size:11px;font-weight:500;'>
+                &#10003; Verified Experience
+              </span>
+            </div>
+          </div>
+        </div>
+        {# Star rating #}
+        <div style='flex-shrink:0;'>
+          {% for i in range(1,6) %}
+            <span style='color:{{ "#C9952A" if i <= review.star_rating else "#D0D8E0" }};font-size:16px;'>
+              &#9733;
+            </span>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# Best moment answer — no question label; just the response #}
+      <p style='font-size:15px;line-height:1.7;color:#1C1C1E;margin:0 0 12px;'>
+        {{ review.best_moment }}
+      </p>
+
+      {# Helpful vote #}
+      <div class='d-flex align-items-center gap-2'>
+        <span style='font-size:12px;color:#5A6A7A;'>Helpful?</span>
+        <button onclick='voteHelpful("{{ review.review_id }}", this)'
+                style='background:none;border:1px solid #D0D8E0;border-radius:9999px;
+                       padding:3px 10px;font-size:12px;color:#5A6A7A;cursor:pointer;'>
+          &#128077; {{ review.helpful_count }}
+        </button>
+        <button onclick='flagReview("{{ review.review_id }}", this)'
+                style='background:none;border:none;font-size:11px;color:#B0B8C0;cursor:pointer;margin-left:auto;'>
+          Report
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+
+    {# Pagination #}
+    {% if has_more_reviews %}
+    <div class='text-center mt-3'>
+      <button onclick='loadMoreReviews()'
+              style='background:none;border:1.5px solid #C9952A;color:#8B6419;
+                     padding:8px 24px;border-radius:9999px;font-size:14px;cursor:pointer;'>
+        Load more reviews
+      </button>
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+5.2 View Function — Experience Detail (Updated)
+# app/blueprints/main/views.py  (update existing experience_detail view)
+from app.models import ExperienceReview
+from sqlalchemy import func
+
+@bp.route('/experience/<slug>')
+def experience_detail(slug):
+    experience = Experience.query.filter_by(
+        slug=slug, is_active=True).first_or_404()
+
+    # Fetch first page of published reviews — newest first
+    reviews = ExperienceReview.query.filter_by(
+        experience_id=experience.experience_id,
+        status='published',
+    ).order_by(
+        ExperienceReview.is_featured.desc(),  # Featured reviews first
+        ExperienceReview.published_at.desc(),
+    ).limit(10).all()
+
+    has_more_reviews = ExperienceReview.query.filter_by(
+        experience_id=experience.experience_id,
+        status='published',
+    ).count() > 10
+
+    # Star distribution for bar chart
+    star_counts = {i: 0 for i in range(1,6)}
+    rows = db.session.query(
+        ExperienceReview.star_rating,
+        func.count(ExperienceReview.review_id),
+    ).filter_by(
+        experience_id=experience.experience_id,
+        status='published',
+    ).group_by(ExperienceReview.star_rating).all()
+    for rating, count in rows:
+        star_counts[rating] = count
+
+    return render_template('main/experience_detail.html',
+                           experience=experience,
+                           reviews=reviews,
+                           star_counts=star_counts,
+                           has_more_reviews=has_more_reviews)
+
+
+# AJAX endpoint for 'Load more reviews' button
+@bp.route('/experience/<slug>/reviews')
+def experience_reviews(slug):
+    experience = Experience.query.filter_by(slug=slug).first_or_404()
+    page       = request.args.get('page', 2, type=int)
+    reviews    = ExperienceReview.query.filter_by(
+        experience_id=experience.experience_id,
+        status='published',
+    ).order_by(
+        ExperienceReview.is_featured.desc(),
+        ExperienceReview.published_at.desc(),
+    ).paginate(page=page, per_page=10, error_out=False)
+    return render_template('reviews/_review_cards.html',
+                           reviews=reviews.items,
+                           has_more=reviews.has_next)
+6. Admin — Review Moderation
+6.1 Admin Routes
+Method
+Route
+Description
+GET
+/admin/reviews
+All reviews — paginated, newest first, filter by status/experience/rating
+GET
+/admin/reviews/held
+Queue of 1–2 star reviews awaiting 24-hour hold expiry
+GET
+/admin/reviews/flagged
+Queue of customer-flagged reviews requiring review
+GET
+/admin/reviews/<id>
+Full review detail — booking context, reviewer, content, admin notes
+POST
+/admin/reviews/<id>/publish
+Immediately publish a held review
+POST
+/admin/reviews/<id>/flag
+Admin-flag a review (moves to flagged status)
+POST
+/admin/reviews/<id>/remove
+Soft-delete — sets status=removed
+POST
+/admin/reviews/<id>/feature
+Toggle is_featured — featured reviews display first
+POST
+/admin/reviews/<id>/notes
+Save admin_notes on a review (AJAX)
+GET
+/admin/reviews/analytics
+Review analytics — avg rating over time, per-experience breakdown
+GET
+/admin/reviews/export
+CSV export of review data (no personal emails)
+POST
+/admin/reviews/publish-held
+Batch: publish all held reviews whose held_until has passed
+6.2 Admin Review List View
+Columns: Review ID, Experience, Star Rating (star icons), Reviewer, Status Badge, Submitted, Helpful Count, Flag Count, Actions
+Status badges: Published (green), Held (amber), Flagged (red), Removed (gray)
+Filter by: status, experience, star rating (1–5), date range
+Sort by: submitted date (default), star rating (asc/desc), helpful count
+Held review rows highlighted amber — admin attention indicated
+Flagged review rows highlighted red — urgent attention
+KPI cards on admin home: 'Reviews Today', 'Held Reviews', 'Flagged Reviews' (with amber/red badges when count > 0)
+6.3 Low-Score Admin Notification
+When a 1–2 star review is submitted and held, BAE admin receives an immediate email notification so they can optionally reach out to the customer before the review goes live.
+# app/reviews/notifications.py
+def notify_admin_low_score(review, booking, experience):
+    """
+    Email admin when a 1–2 star review is received.
+    Gives admin 24 hours to review before it auto-publishes.
+    """
+    from app.extensions import mail
+    from flask_mail import Message
+    import os
+
+    admin_email = os.environ.get('ADMIN_EMAIL')
+    if not admin_email:
+        return
+
+    msg = Message(
+        subject=f'[BAE Review Alert] {review.star_rating}-star review received — {experience.name}',
+        recipients=[admin_email],
+        body=(
+            f'A {review.star_rating}-star review was submitted for {experience.name}.\n\n'
+            f'Reviewer: {review.reviewer_display_name}\n'
+            f'Tour date: {booking.timeslot.slot_date}\n'
+            f'Best moment response:\n"{review.best_moment}"\n\n'
+            f'This review is HELD for 24 hours (auto-publishes at {review.held_until} UTC).\n'
+            f'Review it at: {admin_review_url}\n\n'
+            f'You may publish early, flag for review, or remove it from the admin panel.'
+        )
+    )
+    try:
+        mail.send(msg)
+    except Exception as e:
+        import logging
+        logging.getLogger('reviews').error(f'Admin low-score notification failed: {e}')
+6.4 Auto-Publish Held Reviews Job
+# Part of the nightly/30-min scheduler
+def auto_publish_held_reviews():
+    """Publish any held reviews whose 24-hour window has passed."""
+    now     = datetime.now(timezone.utc)
+    held    = ExperienceReview.query.filter(
+        ExperienceReview.status == 'held',
+        ExperienceReview.held_until <= now,
+    ).all()
+
+    for review in held:
+        review.status       = 'published'
+        review.published_at = now
+        update_experience_rating(review.experience_id)
+
+    db.session.commit()
+    return len(held)  # Number published in this run
+7. Rating Display on Experience Cards
+The star rating also appears on experience cards in the /experiences listing grid and the homepage Choose Your Vibe results. When an experience has at least 1 review, a compact rating chip is shown in the card footer alongside the price.
+{# In experience card template (experiences.html, index.html) #}
+<div class='bae-card-footer'>
+  <div>
+    <div class='bae-card-price'>${{ experience.price | int }}</div>
+    <div class='bae-card-price-per'>per group &middot; {{ experience.duration_hours | int }} hrs</div>
+  </div>
+  <div class='d-flex flex-column align-items-end gap-1'>
+    {% if experience.review_count > 0 %}
+    <div style='font-size:12px;color:#1C1C1E;display:flex;align-items:center;gap:3px;'>
+      <span style='color:#C9952A;'>&#9733;</span>
+      <span style='font-weight:500;'>{{ '%.1f' | format(experience.avg_star_rating) }}</span>
+      <span style='color:#5A6A7A;'>({{ experience.review_count }})</span>
+    </div>
+    {% endif %}
+    <button class='bae-book-btn'>Book</button>
+  </div>
+</div>
+
+{# When review_count = 0: no rating shown — empty state is fine #}
+{# 'Book' button remains; no placeholder rating to avoid confusion #}
+Display Threshold: Do NOT show a rating on the card until the experience has at least 3 reviews. A single 5-star review looks suspicious; 3+ reviews establishes credibility. Add conditional: {% if experience.review_count >= 3 %}. Store the count threshold in .env as MIN_REVIEWS_TO_DISPLAY=3.
+8. New Routes & Files
+8.1 New Flask Routes
+Method
+Route
+Description
+GET
+/feedback/<token>
+Feedback form (token validation + experience context)
+POST
+/feedback/<token>
+Process review submission
+GET
+/feedback/<token>/thankyou
+Post-submission confirmation page
+GET
+/experience/<slug>/reviews
+AJAX: load more reviews (page 2+)
+POST
+/reviews/<id>/helpful
+AJAX: mark review as helpful
+POST
+/reviews/<id>/flag
+AJAX: customer flags a review
+GET
+/admin/reviews
+Admin review list
+GET
+/admin/reviews/held
+Admin held queue
+GET
+/admin/reviews/flagged
+Admin flagged queue
+GET
+/admin/reviews/<id>
+Admin review detail
+POST
+/admin/reviews/<id>/publish
+Admin: publish held review
+POST
+/admin/reviews/<id>/flag
+Admin: flag a review
+POST
+/admin/reviews/<id>/remove
+Admin: remove a review
+POST
+/admin/reviews/<id>/feature
+Admin: toggle is_featured
+GET
+/admin/reviews/analytics
+Review analytics dashboard
+GET
+/admin/reviews/export
+CSV export
+8.2 New Files
+app/
+├── blueprints/
+│   └── reviews/
+│       ├── __init__.py
+│       └── views.py            # /feedback/<token>, /reviews/*/helpful, /reviews/*/flag
+├── reviews/
+│   ├── __init__.py
+│   ├── scheduler.py            # process_pending_feedback_requests()
+│   │                           # auto_publish_held_reviews()
+│   ├── email.py                # send_feedback_request()
+│   └── notifications.py       # notify_admin_low_score()
+├── models.py                   # Add: ExperienceReview, ReviewToken,
+│                               #      ReviewVote, ReviewFlag
+│                               # Modify: Experience (avg_star_rating, review_count)
+├── templates/
+│   ├── reviews/
+│   │   ├── feedback_form.html  # /feedback/<token> form page
+│   │   ├── thankyou.html       # Post-submission confirmation
+│   │   ├── already_submitted.html
+│   │   ├── token_expired.html
+│   │   └── _review_cards.html  # Partial: AJAX review card list
+│   ├── email/
+│   │   ├── post_tour_feedback.html
+│   │   └── post_tour_feedback.txt
+│   ├── main/
+│   │   └── experience_detail.html  # Modified: add reviews section
+│   └── admin/
+│       ├── reviews.html
+│       ├── reviews_held.html
+│       ├── reviews_flagged.html
+│       ├── review_detail.html
+│       └── reviews_analytics.html
+8.3 Environment Variables
+# Add to .env
+MIN_REVIEWS_TO_DISPLAY=3       # Min reviews before rating shows on experience card
+REVIEW_LOW_SCORE_HOLD_HOURS=24 # Hours to hold 1–2 star reviews before auto-publish
+REVIEW_TOKEN_EXPIRY_DAYS=30    # Days before a feedback token expires
+FEEDBACK_EMAIL_DELAY_HOURS=3   # Hours after timeslot end to send feedback email
+REVIEWS_ENABLED=True           # Master toggle — False disables all review collection
+9. Testing Checklist
+#
+Test Case
+Expected Result
+Category
+1
+Confirmed booking timeslot ends 3+ hours ago
+process_pending_feedback_requests() creates ReviewToken and sends email
+Scheduler
+2
+Booking timeslot ended < 3 hours ago
+No token created; no email sent
+Scheduler
+3
+Token already sent for a booking
+Second run of scheduler skips — no duplicate token
+Scheduler
+4
+Visit /feedback/<valid-token>
+Feedback form renders with experience name, date, reviewer name pre-filled
+Form
+5
+Visit /feedback/<valid-token>?rating=4
+Star rating 4 pre-selected on form load
+Form
+6
+Submit form without selecting a star
+Client-side and server-side error: 'Please select a star rating'
+Validation
+7
+Submit form with best_moment under 10 chars
+Error: 'Please write at least 10 characters'
+Validation
+8
+Submit valid 4-star review
+Review created; status=published; token marked used; redirect to thank-you
+Submission
+9
+Submit valid 2-star review
+Review created; status=held; held_until=now+24hrs; admin email sent
+Submission
+10
+Submit valid 1-star review
+Same as 2-star — held + admin notification
+Submission
+11
+Visit /feedback/<token> after review already submitted
+'already_submitted.html' shown — token is_used=True
+Token
+12
+Visit /feedback/<expired-token>
+'token_expired.html' shown with phone number
+Token
+13
+Visit /feedback/<invalid-token>
+404 Not Found
+Token
+14
+Same IP submits helpful vote twice on same review
+Second vote rejected — no duplicate
+Votes
+15
+auto_publish_held_reviews() runs after 24 hours
+Held review transitions to published; avg_star_rating updated on experience
+Auto-publish
+16
+Experience detail page with 0 reviews
+'No reviews yet' message; no rating shown; rating summary hidden
+Display
+17
+Experience detail page with 2 reviews (< threshold)
+Reviews show in list but NO rating chip on experience card (< MIN_REVIEWS_TO_DISPLAY=3)
+Display
+18
+Experience detail page with 5 reviews
+Rating summary (big number + bars + stars), individual review cards, correct avg
+Display
+19
+Experience card with 3+ reviews
+Star rating chip (★ 4.8 (12)) visible in card footer
+Cards
+20
+Experience card with 0–2 reviews
+No rating chip shown — no placeholder
+Cards
+21
+'Load more reviews' button click
+AJAX fetches page 2 reviews; appended to list without page reload
+AJAX
+22
+Admin /admin/reviews/held shows held reviews
+Amber-highlighted rows with held reviews; count badge on admin nav
+Admin
+23
+Admin publishes held review early
+Status → published; published_at set; experience avg updated; row disappears from held queue
+Admin
+24
+Admin removes a review
+Status → removed; review disappears from public page; experience avg recalculated
+Admin
+25
+Admin features a review
+is_featured=True; review appears first on detail page above other published reviews
+Admin
+26
+Customer flags a review (3 flags)
+flag_count=3; admin notification sent; review moves to flagged queue
+Flagging
+27
+Featured review displays first on detail page
+is_featured reviews sorted before published_at in query
+Display Order
+28
+REVIEWS_ENABLED=False
+No feedback emails sent; /feedback/* returns 404; no review section on detail page
+Config
+29
+update_experience_rating() after new review
+avg_star_rating and review_count on experiences table updated correctly
+Aggregation
+30
+Admin review analytics page loads
+Charts show avg rating over time and per-experience breakdown
+Admin
+10. Acceptance Criteria
+#
+Criterion
+Priority
+Section
+1
+ExperienceReview, ReviewToken, ReviewVote, ReviewFlag tables created with correct schema
+Must Have
+§2
+2
+experiences table has avg_star_rating and review_count columns; default NULL and 0
+Must Have
+§2.5
+3
+Scheduler sends feedback email exactly 3 hours after timeslot end time
+Must Have
+§3.1
+4
+Each booking receives exactly one review token — no duplicates
+Must Have
+§3.1
+5
+Post-tour email renders correctly with experience name, clickable star links, and gold CTA button
+Must Have
+§3.2
+6
+Star link pre-fills rating on feedback form (e.g., ?rating=4 selects 4 stars)
+Must Have
+§4.2
+7
+Feedback form validates: star required (1–5), best_moment 10–1000 chars, CSRF
+Must Have
+§4.3
+8
+3–5 star reviews publish immediately; status=published; published_at set
+Must Have
+§4.5
+9
+1–2 star reviews status=held for 24 hours; admin email notification sent
+Must Have
+§4.5
+10
+Token marked is_used=True after review submission; cannot be reused
+Must Have
+§4.2
+11
+update_experience_rating() recalculates avg and count on every new published review
+Must Have
+§4.5
+12
+Experience detail page shows rating summary (big number, stars, bar chart) when review_count > 0
+Must Have
+§5.1
+13
+Individual review cards show: avatar initial, display name (First L.), date, stars, best moment, Helpful button
+Must Have
+§5.1
+14
+'Verified Experience' green badge appears on every review card
+Must Have
+§5.1
+15
+Reviews sorted: featured first, then newest first
+Must Have
+§5.2
+16
+'Load more reviews' AJAX loads page 2+ without page reload
+Should Have
+§5.2
+17
+Star rating chip (★ X.X (N)) shown on experience cards only when review_count >= MIN_REVIEWS_TO_DISPLAY (3)
+Must Have
+§7
+18
+No rating shown on card or detail page when experience has 0 reviews
+Must Have
+§7
+19
+Admin /admin/reviews lists all reviews with status badges and correct filtering
+Must Have
+§6.1
+20
+Admin can publish held reviews early; auto-publish runs after held_until passes
+Must Have
+§6.4
+21
+Admin can flag, remove, and feature reviews
+Must Have
+§6.1
+22
+Admin receives email notification within 5 minutes of a 1–2 star review submission
+Must Have
+§6.3
+23
+Helpful vote: same IP cannot vote twice on same review
+Should Have
+§2.3
+24
+Customer flag: 3+ flags triggers admin notification and moves review to flagged queue
+Should Have
+§2.4
+25
+Token expiry: /feedback/<expired-token> shows token_expired.html with phone number
+Must Have
+§4.2
+26
+already_submitted.html shown when revisiting a used token
+Must Have
+§4.2
+27
+provider_id stored on review record — schema ready for per-provider review queries
+Should Have
+§2.1
+28
+REVIEWS_ENABLED=False disables all review functionality with no errors
+Must Have
+§8.3
+29
+Admin review analytics page shows avg rating trend and per-experience breakdown
+Should Have
+§6.1
+30
+CSV export of reviews available from admin; no customer emails included in export
+Should Have
+§6.1
+End of Document
+Bay Area Experiences — Customer Feedback & Reviews PRD v1.0 — March 25, 2026
+Document Code: BAE-PRD-REVIEWS-v1.0 · Parent: BAE-PRD-CORE v3.0 · BAE-PRD-THEME-v1.0

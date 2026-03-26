@@ -12,7 +12,12 @@ from app.models import (Experience, ExperiencePickupLocation, Timeslot,
                         ChatSession, ChatMessage)
 from app.utils import admin_required, generate_pk, paginate
 
-PICKUP_CITIES = ['San Francisco, CA', 'San Jose, CA', 'Santa Cruz, CA', 'Monterey, CA']
+PICKUP_CITIES = [
+    'Cupertino, CA', 'Fremont, CA', 'Los Gatos, CA', 'Menlo Park, CA',
+    'Monterey, CA', 'Mountain View, CA', 'Palo Alto, CA', 'Redwood City, CA',
+    'San Francisco, CA', 'San Jose, CA', 'Santa Clara, CA', 'Santa Cruz, CA',
+    'Sunnyvale, CA',
+]
 
 
 @admin_bp.route('/')
@@ -31,6 +36,9 @@ def dashboard():
         Booking.staff_id == None,
         Booking.booking_status == 'confirmed').count()
     unread_contacts  = ContactSubmission.query.filter_by(is_read=False).count()
+    from app.models import ExperienceReview
+    held_reviews    = ExperienceReview.query.filter_by(status='held').count()
+    flagged_reviews = ExperienceReview.query.filter_by(status='flagged').count()
     return render_template('admin/dashboard.html',
                            total_bookings=total_bookings,
                            today_bookings=today_bookings,
@@ -38,7 +46,9 @@ def dashboard():
                            total_revenue=total_revenue,
                            recent_bookings=recent_bookings,
                            null_staff_count=null_staff_count,
-                           unread_contacts=unread_contacts)
+                           unread_contacts=unread_contacts,
+                           held_reviews=held_reviews,
+                           flagged_reviews=flagged_reviews)
 
 
 # ── Experiences ────────────────────────────────────────────────────────────────
@@ -442,3 +452,195 @@ def chat_session_detail(session_id):
     cs = ChatSession.query.get_or_404(session_id)
     messages = cs.messages.order_by(ChatMessage.created_at).all()
     return render_template('admin/chat_session_detail.html', cs=cs, messages=messages)
+
+
+# ── Reviews ─────────────────────────────────────────────────────────────────────
+
+@admin_bp.route('/reviews')
+@login_required
+@admin_required
+def reviews():
+    from app.models import ExperienceReview
+    status = request.args.get('status')
+    rating = request.args.get('rating', type=int)
+    page   = request.args.get('page', 1, type=int)
+
+    q = ExperienceReview.query
+    if status:
+        q = q.filter_by(status=status)
+    if rating:
+        q = q.filter_by(star_rating=rating)
+    q = q.order_by(ExperienceReview.submitted_at.desc())
+    pagination = q.paginate(page=page, per_page=25, error_out=False)
+    return render_template('admin/reviews.html',
+                           reviews=pagination.items,
+                           pagination=pagination)
+
+
+@admin_bp.route('/reviews/held')
+@login_required
+@admin_required
+def reviews_held():
+    from app.models import ExperienceReview
+    reviews = ExperienceReview.query.filter_by(status='held').order_by(
+        ExperienceReview.held_until.asc()).all()
+    return render_template('admin/reviews_held.html', reviews=reviews)
+
+
+@admin_bp.route('/reviews/flagged')
+@login_required
+@admin_required
+def reviews_flagged():
+    from app.models import ExperienceReview
+    reviews = ExperienceReview.query.filter_by(status='flagged').order_by(
+        ExperienceReview.submitted_at.desc()).all()
+    return render_template('admin/reviews_flagged.html', reviews=reviews)
+
+
+@admin_bp.route('/reviews/<review_id>')
+@login_required
+@admin_required
+def review_detail(review_id):
+    from app.models import ExperienceReview
+    review = ExperienceReview.query.filter_by(review_id=review_id).first_or_404()
+    return render_template('admin/review_detail.html', review=review)
+
+
+@admin_bp.route('/reviews/<review_id>/publish', methods=['POST'])
+@login_required
+@admin_required
+def review_publish(review_id):
+    from app.models import ExperienceReview
+    from datetime import datetime, timezone
+    review = ExperienceReview.query.filter_by(review_id=review_id).first_or_404()
+    review.status       = 'published'
+    review.published_at = datetime.now(timezone.utc)
+    review.held_until   = None
+    _update_review_rating(review.experience_id)
+    db.session.commit()
+    flash('Review published.', 'success')
+    return redirect(request.referrer or url_for('admin.reviews'))
+
+
+@admin_bp.route('/reviews/<review_id>/flag', methods=['POST'])
+@login_required
+@admin_required
+def review_flag_admin(review_id):
+    from app.models import ExperienceReview
+    review = ExperienceReview.query.filter_by(review_id=review_id).first_or_404()
+    review.status = 'flagged'
+    db.session.commit()
+    flash('Review flagged.', 'warning')
+    return redirect(request.referrer or url_for('admin.reviews'))
+
+
+@admin_bp.route('/reviews/<review_id>/remove', methods=['POST'])
+@login_required
+@admin_required
+def review_remove(review_id):
+    from app.models import ExperienceReview
+    review = ExperienceReview.query.filter_by(review_id=review_id).first_or_404()
+    review.status = 'removed'
+    _update_review_rating(review.experience_id)
+    db.session.commit()
+    flash('Review removed.', 'success')
+    return redirect(request.referrer or url_for('admin.reviews'))
+
+
+@admin_bp.route('/reviews/<review_id>/feature', methods=['POST'])
+@login_required
+@admin_required
+def review_feature(review_id):
+    from app.models import ExperienceReview
+    review = ExperienceReview.query.filter_by(review_id=review_id).first_or_404()
+    review.is_featured = not review.is_featured
+    db.session.commit()
+    flash('Review updated.', 'success')
+    return redirect(request.referrer or url_for('admin.review_detail', review_id=review_id))
+
+
+@admin_bp.route('/reviews/<review_id>/notes', methods=['POST'])
+@login_required
+@admin_required
+def review_notes(review_id):
+    from app.models import ExperienceReview
+    review = ExperienceReview.query.filter_by(review_id=review_id).first_or_404()
+    review.admin_notes = request.form.get('admin_notes', '').strip() or None
+    db.session.commit()
+    flash('Notes saved.', 'success')
+    return redirect(url_for('admin.review_detail', review_id=review_id))
+
+
+@admin_bp.route('/reviews/analytics')
+@login_required
+@admin_required
+def reviews_analytics():
+    from app.models import ExperienceReview, Experience
+    total_published = ExperienceReview.query.filter_by(status='published').count()
+    total_held      = ExperienceReview.query.filter_by(status='held').count()
+    total_flagged   = ExperienceReview.query.filter_by(status='flagged').count()
+    avg_result      = db.session.query(func.avg(ExperienceReview.star_rating)).filter_by(status='published').scalar()
+    avg_rating      = float(avg_result) if avg_result else None
+
+    rows = db.session.query(
+        Experience.name,
+        func.count(ExperienceReview.review_id).label('count'),
+        func.avg(ExperienceReview.star_rating).label('avg'),
+    ).join(ExperienceReview, Experience.experience_id == ExperienceReview.experience_id) \
+     .filter(ExperienceReview.status == 'published') \
+     .group_by(Experience.experience_id, Experience.name) \
+     .order_by(func.count(ExperienceReview.review_id).desc()).all()
+
+    per_experience = [{'name': r.name, 'count': r.count, 'avg': float(r.avg) if r.avg else None} for r in rows]
+    return render_template('admin/reviews_analytics.html',
+                           total_published=total_published,
+                           total_held=total_held,
+                           total_flagged=total_flagged,
+                           avg_rating=avg_rating,
+                           per_experience=per_experience)
+
+
+@admin_bp.route('/reviews/export')
+@login_required
+@admin_required
+def reviews_export():
+    import csv, io
+    from app.models import ExperienceReview
+    reviews = ExperienceReview.query.filter_by(status='published').order_by(
+        ExperienceReview.submitted_at.desc()).all()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['review_id', 'experience', 'star_rating', 'reviewer',
+                     'best_moment', 'submitted_at', 'helpful_count'])
+    for r in reviews:
+        writer.writerow([r.review_id, r.experience.name, r.star_rating,
+                         r.reviewer_display_name, r.best_moment,
+                         r.submitted_at.strftime('%Y-%m-%d %H:%M'), r.helpful_count])
+    output.seek(0)
+    return Response(output.getvalue(), mimetype='text/csv',
+                    headers={'Content-Disposition': 'attachment;filename=reviews_export.csv'})
+
+
+@admin_bp.route('/reviews/publish-held', methods=['POST'])
+@login_required
+@admin_required
+def publish_held_reviews():
+    from app.reviews.scheduler import auto_publish_held_reviews
+    count = auto_publish_held_reviews()
+    flash(f'{count} held review(s) published.', 'success')
+    return redirect(url_for('admin.reviews_held'))
+
+
+def _update_review_rating(experience_id):
+    from app.models import ExperienceReview, Experience
+    result = db.session.query(
+        func.avg(ExperienceReview.star_rating).label('avg'),
+        func.count(ExperienceReview.review_id).label('cnt'),
+    ).filter(
+        ExperienceReview.experience_id == experience_id,
+        ExperienceReview.status == 'published',
+    ).one()
+    db.session.query(Experience).filter_by(experience_id=experience_id).update({
+        'avg_star_rating': round(float(result.avg), 2) if result.avg else None,
+        'review_count':    result.cnt,
+    })

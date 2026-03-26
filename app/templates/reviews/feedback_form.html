@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}Share Your Experience — Bay Area Experiences{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+
+      <div class="text-center mb-4">
+        <span class="badge" style="background:#FDF6EC;color:#8B6419;font-size:12px;padding:6px 14px;border-radius:9999px;">
+          Verified Experience
+        </span>
+        <h1 class="mt-3 mb-1" style="color:#1A3557;font-size:24px;font-weight:500;">{{ experience.name }}</h1>
+        <p class="text-muted" style="font-size:14px;">
+          {{ booking.timeslot.slot_date.strftime('%B %d, %Y') }}
+          &middot; {{ booking.guest_first_name }} {{ booking.guest_last_name[0] }}.
+        </p>
+      </div>
+
+      {% if errors %}
+      <div class="alert alert-danger">
+        <ul class="mb-0">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+      </div>
+      {% endif %}
+
+      <div class="card border-0 shadow-sm" style="border-radius:14px;">
+        <div class="card-body p-4">
+          <form method="POST" id="feedbackForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="mb-4 text-center">
+              <label class="form-label d-block mb-3" style="font-size:16px;color:#1C1C1E;font-weight:500;">
+                How would you rate your experience?
+              </label>
+              <div class="bae-star-selector" id="starSelector">
+                {% for i in [1,2,3,4,5] %}
+                <span class="bae-star{{ ' bae-star-selected' if prefill_rating and i <= prefill_rating }}"
+                      data-value="{{ i }}" onclick="selectStar({{ i }})">&#9733;</span>
+                {% endfor %}
+              </div>
+              <input type="hidden" name="star_rating" id="starInput" value="{{ prefill_rating or '' }}">
+              <div class="text-danger mt-1" id="starError" style="display:none;">
+                Please select a star rating before submitting.
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label" style="font-size:15px;font-weight:500;color:#1C1C1E;">
+                What was the single best moment of your experience?
+              </label>
+              <textarea name="best_moment" id="bestMoment" class="form-control" rows="5"
+                        minlength="10" maxlength="1000"
+                        placeholder="Tell us about the moment that stood out most..."
+                        required></textarea>
+              <div class="d-flex justify-content-end mt-1">
+                <span class="small" id="charCount" style="color:#5A6A7A;">0 / 1000</span>
+              </div>
+            </div>
+
+            <button type="submit" id="submitBtn" class="btn w-100"
+                    style="background:#C9952A;color:#fff;border:none;padding:12px;border-radius:9999px;font-size:15px;font-weight:500;">
+              Submit My Review
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <p class="text-center mt-3" style="font-size:12px;color:#5A6A7A;">
+        Your review will appear on the {{ experience.name }} page.
+        Have a question? Call us at <a href="tel:+14088312101" style="color:#1A3557;">(408) 831-2101</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<style>
+.bae-star-selector { font-size: 48px; letter-spacing: 6px; cursor: pointer; color: #D0D8E0; }
+.bae-star { transition: color 0.1s; }
+.bae-star-selected { color: #C9952A; }
+.bae-star-selector:hover .bae-star { color: #C9952A; }
+.bae-star:hover ~ .bae-star { color: #D0D8E0 !important; }
+</style>
+
+<script>
+function selectStar(n) {
+  document.getElementById('starInput').value = n;
+  document.querySelectorAll('.bae-star').forEach((s, i) => {
+    s.classList.toggle('bae-star-selected', i < n);
+  });
+  document.getElementById('starError').style.display = 'none';
+}
+const ta = document.getElementById('bestMoment');
+const cc = document.getElementById('charCount');
+ta.addEventListener('input', () => {
+  const n = ta.value.length;
+  cc.textContent = n + ' / 1000';
+  cc.style.color = n > 900 ? '#C0622B' : '#5A6A7A';
+});
+document.getElementById('feedbackForm').addEventListener('submit', function(e) {
+  if (!document.getElementById('starInput').value) {
+    e.preventDefault();
+    document.getElementById('starError').style.display = 'block';
+    document.getElementById('starSelector').scrollIntoView({behavior: 'smooth'});
+  }
+});
+</script>
+{% endblock %}

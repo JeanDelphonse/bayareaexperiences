@@ -87,7 +87,16 @@
             </p>
             <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
               <span class="text-muted small"><i class="bi bi-clock me-1"></i>{{ exp.duration_hours|int }}{% if exp.duration_hours % 1 %}.{{ ((exp.duration_hours % 1) * 10)|int }}{% endif %} hours</span>
-              <span class="fs-5 fw-bold text-dark">${{ "%.0f"|format(exp.price) }}</span>
+              <div class="d-flex flex-column align-items-end gap-1">
+                {% if exp.review_count >= 3 %}
+                <div style="font-size:12px;color:#1C1C1E;display:flex;align-items:center;gap:3px;">
+                  <span style="color:#C9952A;">&#9733;</span>
+                  <span style="font-weight:500;">{{ '%.1f' | format(exp.avg_star_rating) }}</span>
+                  <span style="color:#5A6A7A;">({{ exp.review_count }})</span>
+                </div>
+                {% endif %}
+                <span class="fs-5 fw-bold text-dark">${{ "%.0f"|format(exp.price) }}</span>
+              </div>
             </div>
             <a href="{{ url_for('main.experience_detail', slug=exp.slug) }}"
                class="btn btn-warning w-100 fw-semibold">Book Now</a>

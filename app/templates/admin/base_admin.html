@@ -45,6 +45,13 @@
         <i class="bi bi-clock-history me-2"></i>Review Queue</a></li>
       <li><a href="{{ url_for('admin.admin_marketplace_revenue') }}" class="nav-link px-2 py-1 {% if 'revenue' in request.endpoint %}active{% endif %}">
         <i class="bi bi-cash-coin me-2"></i>Revenue</a></li>
+      <li class="mt-2"><span class="px-2 py-1 text-secondary small">REVIEWS</span></li>
+      <li><a href="{{ url_for('admin.reviews') }}" class="nav-link px-2 py-1 {% if 'review' in request.endpoint and 'marketplace' not in request.endpoint %}active{% endif %}">
+        <i class="bi bi-star me-2"></i>All Reviews</a></li>
+      <li><a href="{{ url_for('admin.reviews_held') }}" class="nav-link px-2 py-1 {% if request.endpoint == 'admin.reviews_held' %}active{% endif %}">
+        <i class="bi bi-hourglass-split me-2"></i>Held Queue</a></li>
+      <li><a href="{{ url_for('admin.reviews_flagged') }}" class="nav-link px-2 py-1 {% if request.endpoint == 'admin.reviews_flagged' %}active{% endif %}">
+        <i class="bi bi-flag me-2"></i>Flagged</a></li>
     </ul>
     <div class="mt-auto">
       <hr style="border-color:#495057;">

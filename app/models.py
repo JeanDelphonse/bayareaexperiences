@@ -91,6 +91,10 @@ class Experience(db.Model):
     cancellation_policy  = db.Column(db.Enum('flexible', 'moderate', 'strict'), nullable=True)
     listing_status       = db.Column(db.Enum('draft', 'pending_review', 'active'), nullable=False, default='active')
 
+    # Reviews aggregate (updated on each new published review)
+    avg_star_rating  = db.Column(db.Numeric(3, 2),  nullable=True)
+    review_count     = db.Column(db.Integer, nullable=False, default=0)
+
     staff        = db.relationship('StaffMember', backref='experiences')
     timeslots    = db.relationship('Timeslot', backref='experience', lazy='dynamic')
     pickup_locations = db.relationship('ExperiencePickupLocation', backref='experience',
@@ -184,6 +188,7 @@ class Booking(db.Model):
     experience = db.relationship('Experience', backref='bookings')
     timeslot   = db.relationship('Timeslot',   backref='bookings')
     staff      = db.relationship('StaffMember', backref='bookings')
+    review_tokens  = db.relationship('ReviewToken', backref='booking', lazy='dynamic')
 
     __table_args__ = (
         db.Index('ix_bookings_booking_status', 'booking_status'),
@@ -605,4 +610,99 @@ class ProviderPayout(db.Model):
         db.Index('ix_provider_payouts_provider_id', 'provider_id'),
         db.Index('ix_provider_payouts_booking_id',  'booking_id'),
         db.Index('ix_provider_payouts_created_at',  'created_at'),
+    )
+
+
+# ── Reviews ────────────────────────────────────────────────────────────────────
+
+class ExperienceReview(db.Model):
+    __tablename__ = 'experience_reviews'
+
+    review_id                  = db.Column(db.String(9),   primary_key=True, default=generate_pk)
+    booking_id                 = db.Column(db.String(9),   db.ForeignKey('bookings.booking_id'), unique=True, nullable=False)
+    experience_id              = db.Column(db.String(9),   db.ForeignKey('experiences.experience_id'), nullable=False)
+    user_id                    = db.Column(db.String(9),   db.ForeignKey('users.user_id'), nullable=True)
+    provider_id                = db.Column(db.String(9),   db.ForeignKey('providers.provider_id'), nullable=True)
+    star_rating                = db.Column(db.SmallInteger, nullable=False)
+    best_moment                = db.Column(db.Text,        nullable=False)
+    reviewer_first_name        = db.Column(db.String(80),  nullable=False)
+    reviewer_last_name_initial = db.Column(db.String(1),   nullable=False)
+    reviewer_display_name      = db.Column(db.String(100), nullable=False)
+    is_verified_booking        = db.Column(db.Boolean,     default=True)
+    status                     = db.Column(db.Enum('pending', 'published', 'held', 'flagged', 'removed'),
+                                           nullable=False, default='pending')
+    published_at               = db.Column(db.DateTime,   nullable=True)
+    held_until                 = db.Column(db.DateTime,   nullable=True)
+    is_featured                = db.Column(db.Boolean,    default=False)
+    helpful_count              = db.Column(db.Integer,    default=0)
+    flag_count                 = db.Column(db.Integer,    default=0)
+    provider_response          = db.Column(db.Text,       nullable=True)
+    provider_response_at       = db.Column(db.DateTime,  nullable=True)
+    admin_notes                = db.Column(db.Text,       nullable=True)
+    feedback_token_id          = db.Column(db.String(9),  db.ForeignKey('review_tokens.token_id'), nullable=True)
+    submitted_at               = db.Column(db.DateTime,  nullable=False, default=lambda: datetime.now(timezone.utc))
+    ip_address                 = db.Column(db.String(45), nullable=True)
+
+    booking    = db.relationship('Booking',    backref=db.backref('review', uselist=False))
+    experience = db.relationship('Experience', backref='reviews')
+    user       = db.relationship('User',       backref='reviews')
+
+    __table_args__ = (
+        db.Index('ix_reviews_experience_id', 'experience_id'),
+        db.Index('ix_reviews_status',        'status'),
+        db.Index('ix_reviews_submitted_at',  'submitted_at'),
+    )
+
+
+class ReviewToken(db.Model):
+    __tablename__ = 'review_tokens'
+
+    token_id      = db.Column(db.String(9),   primary_key=True, default=generate_pk)
+    token         = db.Column(db.String(64),  unique=True, nullable=False)
+    booking_id    = db.Column(db.String(9),   db.ForeignKey('bookings.booking_id'), unique=True, nullable=False)
+    experience_id = db.Column(db.String(9),   db.ForeignKey('experiences.experience_id'), nullable=False)
+    user_id       = db.Column(db.String(9),   db.ForeignKey('users.user_id'), nullable=True)
+    email_sent_to = db.Column(db.String(150), nullable=False)
+    email_sent_at = db.Column(db.DateTime,   nullable=True)
+    is_used       = db.Column(db.Boolean,    default=False)
+    used_at       = db.Column(db.DateTime,   nullable=True)
+    expires_at    = db.Column(db.DateTime,   nullable=False)
+    created_at    = db.Column(db.DateTime,   nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    experience = db.relationship('Experience', backref='review_tokens')
+    user       = db.relationship('User',       backref='review_tokens')
+
+    __table_args__ = (
+        db.Index('ix_review_tokens_token',      'token'),
+        db.Index('ix_review_tokens_booking_id', 'booking_id'),
+    )
+
+
+class ReviewVote(db.Model):
+    __tablename__ = 'review_votes'
+
+    vote_id   = db.Column(db.String(9),  primary_key=True, default=generate_pk)
+    review_id = db.Column(db.String(9),  db.ForeignKey('experience_reviews.review_id'), nullable=False)
+    user_id   = db.Column(db.String(9),  db.ForeignKey('users.user_id'), nullable=True)
+    ip_address = db.Column(db.String(45), nullable=False)
+    voted_at  = db.Column(db.DateTime,   nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        db.Index('ix_review_votes_review_id', 'review_id'),
+    )
+
+
+class ReviewFlag(db.Model):
+    __tablename__ = 'review_flags'
+
+    flag_id              = db.Column(db.String(9),  primary_key=True, default=generate_pk)
+    review_id            = db.Column(db.String(9),  db.ForeignKey('experience_reviews.review_id'), nullable=False)
+    reported_by_user_id  = db.Column(db.String(9),  db.ForeignKey('users.user_id'), nullable=True)
+    reported_by_ip       = db.Column(db.String(45), nullable=False)
+    reason               = db.Column(db.Enum('fake', 'offensive', 'spam', 'irrelevant', 'other'), nullable=False)
+    notes                = db.Column(db.Text,       nullable=True)
+    flagged_at           = db.Column(db.DateTime,   nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        db.Index('ix_review_flags_review_id', 'review_id'),
     )

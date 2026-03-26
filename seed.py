@@ -18,7 +18,12 @@ from app.utils import generate_pk
 
 app = create_app('production')
 
-PICKUP_CITIES = ['San Francisco, CA', 'San Jose, CA', 'Santa Cruz, CA', 'Monterey, CA']
+PICKUP_CITIES = [
+    'Cupertino, CA', 'Fremont, CA', 'Los Gatos, CA', 'Menlo Park, CA',
+    'Monterey, CA', 'Mountain View, CA', 'Palo Alto, CA', 'Redwood City, CA',
+    'San Francisco, CA', 'San Jose, CA', 'Santa Clara, CA', 'Santa Cruz, CA',
+    'Sunnyvale, CA',
+]
 
 STAFF = [
     {'full_name': 'Marsel Abdullin',    'email': 'marsel@bayareaexperiences.com'},

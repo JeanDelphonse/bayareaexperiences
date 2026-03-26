@@ -6,10 +6,19 @@ from wtforms import (StringField, TextAreaField, SelectField, SelectMultipleFiel
 from wtforms.validators import DataRequired, Email, Length, Optional, NumberRange, URL
 
 PICKUP_CITIES = [
-    ('San Francisco, CA', 'San Francisco, CA'),
-    ('San Jose, CA',      'San Jose, CA'),
-    ('Santa Cruz, CA',    'Santa Cruz, CA'),
-    ('Monterey, CA',      'Monterey, CA'),
+    ('Cupertino, CA',    'Cupertino, CA'),
+    ('Fremont, CA',      'Fremont, CA'),
+    ('Los Gatos, CA',    'Los Gatos, CA'),
+    ('Menlo Park, CA',   'Menlo Park, CA'),
+    ('Monterey, CA',     'Monterey, CA'),
+    ('Mountain View, CA','Mountain View, CA'),
+    ('Palo Alto, CA',    'Palo Alto, CA'),
+    ('Redwood City, CA', 'Redwood City, CA'),
+    ('San Francisco, CA','San Francisco, CA'),
+    ('San Jose, CA',     'San Jose, CA'),
+    ('Santa Clara, CA',  'Santa Clara, CA'),
+    ('Santa Cruz, CA',   'Santa Cruz, CA'),
+    ('Sunnyvale, CA',    'Sunnyvale, CA'),
 ]
 
 CATEGORIES = [

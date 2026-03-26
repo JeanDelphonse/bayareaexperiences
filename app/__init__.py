@@ -34,6 +34,7 @@ def create_app(config_name='default'):
     from app.blueprints.tracking import tracking_bp
     from app.blueprints.providers import providers_bp
     from app.blueprints.payments import payments_bp
+    from app.blueprints.reviews import reviews_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
@@ -47,6 +48,7 @@ def create_app(config_name='default'):
     app.register_blueprint(tracking_bp)
     app.register_blueprint(providers_bp)
     app.register_blueprint(payments_bp)
+    app.register_blueprint(reviews_bp)
 
     # Tracking middleware
     from app.tracking.middleware import init_tracking

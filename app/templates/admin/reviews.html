@@ -1,0 +1,93 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Reviews{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="fw-bold mb-0">Reviews</h1>
+  <a href="{{ url_for('admin.reviews_export') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-download me-1"></i>Export CSV
+  </a>
+</div>
+
+<!-- Filters -->
+<form method="GET" class="row g-2 mb-4">
+  <div class="col-auto">
+    <select name="status" class="form-select form-select-sm">
+      <option value="">All Statuses</option>
+      {% for s in ['published','held','flagged','removed'] %}
+      <option value="{{ s }}" {% if request.args.get('status') == s %}selected{% endif %}>{{ s | title }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <select name="rating" class="form-select form-select-sm">
+      <option value="">All Ratings</option>
+      {% for r in [5,4,3,2,1] %}
+      <option value="{{ r }}" {% if request.args.get('rating')|int == r %}selected{% endif %}>{{ r }} &#9733;</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-outline-warning btn-sm">Filter</button>
+    <a href="{{ url_for('admin.reviews') }}" class="btn btn-outline-secondary btn-sm ms-1">Clear</a>
+  </div>
+</form>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th><th>Experience</th><th>Rating</th><th>Reviewer</th>
+          <th>Status</th><th>Submitted</th><th>Helpful</th><th>Flags</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reviews %}
+        <tr {% if r.status == 'held' %}style="background:#fffbec;"{% elif r.status == 'flagged' %}style="background:#fff5f5;"{% endif %}>
+          <td><a href="{{ url_for('admin.review_detail', review_id=r.review_id) }}" class="font-monospace small text-decoration-none">{{ r.review_id }}</a></td>
+          <td class="small">{{ r.experience.name[:30] }}{% if r.experience.name|length > 30 %}...{% endif %}</td>
+          <td>
+            {% for i in range(1,6) %}
+              <span style="color:{{ '#C9952A' if i <= r.star_rating else '#D0D8E0' }};font-size:13px;">&#9733;</span>
+            {% endfor %}
+          </td>
+          <td class="small">{{ r.reviewer_display_name }}</td>
+          <td>
+            {% if r.status == 'published' %}<span class="badge bg-success">Published</span>
+            {% elif r.status == 'held' %}<span class="badge bg-warning text-dark">Held</span>
+            {% elif r.status == 'flagged' %}<span class="badge bg-danger">Flagged</span>
+            {% elif r.status == 'removed' %}<span class="badge bg-secondary">Removed</span>
+            {% else %}<span class="badge bg-light text-dark">{{ r.status }}</span>
+            {% endif %}
+          </td>
+          <td class="small">{{ r.submitted_at.strftime('%b %-d, %Y') }}</td>
+          <td class="small">{{ r.helpful_count }}</td>
+          <td class="small">{{ r.flag_count }}</td>
+          <td>
+            <a href="{{ url_for('admin.review_detail', review_id=r.review_id) }}" class="btn btn-sm btn-outline-secondary">View</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="text-center text-muted py-4">No reviews found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pagination.pages > 1 %}
+<nav class="mt-3">
+  <ul class="pagination pagination-sm">
+    {% for p in pagination.iter_pages() %}
+      {% if p %}
+      <li class="page-item {% if p == pagination.page %}active{% endif %}">
+        <a class="page-link" href="?page={{ p }}&status={{ request.args.get('status','') }}&rating={{ request.args.get('rating','') }}">{{ p }}</a>
+      </li>
+      {% else %}
+      <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}

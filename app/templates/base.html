@@ -57,21 +57,20 @@
       <!-- Right nav -->
       <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center">
         {% if current_user.is_authenticated %}
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('account.bookings') }}">Bookings</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('account.profile') }}">My Account</a>
-          </li>
-          {% if current_user.is_admin %}
-          <li class="nav-item">
-            <a class="nav-link text-warning" href="{{ url_for('admin.experiences') }}">
-              <i class="bi bi-gear-fill me-1"></i>Admin
-            </a>
-          </li>
-          {% endif %}
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('auth.logout') }}">Sign Out</a>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button"
+               data-bs-toggle="dropdown" aria-expanded="false">Settings</a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="{{ url_for('account.bookings') }}">Bookings</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('account.profile') }}">My Account</a></li>
+              {% if current_user.is_admin %}
+              <li><a class="dropdown-item text-warning" href="{{ url_for('admin.experiences') }}">
+                <i class="bi bi-gear-fill me-1"></i>Admin
+              </a></li>
+              {% endif %}
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Sign Out</a></li>
+            </ul>
           </li>
         {% else %}
           <li class="nav-item">

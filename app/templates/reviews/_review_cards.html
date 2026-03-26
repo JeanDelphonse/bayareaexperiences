@@ -1,0 +1,37 @@
+<span data-has-more="{{ 'true' if has_more else 'false' }}" style="display:none;"></span>
+{% for review in reviews %}
+<div class="bae-review-card" style="background:#fff;border:0.5px solid #D0D8E0;border-radius:14px;padding:20px;margin-bottom:16px;">
+  <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+    <div class="d-flex align-items-center gap-3">
+      <div style="width:40px;height:40px;border-radius:50%;background:#EFF4F9;display:flex;align-items:center;justify-content:center;color:#1A3557;font-weight:500;font-size:15px;flex-shrink:0;">
+        {{ review.reviewer_first_name[0] | upper }}
+      </div>
+      <div>
+        <div style="font-weight:500;font-size:15px;color:#1C1C1E;">{{ review.reviewer_display_name }}</div>
+        <div style="font-size:12px;color:#5A6A7A;">
+          {{ review.published_at.strftime('%B %Y') }}
+          &middot;
+          <span style="color:#2D7A4F;font-size:11px;font-weight:500;">&#10003; Verified Experience</span>
+        </div>
+      </div>
+    </div>
+    <div style="flex-shrink:0;">
+      {% for i in range(1,6) %}
+        <span style="color:{{ '#C9952A' if i <= review.star_rating else '#D0D8E0' }};font-size:16px;">&#9733;</span>
+      {% endfor %}
+    </div>
+  </div>
+  <p style="font-size:15px;line-height:1.7;color:#1C1C1E;margin:0 0 12px;">{{ review.best_moment }}</p>
+  <div class="d-flex align-items-center gap-2">
+    <span style="font-size:12px;color:#5A6A7A;">Helpful?</span>
+    <button onclick="voteHelpful('{{ review.review_id }}', this)"
+            style="background:none;border:1px solid #D0D8E0;border-radius:9999px;padding:3px 10px;font-size:12px;color:#5A6A7A;cursor:pointer;">
+      &#128077; {{ review.helpful_count }}
+    </button>
+    <button onclick="flagReview('{{ review.review_id }}', this)"
+            style="background:none;border:none;font-size:11px;color:#B0B8C0;cursor:pointer;margin-left:auto;">
+      Report
+    </button>
+  </div>
+</div>
+{% endfor %}

@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Already Submitted — Bay Area Experiences{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-5 text-center">
+      <div style="font-size:64px; margin-bottom:16px;">&#9989;</div>
+      <h1 style="color:#1A3557;font-size:26px;font-weight:500;margin-bottom:12px;">You've already submitted a review</h1>
+      <p style="color:#5A6A7A;font-size:15px;line-height:1.7;margin-bottom:32px;">
+        This feedback link has already been used. Each booking can only have one review.
+        Thank you for sharing your experience!
+      </p>
+      {% if experience %}
+      <a href="{{ url_for('main.experience_detail', slug=experience.slug) }}"
+         class="btn btn-warning px-4 py-2 fw-semibold" style="border-radius:9999px;">
+        View {{ experience.name }}
+      </a>
+      {% else %}
+      <a href="{{ url_for('main.index') }}" class="btn btn-warning px-4 py-2 fw-semibold" style="border-radius:9999px;">
+        Back to Home
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

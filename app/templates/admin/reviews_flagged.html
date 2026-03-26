@@ -1,0 +1,41 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Flagged Reviews{% endblock %}
+{% block content %}
+<h1 class="fw-bold mb-4">Flagged Reviews <span class="badge bg-danger fs-6">{{ reviews|length }}</span></h1>
+<p class="text-muted mb-4">These reviews have been flagged by customers or by the auto-flag threshold (3+ reports).</p>
+
+{% if not reviews %}
+<div class="alert alert-success"><i class="bi bi-check-circle me-2"></i>No flagged reviews.</div>
+{% endif %}
+
+{% for r in reviews %}
+<div class="card border-0 shadow-sm mb-3" style="border-left: 4px solid #dc3545 !important;">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start mb-2">
+      <div>
+        <strong>{{ r.reviewer_display_name }}</strong>
+        <span class="text-muted small ms-2">{{ r.experience.name }}</span>
+        <span class="badge bg-danger ms-2">{{ r.flag_count }} flag{{ 's' if r.flag_count != 1 }}</span>
+      </div>
+      <div>
+        {% for i in range(1,6) %}
+          <span style="color:{{ '#C9952A' if i <= r.star_rating else '#D0D8E0' }};font-size:14px;">&#9733;</span>
+        {% endfor %}
+      </div>
+    </div>
+    <p class="mb-2" style="font-size:14px;">{{ r.best_moment[:300] }}{% if r.best_moment|length > 300 %}...{% endif %}</p>
+    <div class="d-flex gap-2 align-items-center">
+      <form method="POST" action="{{ url_for('admin.review_publish', review_id=r.review_id) }}" class="ms-auto">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-sm btn-success">Publish</button>
+      </form>
+      <form method="POST" action="{{ url_for('admin.review_remove', review_id=r.review_id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-sm btn-danger" onclick="return confirm('Remove this review?')">Remove</button>
+      </form>
+      <a href="{{ url_for('admin.review_detail', review_id=r.review_id) }}" class="btn btn-sm btn-outline-secondary">Detail</a>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

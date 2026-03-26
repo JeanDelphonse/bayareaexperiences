@@ -116,4 +116,149 @@
     </div>
   </div>
 </section>
+
+<!-- ── Guest Reviews ─────────────────────────────────────────────────────── -->
+<section class="bae-reviews-section" id="reviews">
+  <div class="container py-5">
+    <h2 style="color:#1A3557;font-size:22px;font-weight:500;margin-bottom:8px;">Guest Reviews</h2>
+
+    {% if experience.review_count >= min_reviews %}
+
+    <div class="bae-rating-summary d-flex align-items-center gap-3 mb-4">
+      <span style="font-size:48px;font-weight:500;color:#1A3557;">
+        {{ '%.1f' | format(experience.avg_star_rating) }}
+      </span>
+      <div>
+        <div>
+          {% set avg = experience.avg_star_rating %}
+          {% for i in range(1,6) %}
+            {% if avg >= i %}
+              <span style="color:#C9952A;font-size:22px;">&#9733;</span>
+            {% elif avg >= i - 0.5 %}
+              <span style="color:#C9952A;font-size:22px;">&#9734;</span>
+            {% else %}
+              <span style="color:#D0D8E0;font-size:22px;">&#9733;</span>
+            {% endif %}
+          {% endfor %}
+        </div>
+        <span style="font-size:14px;color:#5A6A7A;">
+          {{ experience.review_count }} verified review{{ 's' if experience.review_count != 1 }}
+        </span>
+      </div>
+    </div>
+
+    <div class="mb-5">
+      {% for star in [5,4,3,2,1] %}
+        {% set count = star_counts[star] %}
+        {% set pct = (count / experience.review_count * 100) | round | int %}
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span style="font-size:13px;color:#5A6A7A;min-width:12px;">{{ star }}</span>
+          <span style="color:#C9952A;font-size:13px;">&#9733;</span>
+          <div style="flex:1;background:#EFF4F9;border-radius:9999px;height:8px;overflow:hidden;">
+            <div style="background:#C9952A;height:100%;width:{{ pct }}%;border-radius:9999px;"></div>
+          </div>
+          <span style="font-size:12px;color:#5A6A7A;min-width:28px;text-align:right;">{{ count }}</span>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% elif experience.review_count > 0 %}
+    <p style="color:#5A6A7A;font-size:15px;margin-bottom:2rem;">
+      {{ experience.review_count }} review{{ 's' if experience.review_count != 1 }} so far — be the first to share your experience!
+    </p>
+    {% else %}
+    <p style="color:#5A6A7A;font-size:15px;margin-bottom:2rem;">
+      No reviews yet — be the first to share your experience!
+    </p>
+    {% endif %}
+
+    <div id="reviewsList">
+      {% for review in reviews %}
+      <div class="bae-review-card" style="background:#fff;border:0.5px solid #D0D8E0;border-radius:14px;padding:20px;margin-bottom:16px;">
+        <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+          <div class="d-flex align-items-center gap-3">
+            <div style="width:40px;height:40px;border-radius:50%;background:#EFF4F9;display:flex;align-items:center;justify-content:center;color:#1A3557;font-weight:500;font-size:15px;flex-shrink:0;">
+              {{ review.reviewer_first_name[0] | upper }}
+            </div>
+            <div>
+              <div style="font-weight:500;font-size:15px;color:#1C1C1E;">{{ review.reviewer_display_name }}</div>
+              <div style="font-size:12px;color:#5A6A7A;">
+                {{ review.published_at.strftime('%B %Y') }}
+                &middot;
+                <span style="color:#2D7A4F;font-size:11px;font-weight:500;">&#10003; Verified Experience</span>
+              </div>
+            </div>
+          </div>
+          <div style="flex-shrink:0;">
+            {% for i in range(1,6) %}
+              <span style="color:{{ '#C9952A' if i <= review.star_rating else '#D0D8E0' }};font-size:16px;">&#9733;</span>
+            {% endfor %}
+          </div>
+        </div>
+        <p style="font-size:15px;line-height:1.7;color:#1C1C1E;margin:0 0 12px;">{{ review.best_moment }}</p>
+        <div class="d-flex align-items-center gap-2">
+          <span style="font-size:12px;color:#5A6A7A;">Helpful?</span>
+          <button onclick="voteHelpful('{{ review.review_id }}', this)"
+                  style="background:none;border:1px solid #D0D8E0;border-radius:9999px;padding:3px 10px;font-size:12px;color:#5A6A7A;cursor:pointer;">
+            &#128077; {{ review.helpful_count }}
+          </button>
+          <button onclick="flagReview('{{ review.review_id }}', this)"
+                  style="background:none;border:none;font-size:11px;color:#B0B8C0;cursor:pointer;margin-left:auto;">
+            Report
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if has_more_reviews %}
+    <div class="text-center mt-3" id="loadMoreWrap">
+      <button onclick="loadMoreReviews()"
+              style="background:none;border:1.5px solid #C9952A;color:#8B6419;padding:8px 24px;border-radius:9999px;font-size:14px;cursor:pointer;">
+        Load more reviews
+      </button>
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+
+<script>
+var _reviewPage = 2;
+var _reviewSlug = '{{ experience.slug }}';
+
+function voteHelpful(reviewId, btn) {
+  fetch('/reviews/' + reviewId + '/helpful', {
+    method: 'POST',
+    headers: {'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content}
+  }).then(r => r.json()).then(d => {
+    if (d.ok) btn.innerHTML = '&#128077; ' + d.count;
+    btn.disabled = true;
+  });
+}
+
+function flagReview(reviewId, btn) {
+  if (!confirm('Report this review?')) return;
+  fetch('/reviews/' + reviewId + '/flag', {
+    method: 'POST',
+    headers: {'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content}
+  }).then(r => r.json()).then(() => { btn.textContent = 'Reported'; btn.disabled = true; });
+}
+
+function loadMoreReviews() {
+  fetch('/experience/' + _reviewSlug + '/reviews?page=' + _reviewPage)
+    .then(r => r.text())
+    .then(html => {
+      var tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      var cards = tmp.querySelectorAll('.bae-review-card');
+      cards.forEach(c => document.getElementById('reviewsList').appendChild(c));
+      var hasMore = tmp.querySelector('[data-has-more]');
+      if (!hasMore || hasMore.dataset.hasMore === 'false') {
+        document.getElementById('loadMoreWrap').style.display = 'none';
+      }
+      _reviewPage++;
+    });
+}
+</script>
 {% endblock %}
