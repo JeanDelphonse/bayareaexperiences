@@ -116,37 +116,73 @@
 const stripe = Stripe('{{ stripe_key }}');
 let elements;
 
-fetch('{{ url_for("checkout.create_payment_intent") }}', {
-  method: 'POST',
-  headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
-  body: JSON.stringify({amount: {{ total }}})
-})
-.then(r => r.json())
-.then(data => {
-  if (data.error) { document.getElementById('payment-message').textContent = data.error; return; }
-  elements = stripe.elements({clientSecret: data.clientSecret});
-  const paymentElement = elements.create('payment');
-  paymentElement.mount('#payment-element');
-});
+const msgEl  = document.getElementById('payment-message');
+const payBtn = document.getElementById('payBtn');
+const spinner = document.getElementById('payBtnSpinner');
+
+function showError(msg) {
+  msgEl.textContent = msg;
+  msgEl.style.display = 'block';
+  payBtn.disabled = false;
+  spinner.style.display = 'none';
+}
+
+// Handle return from Stripe redirect (e.g. iDEAL, Link, bank redirect)
+const urlParams  = new URLSearchParams(window.location.search);
+const piFromUrl  = urlParams.get('payment_intent');
+const csFromUrl  = urlParams.get('payment_intent_client_secret');
+const rdStatus   = urlParams.get('redirect_status');
+
+if (csFromUrl && rdStatus === 'succeeded' && piFromUrl) {
+  // Payment already confirmed via redirect — submit the booking form immediately
+  document.getElementById('paymentIntentId').value = piFromUrl;
+  document.getElementById('paymentForm').submit();
+} else if (csFromUrl && rdStatus && rdStatus !== 'succeeded') {
+  showError('Payment was not completed. Please try again.');
+} else {
+  // Normal flow — create a new PaymentIntent and mount the Payment Element
+  fetch('{{ url_for("checkout.create_payment_intent") }}', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
+    body: JSON.stringify({amount: {{ total }}})
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.error) { showError(data.error); return; }
+    elements = stripe.elements({clientSecret: data.clientSecret});
+    elements.create('payment').mount('#payment-element');
+  })
+  .catch(() => showError('Could not load payment form. Please refresh the page.'));
+}
 
 document.getElementById('paymentForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  document.getElementById('payBtn').disabled = true;
-  document.getElementById('payBtnSpinner').style.display = 'inline-block';
+  msgEl.style.display = 'none';
+
+  if (!elements) {
+    showError('Payment form is not ready yet. Please wait a moment and try again.');
+    return;
+  }
+
+  payBtn.disabled = true;
+  spinner.style.display = 'inline-block';
 
   const {error, paymentIntent} = await stripe.confirmPayment({
     elements,
     redirect: 'if_required',
+    confirmParams: {
+      return_url: window.location.href.split('?')[0],
+    },
   });
 
   if (error) {
-    document.getElementById('payment-message').textContent = error.message;
-    document.getElementById('payment-message').style.display = 'block';
-    document.getElementById('payBtn').disabled = false;
-    document.getElementById('payBtnSpinner').style.display = 'none';
+    showError(error.message);
   } else if (paymentIntent && paymentIntent.status === 'succeeded') {
     document.getElementById('paymentIntentId').value = paymentIntent.id;
     document.getElementById('paymentForm').submit();
+  } else {
+    showError('Payment is still processing. Please do not refresh — check your email for confirmation.');
+    payBtn.disabled = true;
   }
 });
 </script>
