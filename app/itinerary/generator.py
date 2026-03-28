@@ -79,6 +79,7 @@ Return a JSON object with this exact structure:
       "duration_minutes": 45,
       "description": "what the customer will see/do here",
       "highlight": "the single most memorable thing about this stop",
+      "historical_context": "a fun historical fact or story about this stop",
       "drive_from_prev": "e.g. 25-min drive from San Jose along 101"
     }}
   ],
