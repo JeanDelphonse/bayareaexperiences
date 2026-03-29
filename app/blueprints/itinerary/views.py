@@ -108,14 +108,26 @@ def admin_regen_itinerary(booking_id):
     from app.itinerary.storage import save_itinerary
     booking = Booking.query.get_or_404(booking_id)
     try:
+        import os, anthropic as _ac
+        key = os.environ.get('ANTHROPIC_API_KEY', '')
+        if not key:
+            flash('ANTHROPIC_API_KEY is not set on this server.', 'danger')
+            return redirect(request.referrer or url_for('admin.dashboard'))
+
+        # Call Claude directly so any exception propagates here
+        experience  = booking.experience
+        client      = _ac.Anthropic(api_key=key)
+        client.messages.create(
+            model='claude-haiku-4-5-20251001',
+            max_tokens=16,
+            messages=[{'role': 'user', 'content': 'Reply OK'}],
+        )
+        # Connectivity confirmed — run full generation
         itinerary = generate_itinerary(booking)
-        if itinerary.get('is_fallback'):
-            flash(f'Claude API failed — fallback saved. Check ANTHROPIC_API_KEY and outbound connectivity.', 'danger')
-        else:
-            save_itinerary(booking_id, itinerary, trigger='admin')
-            flash(f'Itinerary regenerated successfully for booking {booking_id}.', 'success')
+        save_itinerary(booking_id, itinerary, trigger='admin')
+        flash(f'Itinerary regenerated successfully for booking {booking_id}.', 'success')
     except Exception as e:
-        flash(f'Itinerary regeneration error: {e}', 'danger')
+        flash(f'Itinerary regeneration failed: {e}', 'danger')
     return redirect(request.referrer or url_for('admin.dashboard'))
 
 
