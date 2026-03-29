@@ -77,7 +77,27 @@ def admin_required(f):
 
 
 def send_email(mail, subject, recipients, body_html, body_text=None):
-    """Helper to send transactional emails via Flask-Mail."""
-    from flask_mail import Message
-    msg = Message(subject=subject, recipients=recipients, html=body_html, body=body_text or '')
-    mail.send(msg)
+    """Send email via SendGrid HTTP API if SENDGRID_API_KEY is set, else Flask-Mail SMTP."""
+    import os, requests as _req
+    api_key = os.environ.get('SENDGRID_API_KEY') or os.environ.get('MAIL_PASSWORD', '')
+    if api_key and api_key.startswith('SG.'):
+        from flask import current_app
+        sender = current_app.config.get('MAIL_DEFAULT_SENDER', 'noreply@bayareaexperiences.com')
+        payload = {
+            'personalizations': [{'to': [{'email': r} for r in recipients]}],
+            'from': {'email': sender},
+            'subject': subject,
+            'content': [{'type': 'text/html', 'value': body_html}],
+        }
+        resp = _req.post(
+            'https://api.sendgrid.com/v3/mail/send',
+            headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'},
+            json=payload,
+            timeout=15,
+        )
+        if resp.status_code not in (200, 202):
+            raise RuntimeError(f'SendGrid error {resp.status_code}: {resp.text}')
+    else:
+        from flask_mail import Message
+        msg = Message(subject=subject, recipients=recipients, html=body_html, body=body_text or '')
+        mail.send(msg)
