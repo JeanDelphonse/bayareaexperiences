@@ -735,6 +735,31 @@ def publish_held_reviews():
     return redirect(url_for('admin.reviews_held'))
 
 
+@admin_bp.route('/test-mail')
+@login_required
+@admin_required
+def test_mail():
+    from app.extensions import mail as _mail
+    from flask import current_app as _app
+    cfg = {
+        'MAIL_SERVER':         _app.config.get('MAIL_SERVER'),
+        'MAIL_PORT':           _app.config.get('MAIL_PORT'),
+        'MAIL_USE_TLS':        _app.config.get('MAIL_USE_TLS'),
+        'MAIL_USE_SSL':        _app.config.get('MAIL_USE_SSL'),
+        'MAIL_USERNAME':       _app.config.get('MAIL_USERNAME'),
+        'MAIL_PASSWORD':       ('set (' + str(len(_app.config.get('MAIL_PASSWORD') or '')) + ' chars)') if _app.config.get('MAIL_PASSWORD') else 'NOT SET',
+        'MAIL_DEFAULT_SENDER': _app.config.get('MAIL_DEFAULT_SENDER'),
+    }
+    try:
+        send_email(_mail, subject='BAE Mail Test', recipients=['valuemanager.management@gmail.com'],
+                   body_html='<p>Mail test from BAE admin panel.</p>')
+        result = 'OK — email sent successfully.'
+    except Exception as e:
+        result = f'FAILED: {e}'
+    lines = '\n'.join(f'{k}: {v}' for k, v in cfg.items())
+    return f'<pre>{lines}\n\nResult: {result}</pre>'
+
+
 def _update_review_rating(experience_id):
     from app.models import ExperienceReview, Experience
     result = db.session.query(
