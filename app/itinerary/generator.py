@@ -147,7 +147,7 @@ def generate_itinerary(booking) -> dict:
         if not enabled:
             return _fallback_itinerary(booking)
 
-        max_tokens  = int(os.environ.get('ITINERARY_CLAUDE_MAX_TOKENS', 2048))
+        max_tokens  = int(os.environ.get('ITINERARY_CLAUDE_MAX_TOKENS', 4096))
         temperature = float(os.environ.get('ITINERARY_CLAUDE_TEMPERATURE', 0.4))
 
         client  = anthropic.Anthropic(api_key=os.environ['ANTHROPIC_API_KEY'])
