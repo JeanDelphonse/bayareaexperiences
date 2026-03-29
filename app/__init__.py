@@ -78,8 +78,9 @@ def create_app(config_name='default'):
         return dict(cart_count=count)
 
     # Logging
-    os.makedirs('logs', exist_ok=True)
-    file_handler = RotatingFileHandler('logs/bae_app.log', maxBytes=1_000_000, backupCount=5)
+    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'logs')
+    os.makedirs(log_dir, exist_ok=True)
+    file_handler = RotatingFileHandler(os.path.join(log_dir, 'bae_app.log'), maxBytes=1_000_000, backupCount=5)
     file_handler.setLevel(logging.INFO)
     app.logger.addHandler(file_handler)
     app.logger.setLevel(logging.INFO)

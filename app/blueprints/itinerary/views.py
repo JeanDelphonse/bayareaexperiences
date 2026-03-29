@@ -104,8 +104,39 @@ def admin_itinerary_detail(itinerary_id):
 @admin_required
 def admin_regen_itinerary(booking_id):
     from app.models import Booking
-    from app.itinerary.tasks import queue_itinerary_generation
+    from app.itinerary.generator import generate_itinerary
+    from app.itinerary.storage import save_itinerary
     booking = Booking.query.get_or_404(booking_id)
-    queue_itinerary_generation(booking_id, trigger='admin')
-    flash(f'Itinerary regeneration queued for booking {booking_id}.', 'info')
+    try:
+        itinerary = generate_itinerary(booking)
+        if itinerary.get('is_fallback'):
+            flash(f'Claude API failed — fallback saved. Check ANTHROPIC_API_KEY and outbound connectivity.', 'danger')
+        else:
+            save_itinerary(booking_id, itinerary, trigger='admin')
+            flash(f'Itinerary regenerated successfully for booking {booking_id}.', 'success')
+    except Exception as e:
+        flash(f'Itinerary regeneration error: {e}', 'danger')
     return redirect(request.referrer or url_for('admin.dashboard'))
+
+
+# ── Admin: Claude connectivity test ───────────────────────────────────────────
+
+@itinerary_bp.route('/admin/itineraries/test-claude')
+@login_required
+@admin_required
+def admin_test_claude():
+    import os
+    import anthropic
+    key = os.environ.get('ANTHROPIC_API_KEY', '')
+    if not key:
+        return '<pre>FAIL: ANTHROPIC_API_KEY not set</pre>'
+    try:
+        client = anthropic.Anthropic(api_key=key)
+        msg = client.messages.create(
+            model='claude-haiku-4-5-20251001',
+            max_tokens=16,
+            messages=[{'role': 'user', 'content': 'Reply with OK only.'}],
+        )
+        return f'<pre>OK: {msg.content[0].text.strip()}</pre>'
+    except Exception as e:
+        return f'<pre>FAIL: {e}</pre>'
