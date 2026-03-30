@@ -23,6 +23,7 @@
   {% endif %}
 
   <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="row g-4 mb-4">
       <!-- Free -->
       <div class="col-md-6">
