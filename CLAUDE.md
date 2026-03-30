@@ -170,6 +170,6 @@ ANTHROPIC_API_KEY     # chatbot
 
 ## Image Assets
 
-- `jeepWrangler.webp` — only confirmed CDN image, used as hero + transport cards
+- `sun_rise_set.jpg` — default/fallback image, used as hero + transport cards
 - Run `migrate_images.sh` to pull from CDN to `app/static/images/`
 - Logo filename: NOT YET CONFIRMED — verify via DevTools on live site

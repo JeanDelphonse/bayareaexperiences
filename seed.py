@@ -129,7 +129,7 @@ EXPERIENCES = [
         ),
         duration_hours=3.0,
         price=195.00,
-        photo_url='jeep.webp',
+        photo_url='sun_rise_set.jpg',
         sort_order=7,
     ),
     dict(
@@ -143,7 +143,7 @@ EXPERIENCES = [
         ),
         duration_hours=6.0,
         price=375.00,
-        photo_url='jeep.webp',
+        photo_url='sun_rise_set.jpg',
         sort_order=8,
     ),
 
@@ -160,7 +160,7 @@ EXPERIENCES = [
         ),
         duration_hours=2.0,
         price=175.00,
-        photo_url='jeep.webp',
+        photo_url='sun_rise_set.jpg',
         sort_order=9,
     ),
     dict(
@@ -174,7 +174,7 @@ EXPERIENCES = [
         ),
         duration_hours=2.0,
         price=212.00,
-        photo_url='jeep.webp',
+        photo_url='sun_rise_set.jpg',
         sort_order=10,
     ),
     dict(
@@ -190,7 +190,7 @@ EXPERIENCES = [
         ),
         duration_hours=7.0,
         price=845.00,
-        photo_url='jeep.webp',
+        photo_url='sun_rise_set.jpg',
         sort_order=11,
     ),
 
@@ -208,7 +208,7 @@ EXPERIENCES = [
         ),
         duration_hours=4.0,
         price=625.00,
-        photo_url='jeep.webp',
+        photo_url='sun_rise_set.jpg',
         sort_order=12,
     ),
     dict(
@@ -225,7 +225,7 @@ EXPERIENCES = [
         ),
         duration_hours=9.0,
         price=975.00,
-        photo_url='jeep.webp',
+        photo_url='sun_rise_set.jpg',
         sort_order=13,
     ),
     dict(
@@ -242,7 +242,7 @@ EXPERIENCES = [
         ),
         duration_hours=11.0,
         price=1145.00,
-        photo_url='jeep.webp',
+        photo_url='sun_rise_set.jpg',
         sort_order=14,
     ),
     dict(
@@ -259,7 +259,7 @@ EXPERIENCES = [
         ),
         duration_hours=4.0,
         price=495.00,
-        photo_url='jeep.webp',
+        photo_url='sun_rise_set.jpg',
         sort_order=15,
     ),
 
@@ -278,7 +278,7 @@ EXPERIENCES = [
         ),
         duration_hours=10.0,
         price=995.00,
-        photo_url='jeep.webp',
+        photo_url='sun_rise_set.jpg',
         sort_order=16,
     ),
 ]

@@ -19,10 +19,10 @@
           <div class="card-body p-3">
             <div class="row align-items-center g-3">
               <div class="col-auto">
-                <img src="{{ url_for('main.image', filename=(item.experience.photo_url or 'jeep.webp')) }}"
+                <img src="{{ url_for('main.image', filename=(item.experience.photo_url or 'sun_rise_set.jpg')) }}"
                      style="width: 80px; height: 60px; object-fit: cover; border-radius: 8px;"
                      alt="{{ item.experience.name }}"
-                     onerror="this.onerror=null;this.src='{{ url_for('main.image', filename='jeep.webp') }}'">
+                     onerror="this.onerror=null;this.src='{{ url_for('main.image', filename='sun_rise_set.jpg') }}'">
               </div>
               <div class="col">
                 <h6 class="fw-bold mb-1">{{ item.experience.name }}</h6>

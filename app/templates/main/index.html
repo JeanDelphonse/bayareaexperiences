@@ -75,10 +75,10 @@
       {% for exp in experiences %}
       <div class="col">
         <div class="card h-100 shadow-sm border-0 experience-card">
-          <img src="{{ url_for('main.image', filename=(exp.photo_url or 'jeep.webp')) }}"
+          <img src="{{ url_for('main.image', filename=(exp.photo_url or 'sun_rise_set.jpg')) }}"
                class="card-img-top experience-card-img"
                alt="{{ exp.name }}"
-               onerror="this.onerror=null;this.src='{{ url_for('main.image', filename='jeep.webp') }}'">
+               onerror="this.onerror=null;this.src='{{ url_for('main.image', filename='sun_rise_set.jpg') }}'">
           <div class="card-body d-flex flex-column">
             <span class="badge bg-warning text-dark mb-2 align-self-start">{{ exp.category }}</span>
             <h5 class="card-title fw-bold">{{ exp.name }}</h5>
