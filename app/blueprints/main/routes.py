@@ -12,6 +12,12 @@ def image(filename):
     return send_from_directory(img_dir, filename)
 
 
+@main_bp.route('/audio/<path:filename>')
+def audio(filename):
+    audio_dir = os.path.join(current_app.root_path, 'templates', 'audio')
+    return send_from_directory(audio_dir, filename)
+
+
 @main_bp.route('/')
 def index():
     experiences = (Experience.query
