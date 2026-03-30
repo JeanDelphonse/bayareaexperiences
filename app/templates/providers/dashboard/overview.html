@@ -107,7 +107,7 @@
         <tr>
           <td>{{ b.experience.name | truncate(35) }}</td>
           <td>{{ b.timeslot.start_time.strftime('%b %d, %Y') if b.timeslot else '—' }}</td>
-          <td>{{ b.user.first_name }} {{ b.user.last_name[0] }}.</td>
+          <td>{% if b.user %}{{ b.user.first_name }} {{ b.user.last_name[0] }}.{% else %}{{ b.guest_first_name }} {{ b.guest_last_name[0] if b.guest_last_name else '' }}.{% endif %}</td>
           <td>${{ "%.2f"|format(b.amount_total) }}</td>
           <td>
             <span class="badge
