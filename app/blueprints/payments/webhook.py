@@ -129,20 +129,19 @@ def _handle_subscription_deleted(subscription):
 
     # Notify provider
     try:
-        from flask_mail import Message
-        from app.extensions import mail
-        msg = Message(
+        from app.extensions import mail as _mail
+        send_email(
+            _mail,
             subject='Your BAE Pro subscription has been cancelled',
             recipients=[provider.user.email],
+            body_html=(
+                f'<p>Hi {provider.user.first_name},</p>'
+                '<p>Your Pro subscription has been cancelled. Your account has been moved to the '
+                'Free Tier (20% commission, 5-experience limit).</p>'
+                '<p>You can reactivate Pro any time from your provider dashboard.</p>'
+                '<p>Bay Area Experiences</p>'
+            ),
         )
-        msg.body = (
-            f'Hi {provider.user.first_name},\n\n'
-            'Your Pro subscription has been cancelled. Your account has been moved to the '
-            'Free Tier (20% commission, 5-experience limit).\n\n'
-            'You can reactivate Pro any time from your provider dashboard.\n\n'
-            'Bay Area Experiences'
-        )
-        mail.send(msg)
     except Exception:
         pass
 
@@ -156,19 +155,18 @@ def _handle_invoice_failed(invoice):
     db.session.commit()
 
     try:
-        from flask_mail import Message
-        from app.extensions import mail
-        msg = Message(
+        from app.extensions import mail as _mail
+        send_email(
+            _mail,
             subject='Action required: Pro subscription payment failed',
             recipients=[provider.user.email],
+            body_html=(
+                f'<p>Hi {provider.user.first_name},</p>'
+                '<p>We were unable to process your Pro subscription payment. '
+                'Please update your payment method in the Stripe portal to avoid losing Pro benefits.</p>'
+                '<p>Bay Area Experiences</p>'
+            ),
         )
-        msg.body = (
-            f'Hi {provider.user.first_name},\n\n'
-            'We were unable to process your Pro subscription payment. '
-            'Please update your payment method in the Stripe portal to avoid losing Pro benefits.\n\n'
-            'Bay Area Experiences'
-        )
-        mail.send(msg)
     except Exception:
         pass
 

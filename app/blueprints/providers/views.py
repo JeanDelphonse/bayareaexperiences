@@ -71,18 +71,21 @@ def apply():
 
         # Email admin
         try:
+            from app.extensions import mail as _mail
+            body_html = (
+                f'<p>A new provider has applied.</p>'
+                f'<p><strong>Name:</strong> {current_user.first_name} {current_user.last_name}<br>'
+                f'<strong>Email:</strong> {current_user.email}<br>'
+                f'<strong>Business:</strong> {form.business_name.data}<br>'
+                f'<strong>Slug:</strong> {slug}</p>'
+                f'<p><strong>Why join:</strong><br>{form.why_join.data}</p>'
+                f'<p>Review at: /admin/providers/{provider.provider_id}</p>'
+            )
             send_email(
-                to=current_app.config['ADMIN_EMAIL'],
+                _mail,
                 subject=f'New Provider Application: {form.business_name.data}',
-                body=(
-                    f'A new provider has applied.\n\n'
-                    f'Name: {current_user.first_name} {current_user.last_name}\n'
-                    f'Email: {current_user.email}\n'
-                    f'Business: {form.business_name.data}\n'
-                    f'Slug: {slug}\n\n'
-                    f'Why join:\n{form.why_join.data}\n\n'
-                    f'Review at: /admin/providers/{provider.provider_id}'
-                ),
+                recipients=[current_app.config['ADMIN_EMAIL']],
+                body_html=body_html,
             )
         except Exception:
             pass
