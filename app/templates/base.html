@@ -141,7 +141,7 @@
 
 <!-- Provider Learn Modal -->
 <div class="modal fade" id="providerLearnModal" tabindex="-1" aria-labelledby="providerLearnModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="providerLearnModalLabel">
@@ -149,11 +149,11 @@
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body">
-        <audio id="providerLearnAudio" controls class="w-100">
-          <source src="{{ url_for('main.audio', filename='Become_a_BAE_Provider.mp4') }}" type="audio/mp4">
-          Your browser does not support audio playback.
-        </audio>
+      <div class="modal-body p-0">
+        <video id="providerLearnAudio" controls class="w-100" style="display:block;">
+          <source src="{{ url_for('main.audio', filename='Become_a_BAE_Provider.mp4') }}" type="video/mp4">
+          Your browser does not support video playback.
+        </video>
       </div>
       <div class="modal-footer">
         <a href="{{ url_for('providers.apply') }}" class="btn btn-primary btn-sm">Apply Now</a>
