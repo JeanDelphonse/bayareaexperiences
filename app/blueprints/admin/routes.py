@@ -211,12 +211,33 @@ def timeslots():
 def bulk_timeslots():
     if request.method == 'POST':
         experience_id = request.form.get('experience_id')
-        start_date    = date.fromisoformat(request.form.get('start_date'))
-        end_date      = date.fromisoformat(request.form.get('end_date'))
-        repeat_days   = request.form.getlist('repeat_days')  # ['0','1',...,'6'] Mon-Sun
-        start_time    = dt_time.fromisoformat(request.form.get('start_time'))
-        end_time      = dt_time.fromisoformat(request.form.get('end_time'))
-        capacity      = int(request.form.get('capacity', 4))
+        raw_start_date = request.form.get('start_date', '').strip()
+        raw_end_date   = request.form.get('end_date', '').strip()
+        raw_start_time = request.form.get('start_time', '').strip()
+        raw_end_time   = request.form.get('end_time', '').strip()
+
+        if not all([experience_id, raw_start_date, raw_end_date, raw_start_time, raw_end_time]):
+            flash('All fields are required.', 'danger')
+            all_exps = Experience.query.filter_by(is_active=True).order_by(Experience.sort_order).all()
+            return render_template('admin/bulk_timeslots.html', experiences=all_exps)
+
+        try:
+            start_date = date.fromisoformat(raw_start_date)
+            end_date   = date.fromisoformat(raw_end_date)
+            start_time = dt_time.fromisoformat(raw_start_time)
+            end_time   = dt_time.fromisoformat(raw_end_time)
+        except ValueError:
+            flash('Invalid date or time format.', 'danger')
+            all_exps = Experience.query.filter_by(is_active=True).order_by(Experience.sort_order).all()
+            return render_template('admin/bulk_timeslots.html', experiences=all_exps)
+
+        if end_date < start_date:
+            flash('End date must be on or after start date.', 'danger')
+            all_exps = Experience.query.filter_by(is_active=True).order_by(Experience.sort_order).all()
+            return render_template('admin/bulk_timeslots.html', experiences=all_exps)
+
+        repeat_days = request.form.getlist('repeat_days')  # ['0','1',...,'6'] Mon-Sun
+        capacity    = int(request.form.get('capacity', 4))
 
         created = 0
         current = start_date
