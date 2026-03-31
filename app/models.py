@@ -117,8 +117,8 @@ class Experience(db.Model):
     def is_discount_live(self) -> bool:
         if not self.discount_active or not self.discounted_price:
             return False
-        from datetime import datetime, timezone
-        now = datetime.now(timezone.utc)
+        from datetime import datetime
+        now = datetime.utcnow()
         if self.discount_start and now < self.discount_start:
             return False
         if self.discount_end and now > self.discount_end:

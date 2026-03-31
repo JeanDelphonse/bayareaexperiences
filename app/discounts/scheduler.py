@@ -1,5 +1,5 @@
 """Nightly discount expiry — run every 30 min via cron."""
-from datetime import datetime, timezone
+from datetime import datetime
 
 
 def expire_ended_discounts() -> int:
@@ -7,7 +7,7 @@ def expire_ended_discounts() -> int:
     from app.models import Experience
     from app.extensions import db
 
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     expired = Experience.query.filter(
         Experience.discount_active == True,   # noqa: E712
         Experience.discount_end != None,      # noqa: E711
