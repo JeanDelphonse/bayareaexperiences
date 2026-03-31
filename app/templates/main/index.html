@@ -95,7 +95,15 @@
                   <span style="color:#5A6A7A;">({{ exp.review_count }})</span>
                 </div>
                 {% endif %}
+                {% if exp.is_discount_live %}
+                <div>
+                  <span class="bae-discount-badge">{{ exp.discount_badge_text }}</span>
+                  <div class="bae-original-price">${{ "%.0f"|format(exp.price) }}</div>
+                  <div class="bae-discounted-price">${{ "%.2f"|format(exp.effective_price) }}</div>
+                </div>
+                {% else %}
                 <span class="fs-5 fw-bold text-dark">${{ "%.0f"|format(exp.price) }}</span>
+                {% endif %}
               </div>
             </div>
             <a href="{{ url_for('main.experience_detail', slug=exp.slug) }}"

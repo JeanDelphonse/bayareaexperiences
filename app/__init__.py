@@ -139,6 +139,28 @@ def create_app(config_name='default'):
         except Exception:
             pass
 
+        # Discount migrations: add promotional discount columns to experiences
+        try:
+            from sqlalchemy import text, inspect as sa_inspect
+            _insp = sa_inspect(db.engine)
+            _ecols = [c['name'] for c in _insp.get_columns('experiences')]
+            with db.engine.connect() as _conn:
+                if 'discount_percent' not in _ecols:
+                    _conn.execute(text("ALTER TABLE experiences ADD COLUMN discount_percent ENUM('10','15','20') NULL"))
+                if 'discounted_price' not in _ecols:
+                    _conn.execute(text('ALTER TABLE experiences ADD COLUMN discounted_price DECIMAL(10,2) NULL'))
+                if 'discount_active' not in _ecols:
+                    _conn.execute(text('ALTER TABLE experiences ADD COLUMN discount_active BOOLEAN NOT NULL DEFAULT 0'))
+                if 'discount_label' not in _ecols:
+                    _conn.execute(text('ALTER TABLE experiences ADD COLUMN discount_label VARCHAR(80) NULL'))
+                if 'discount_start' not in _ecols:
+                    _conn.execute(text('ALTER TABLE experiences ADD COLUMN discount_start DATETIME NULL'))
+                if 'discount_end' not in _ecols:
+                    _conn.execute(text('ALTER TABLE experiences ADD COLUMN discount_end DATETIME NULL'))
+                _conn.commit()
+        except Exception:
+            pass
+
         # UserPrefs migration: add preference_source to booking_preferences if not yet present
         try:
             from sqlalchemy import text, inspect as sa_inspect

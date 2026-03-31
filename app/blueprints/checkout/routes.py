@@ -17,7 +17,7 @@ def checkout():
             'timeslot':   i.timeslot,
             'guest_count': i.guest_count,
             'pickup_city': i.pickup_city,
-            'price':      float(i.experience.price),
+            'price':      float(i.experience.effective_price),
             'cart_item_id': i.cart_item_id,
         } for i in items]
     else:
@@ -33,7 +33,7 @@ def checkout():
                     'timeslot':    slot,
                     'guest_count': item['guest_count'],
                     'pickup_city': item['pickup_city'],
-                    'price':       float(exp.price),
+                    'price':       float(exp.effective_price),
                     'cart_item_id': item['cart_item_id'],
                 })
 
@@ -126,17 +126,29 @@ def create_payment_intent():
 
         split = calculate_split(Decimal(str(data.get('amount', 0))), provider_id)
 
+        disc_pct = disc_amt = base_p = eff_p = ''
+        if experience_id and exp:
+            base_p = str(exp.price)
+            eff_p  = str(exp.effective_price)
+            if exp.is_discount_live:
+                disc_pct = exp.discount_percent or ''
+                disc_amt = str(round(float(exp.price) - exp.effective_price, 2))
+
         intent_kwargs = dict(
             amount=amount_cents,
             currency='usd',
             automatic_payment_methods={'enabled': True},
             metadata={
-                'experience_id':    experience_id or '',
-                'provider_id':      provider_id or 'BAE',
-                'platform_fee':     str(split['platform_fee']),
-                'provider_amount':  str(split['provider_amount']),
-                'commission_rate':  str(split['commission_rate']),
-                'tier':             split['tier'],
+                'experience_id':              experience_id or '',
+                'provider_id':                provider_id or 'BAE',
+                'platform_fee':               str(split['platform_fee']),
+                'provider_amount':            str(split['provider_amount']),
+                'commission_rate':            str(split['commission_rate']),
+                'tier':                       split['tier'],
+                'base_price':                 base_p,
+                'effective_price':            eff_p,
+                'experience_discount_pct':    disc_pct,
+                'experience_discount_amt':    disc_amt,
             },
         )
         # Add Connect transfer only when provider has a connected Stripe account

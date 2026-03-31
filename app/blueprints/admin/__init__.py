@@ -7,3 +7,4 @@ from app.blueprints.admin import routes      # noqa: F401, E402
 from app.blueprints.admin import analytics   # noqa: F401, E402
 from app.blueprints.admin import marketplace # noqa: F401, E402
 from app.blueprints.admin import loyalty     # noqa: F401, E402
+from app.blueprints.admin import discounts   # noqa: F401, E402

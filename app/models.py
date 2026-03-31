@@ -105,6 +105,38 @@ class Experience(db.Model):
     # AI itinerary generation
     core_stops       = db.Column(db.Text,        nullable=True)
 
+    # Promotional discount (BAE-PRD-DISCOUNT-v1.0)
+    discount_percent  = db.Column(db.Enum('10', '15', '20'), nullable=True)
+    discounted_price  = db.Column(db.Numeric(10, 2), nullable=True)
+    discount_active   = db.Column(db.Boolean, nullable=False, default=False)
+    discount_label    = db.Column(db.String(80), nullable=True)
+    discount_start    = db.Column(db.DateTime, nullable=True)
+    discount_end      = db.Column(db.DateTime, nullable=True)
+
+    @property
+    def is_discount_live(self) -> bool:
+        if not self.discount_active or not self.discounted_price:
+            return False
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
+        if self.discount_start and now < self.discount_start:
+            return False
+        if self.discount_end and now > self.discount_end:
+            return False
+        return True
+
+    @property
+    def effective_price(self) -> float:
+        if self.is_discount_live:
+            return float(self.discounted_price)
+        return float(self.price)
+
+    @property
+    def discount_badge_text(self) -> str:
+        if self.discount_label:
+            return self.discount_label
+        return f'{self.discount_percent}% OFF' if self.discount_percent else ''
+
     staff        = db.relationship('StaffMember', backref='experiences')
     timeslots    = db.relationship('Timeslot', backref='experience', lazy='dynamic')
     pickup_locations = db.relationship('ExperiencePickupLocation', backref='experience',

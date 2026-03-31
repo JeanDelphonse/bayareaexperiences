@@ -1,7 +1,7 @@
 import csv
 import io
 import threading
-from datetime import date, time as dt_time, timedelta
+from datetime import date, time as dt_time, timedelta, datetime, timezone
 from flask import (render_template, redirect, url_for, flash,
                    request, jsonify, Response, current_app)
 from flask_login import login_required, current_user
@@ -131,6 +131,32 @@ def edit_experience(experience_id):
         exp.is_active    = request.form.get('is_active') == 'on'
         exp.photo_url    = request.form.get('photo_url', '').strip()
         exp.core_stops   = request.form.get('core_stops', '').strip() or None
+
+        # Discount fields
+        from decimal import Decimal, ROUND_HALF_UP
+        discount_active  = request.form.get('discount_active') == 'on'
+        discount_percent = request.form.get('discount_percent')
+        if discount_percent not in ('10', '15', '20'):
+            discount_percent = None
+            discount_active  = False
+        if discount_percent:
+            pct  = Decimal(discount_percent) / 100
+            disc = (Decimal(str(exp.price)) * (1 - pct)).quantize(
+                Decimal('0.01'), rounding=ROUND_HALF_UP)
+        else:
+            disc = None
+            discount_active = False
+        def _parse_dt(s):
+            try:
+                return datetime.strptime(s, '%Y-%m-%dT%H:%M').replace(tzinfo=timezone.utc) if s else None
+            except ValueError:
+                return None
+        exp.discount_percent = discount_percent
+        exp.discounted_price = disc
+        exp.discount_active  = discount_active
+        exp.discount_label   = request.form.get('discount_label', '').strip() or None
+        exp.discount_start   = _parse_dt(request.form.get('discount_start', '').strip())
+        exp.discount_end     = _parse_dt(request.form.get('discount_end', '').strip())
 
         # Update pickup locations
         ExperiencePickupLocation.query.filter_by(experience_id=experience_id).delete()

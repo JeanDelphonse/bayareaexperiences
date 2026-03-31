@@ -101,7 +101,19 @@
               &bull; {{ item.guest_count }} guest{% if item.guest_count > 1 %}s{% endif %}
             </div>
             <div class="text-muted small">Pickup: {{ item.pickup_city }}</div>
-            <div class="fw-bold mt-1">${{ "%.2f"|format(item.price) }}</div>
+            {% if item.experience.is_discount_live %}
+              <div class="mt-1" style="font-size:13px;color:#9AABBF;text-decoration:line-through;">
+                ${{ "%.2f"|format(item.experience.price) }}</div>
+              <div class="bae-checkout-discount-row">
+                <span class="bae-checkout-discount-label">
+                  {{ item.experience.discount_badge_text }} applied</span>
+                <span class="bae-checkout-discount-amount">
+                  &minus;${{ "%.2f"|format(item.experience.price - item.experience.effective_price) }}</span>
+              </div>
+              <div class="fw-bold mt-1" style="color:#1558A7;">${{ "%.2f"|format(item.price) }}</div>
+            {% else %}
+              <div class="fw-bold mt-1">${{ "%.2f"|format(item.price) }}</div>
+            {% endif %}
           </div>
           {% endfor %}
           {% if discount_amount > 0 %}

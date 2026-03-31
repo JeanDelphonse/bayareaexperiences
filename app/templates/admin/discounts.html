@@ -1,0 +1,112 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Promotional Discounts{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="fw-bold mb-0">Promotional Discounts</h1>
+  <a href="{{ url_for('admin.experiences') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-pencil me-1"></i>Edit via Experience Form</a>
+</div>
+
+{% if not experiences %}
+<div class="alert alert-info">
+  No experiences have a discount configured yet. Edit an experience and use the
+  <strong>Promotional Discount</strong> section to set a 10%, 15%, or 20% discount.
+</div>
+{% else %}
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Experience</th>
+          <th>Base Price</th>
+          <th>Discount</th>
+          <th>Discounted Price</th>
+          <th>Badge Label</th>
+          <th>Status</th>
+          <th>Schedule</th>
+          <th>Quick Toggle</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for exp in experiences %}
+        {% set now_live = exp.is_discount_live %}
+        <tr id="row-{{ exp.experience_id }}">
+          <td class="fw-semibold">{{ exp.name }}</td>
+          <td>${{ "%.2f"|format(exp.price) }}</td>
+          <td>
+            <span class="badge bg-warning text-dark">{{ exp.discount_percent }}%</span>
+          </td>
+          <td style="color:#1558A7;font-weight:500;">
+            {% if exp.discounted_price %}${{ "%.2f"|format(exp.discounted_price) }}{% else %}—{% endif %}
+          </td>
+          <td class="text-muted small">{{ exp.discount_label or '—' }}</td>
+          <td id="badge-{{ exp.experience_id }}">
+            {% if now_live %}
+              <span class="badge bg-success">Active</span>
+            {% elif exp.discount_active and exp.discount_start and not now_live %}
+              <span class="badge bg-warning text-dark">Scheduled</span>
+            {% else %}
+              <span class="badge bg-light text-muted border">Off</span>
+            {% endif %}
+          </td>
+          <td class="text-muted small">
+            {% if exp.discount_start %}From {{ exp.discount_start.strftime('%b %-d %H:%M') }}{% endif %}
+            {% if exp.discount_end %}<br>Until {{ exp.discount_end.strftime('%b %-d %H:%M') }}{% endif %}
+            {% if not exp.discount_start and not exp.discount_end %}—{% endif %}
+          </td>
+          <td>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input discount-toggle"
+                     type="checkbox"
+                     {% if exp.discount_active %}checked{% endif %}
+                     data-id="{{ exp.experience_id }}"
+                     style="width:40px;height:20px;cursor:pointer;">
+            </div>
+          </td>
+          <td>
+            <form method="POST"
+                  action="{{ url_for('admin.admin_discount_clear', experience_id=exp.experience_id) }}"
+                  onsubmit="return confirm('Clear all discount settings for \'{{ exp.name }}\'?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-outline-danger btn-sm">Clear</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+document.querySelectorAll('.discount-toggle').forEach(cb => {
+  cb.addEventListener('change', function() {
+    const expId = this.dataset.id;
+    const checked = this.checked;
+    fetch(`/admin/discounts/${expId}/toggle`, {
+      method: 'POST',
+      headers: {'X-CSRFToken': csrfToken, 'Content-Type': 'application/json'},
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) { this.checked = !checked; return; }
+      const badge = document.getElementById('badge-' + expId);
+      if (badge) {
+        badge.innerHTML = data.active
+          ? '<span class="badge bg-success">Active</span>'
+          : '<span class="badge bg-light text-muted border">Off</span>';
+      }
+    })
+    .catch(() => { this.checked = !checked; });
+  });
+});
+</script>
+{% endblock %}

@@ -167,3 +167,91 @@ textarea:focus-visible {
   color: #1A3557;
   font-weight: 500;
 }
+
+/* ── Discount Pricing (BAE-PRD-DISCOUNT-v1.0) ──────────────────────────────── */
+
+/* Experience Card */
+.bae-discount-badge {
+  display: inline-block;
+  background: #C9952A;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.bae-original-price {
+  font-size: 14px;
+  color: #9AABBF;
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.bae-discounted-price {
+  font-size: 22px;
+  font-weight: 600;
+  color: #1558A7;
+  line-height: 1.1;
+}
+
+.bae-price-sub {
+  font-size: 12px;
+  color: #5A6A7A;
+  margin-top: 4px;
+}
+
+/* Experience Detail Page */
+.bae-detail-badge {
+  display: inline-block;
+  background: #C9952A;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 14px;
+  border-radius: 9999px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.bae-detail-orig-price {
+  font-size: 20px;
+  color: #9AABBF;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+.bae-detail-disc-price {
+  font-size: 36px;
+  font-weight: 600;
+  color: #1558A7;
+  line-height: 1;
+}
+
+.bae-detail-savings {
+  font-size: 13px;
+  color: #1558A7;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+/* Checkout summary */
+.bae-checkout-discount-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.bae-checkout-discount-label,
+.bae-checkout-discount-amount {
+  font-size: 13px;
+  color: #1558A7;
+  font-weight: 500;
+}

@@ -85,7 +85,18 @@
           <div class="card-body p-4">
             <div class="text-center mb-3">
               <div class="text-muted small">Price per booking</div>
-              <div class="display-5 fw-bold text-dark">${{ "%.0f"|format(experience.price) }}</div>
+              {% if experience.is_discount_live %}
+                <div class="bae-detail-badge">{{ experience.discount_badge_text }}</div>
+                <div style="display:flex;align-items:baseline;gap:10px;justify-content:center;flex-wrap:wrap;">
+                  <span class="bae-detail-orig-price">${{ "%.2f"|format(experience.price) }}</span>
+                  <span class="bae-detail-disc-price">${{ "%.2f"|format(experience.effective_price) }}</span>
+                </div>
+                <div class="bae-detail-savings">
+                  You save ${{ "%.2f"|format(experience.price - experience.effective_price) }} ({{ experience.discount_percent }}%)
+                </div>
+              {% else %}
+                <div class="display-5 fw-bold text-dark">${{ "%.0f"|format(experience.price) }}</div>
+              {% endif %}
               <div class="text-muted small">Up to {{ experience.max_guests }} guests</div>
             </div>
             {% if experience.payment_mode == 'full' %}

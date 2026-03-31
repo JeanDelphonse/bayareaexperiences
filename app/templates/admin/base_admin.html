@@ -41,6 +41,8 @@
         <i class="bi bi-bar-chart-line me-2"></i>Analytics</a></li>
       <li><a href="{{ url_for('admin.admin_tracking') }}" class="nav-link px-2 py-1 {% if 'tracking' in request.endpoint %}active{% endif %}">
         <i class="bi bi-geo-alt me-2"></i>Live Tracking</a></li>
+      <li><a href="{{ url_for('admin.admin_discounts') }}" class="nav-link px-2 py-1 {% if 'discount' in request.endpoint %}active{% endif %}">
+        <i class="bi bi-percent me-2"></i>Discounts</a></li>
       <li class="mt-2"><span class="px-2 py-1 text-secondary small">MARKETPLACE</span></li>
       <li><a href="{{ url_for('admin.admin_providers') }}" class="nav-link px-2 py-1 {% if 'admin_provider' in request.endpoint %}active{% endif %}">
         <i class="bi bi-people me-2"></i>Providers</a></li>
