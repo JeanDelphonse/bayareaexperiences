@@ -5,7 +5,7 @@ from flask import (render_template, redirect, url_for, flash,
 from flask_login import current_user
 from app.blueprints.booking import booking_bp
 from app.extensions import db, mail
-from app.models import Experience, Timeslot, Booking, CartItem
+from app.models import Experience, Timeslot, Booking, CartItem, BookingPreferences
 from app.utils import generate_pk, send_email
 
 
@@ -48,6 +48,172 @@ def get_timeslots():
         'end_time':    s.end_time.strftime('%H:%M'),
         'remaining':   s.remaining_capacity,
     } for s in slots])
+
+
+@booking_bp.route('/booking/<experience_id>/preferences', methods=['GET'])
+def booking_preferences(experience_id):
+    """Step 3: Persona & preference selection."""
+    from app.preferences.engine import PERSONAS, INTEREST_TAG_GROUPS
+    experience = Experience.query.filter_by(
+        experience_id=experience_id, is_active=True).first_or_404()
+
+    timeslot_id = request.args.get('timeslot_id') or session.get('pref_timeslot_id', '')
+    pickup_city = request.args.get('pickup_city') or session.get('pref_pickup_city', '')
+    tour_date   = request.args.get('tour_date')   or session.get('pref_tour_date', '')
+
+    if not timeslot_id:
+        return redirect(url_for('booking.book', experience_id=experience_id))
+
+    timeslot = Timeslot.query.get_or_404(timeslot_id)
+
+    # Store params in session for POST
+    session['pref_experience_id'] = experience_id
+    session['pref_timeslot_id']   = timeslot_id
+    session['pref_pickup_city']   = pickup_city
+    session['pref_tour_date']     = tour_date
+    session.modified = True
+
+    all_tags = [tag for group in INTEREST_TAG_GROUPS.values() for tag in group]
+
+    skip_url = url_for('booking.booking_preferences_skip', experience_id=experience_id)
+
+    return render_template('booking/preferences.html',
+                           experience=experience,
+                           timeslot=timeslot,
+                           personas=PERSONAS,
+                           interest_tags=all_tags,
+                           pickup_city=pickup_city,
+                           tour_date=str(timeslot.slot_date),
+                           skip_url=skip_url)
+
+
+@booking_bp.route('/booking/<experience_id>/preferences', methods=['POST'])
+def booking_preferences_post(experience_id):
+    """Save preferences to session; proceed to cart."""
+    personas_raw  = request.form.get('personas', '')
+    tags_raw      = request.form.get('interest_tags', '')
+    notes         = request.form.get('preference_notes', '')[:500].strip()
+
+    personas      = [p.strip() for p in personas_raw.split(',') if p.strip()][:3]
+    interest_tags = [t.strip() for t in tags_raw.split(',')     if t.strip()]
+
+    from app.preferences.engine import PERSONAS as _PERSONAS
+    labels = ', '.join([
+        next((p['label'] for p in _PERSONAS if p['id'] == pid), pid)
+        for pid in personas
+    ])
+
+    session['booking_preferences'] = {
+        'personas':      personas,
+        'persona_labels': labels,
+        'interest_tags': interest_tags,
+        'notes':         notes,
+    }
+    session.modified = True
+
+    # Now add the pending cart item to cart
+    experience_id_sess = session.pop('pref_experience_id', experience_id)
+    timeslot_id        = session.pop('pref_timeslot_id',   '')
+    pickup_city        = session.pop('pref_pickup_city',   '')
+    session.pop('pref_tour_date', None)
+
+    pending = session.pop('pending_cart_item', None)
+    if pending and timeslot_id:
+        _do_cart_add(
+            experience_id=pending.get('experience_id', experience_id_sess),
+            timeslot_id=pending.get('timeslot_id', timeslot_id),
+            guest_count=pending.get('guest_count', 1),
+            pickup_city=pending.get('pickup_city', pickup_city),
+            pickup_address=pending.get('pickup_address', ''),
+        )
+        session.modified = True
+
+    flash('Your preferences have been saved.', 'success')
+    return redirect(url_for('cart.view'))
+
+
+@booking_bp.route('/booking/<experience_id>/preferences/skip', methods=['GET'])
+def booking_preferences_skip(experience_id):
+    """Skip the preference step — add pending cart item without preferences."""
+    # Clean up pref session keys
+    session.pop('pref_experience_id', None)
+    timeslot_id   = session.pop('pref_timeslot_id',   '')
+    pickup_city   = session.pop('pref_pickup_city',   '')
+    session.pop('pref_tour_date', None)
+    # Mark as skipped (no personas stored — was_skipped=True will be set at confirm_booking)
+    session.pop('booking_preferences', None)
+
+    pending = session.pop('pending_cart_item', None)
+    if pending and timeslot_id:
+        _do_cart_add(
+            experience_id=pending.get('experience_id', experience_id),
+            timeslot_id=pending.get('timeslot_id', timeslot_id),
+            guest_count=pending.get('guest_count', 1),
+            pickup_city=pending.get('pickup_city', pickup_city),
+            pickup_address=pending.get('pickup_address', ''),
+        )
+        session.modified = True
+
+    return redirect(url_for('cart.view'))
+
+
+@booking_bp.route('/booking/recommendations', methods=['POST'])
+def booking_recommendations():
+    """AJAX: generate AI recommendations for selected personas."""
+    data          = request.get_json(silent=True) or {}
+    experience_id = data.get('experience_id', '')
+    tour_date     = data.get('tour_date', '')
+    pickup_city   = data.get('pickup_city', '')
+    personas      = data.get('personas', [])[:3]
+    interest_tags = data.get('interest_tags', [])
+
+    experience = Experience.query.filter_by(
+        experience_id=experience_id, is_active=True).first()
+    if not experience:
+        return jsonify({'error': 'Experience not found'}), 404
+
+    from app.preferences.recommendations import generate_recommendations
+    result = generate_recommendations(
+        experience    = experience,
+        pickup_city   = pickup_city,
+        tour_date     = tour_date,
+        personas      = personas,
+        interest_tags = interest_tags,
+    )
+    return jsonify(result)
+
+
+def _do_cart_add(experience_id, timeslot_id, guest_count, pickup_city, pickup_address):
+    """Shared helper: add an item to the cart (DB or session)."""
+    exp  = Experience.query.filter_by(experience_id=experience_id, is_active=True).first()
+    slot = Timeslot.query.filter_by(timeslot_id=timeslot_id).first()
+    if not exp or not slot:
+        return
+    if current_user.is_authenticated:
+        item = CartItem(
+            cart_item_id=generate_pk(),
+            user_id=current_user.user_id,
+            experience_id=experience_id,
+            timeslot_id=timeslot_id,
+            guest_count=guest_count,
+            pickup_city=pickup_city,
+            pickup_address=pickup_address,
+        )
+        db.session.add(item)
+        db.session.commit()
+    else:
+        from flask import session as _session
+        cart = _session.get('cart', [])
+        cart.append({
+            'cart_item_id':   generate_pk(),
+            'experience_id':  experience_id,
+            'timeslot_id':    timeslot_id,
+            'guest_count':    guest_count,
+            'pickup_city':    pickup_city,
+            'pickup_address': pickup_address,
+        })
+        _session['cart'] = cart
+        _session.modified = True
 
 
 @booking_bp.route('/book/confirm', methods=['POST'])
@@ -108,6 +274,37 @@ def confirm_booking():
     slot.booked_count += guest_count
     if slot.booked_count >= slot.capacity:
         slot.is_available = False
+
+    # Save booking preferences from session
+    try:
+        from app.preferences.engine import PERSONAS as _PERSONAS
+        prefs_data = session.pop('booking_preferences', None)
+        if prefs_data is not None:
+            personas_list = prefs_data.get('personas', [])
+            labels = prefs_data.get('persona_labels') or ', '.join([
+                next((p['label'] for p in _PERSONAS if p['id'] == pid), pid)
+                for pid in personas_list
+            ])
+            bp_obj = BookingPreferences(
+                preference_id    = generate_pk(),
+                booking_id       = booking.booking_id,
+                personas         = ','.join(personas_list) or None,
+                persona_labels   = labels or None,
+                interest_tags    = ','.join(prefs_data.get('interest_tags', [])) or None,
+                preference_notes = prefs_data.get('notes') or None,
+                was_skipped      = not bool(personas_list),
+            )
+            db.session.add(bp_obj)
+        else:
+            # No preferences in session → skipped
+            bp_obj = BookingPreferences(
+                preference_id = generate_pk(),
+                booking_id    = booking.booking_id,
+                was_skipped   = True,
+            )
+            db.session.add(bp_obj)
+    except Exception:
+        pass
 
     # Clear cart after booking
     if current_user.is_authenticated:

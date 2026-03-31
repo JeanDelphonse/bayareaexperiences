@@ -26,29 +26,15 @@ def add():
     exp  = Experience.query.filter_by(experience_id=experience_id, is_active=True).first_or_404()
     slot = Timeslot.query.filter_by(timeslot_id=timeslot_id).first_or_404()
 
-    if current_user.is_authenticated:
-        item = CartItem(
-            cart_item_id=generate_pk(),
-            user_id=current_user.user_id,
-            experience_id=experience_id,
-            timeslot_id=timeslot_id,
-            guest_count=guest_count,
-            pickup_city=pickup_city,
-            pickup_address=pickup_address,
-        )
-        db.session.add(item)
-        db.session.commit()
-    else:
-        cart = _get_session_cart()
-        cart.append({
-            'cart_item_id':  generate_pk(),
-            'experience_id': experience_id,
-            'timeslot_id':   timeslot_id,
-            'guest_count':   guest_count,
-            'pickup_city':   pickup_city,
-            'pickup_address': pickup_address,
-        })
-        _save_session_cart(cart)
+    # Save pending item to session; redirect to preferences step
+    session['pending_cart_item'] = {
+        'experience_id':  experience_id,
+        'timeslot_id':    timeslot_id,
+        'guest_count':    guest_count,
+        'pickup_city':    pickup_city,
+        'pickup_address': pickup_address,
+    }
+    session.modified = True
 
     try:
         from app.tracking.events import track_event
@@ -56,8 +42,12 @@ def add():
                     target_id=experience_id, target_type='experience')
     except Exception:
         pass
-    flash(f'"{exp.name}" added to cart.', 'success')
-    return redirect(url_for('cart.view'))
+
+    return redirect(url_for('booking.booking_preferences',
+                             experience_id=experience_id,
+                             timeslot_id=timeslot_id,
+                             pickup_city=pickup_city or '',
+                             tour_date=str(slot.slot_date)))
 
 
 @cart_bp.route('/cart')

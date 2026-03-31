@@ -877,3 +877,21 @@ class TrackingLocation(db.Model):
     __table_args__ = (
         db.Index('ix_tracking_locations_booking_id', 'booking_id'),
     )
+
+
+# ── Booking Preferences ───────────────────────────────────────────────────────
+
+class BookingPreferences(db.Model):
+    __tablename__ = 'booking_preferences'
+
+    preference_id    = db.Column(db.String(9),   primary_key=True, default=generate_pk)
+    booking_id       = db.Column(db.String(9),   db.ForeignKey('bookings.booking_id'), unique=True, nullable=False)
+    personas         = db.Column(db.String(300), nullable=True)   # comma-separated IDs
+    persona_labels   = db.Column(db.String(500), nullable=True)   # human-readable labels
+    interest_tags    = db.Column(db.Text,        nullable=True)   # comma-separated tags
+    preference_notes = db.Column(db.Text,        nullable=True)   # free-text (max 500 chars)
+    recommendations_shown = db.Column(db.Text,   nullable=True)   # JSON of Claude preview shown
+    was_skipped      = db.Column(db.Boolean,     nullable=False, default=False)
+    created_at       = db.Column(db.DateTime,    nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    booking = db.relationship('Booking', backref=db.backref('preferences', uselist=False))

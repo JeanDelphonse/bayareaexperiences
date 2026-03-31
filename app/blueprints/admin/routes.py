@@ -362,6 +362,56 @@ def booking_detail(booking_id):
     )
 
 
+# ── Admin: Booking Preferences ───────────────────────────────────────────────
+
+@admin_bp.route('/bookings/<booking_id>/preferences', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def booking_preferences(booking_id):
+    from app.models import BookingPreferences
+    from app.preferences.engine import PERSONAS, INTEREST_TAG_GROUPS
+    booking = Booking.query.get_or_404(booking_id)
+    prefs = BookingPreferences.query.filter_by(booking_id=booking_id).first()
+
+    if request.method == 'POST':
+        personas_raw  = request.form.get('personas', '')
+        tags_raw      = request.form.get('interest_tags', '')
+        notes         = request.form.get('preference_notes', '')[:500].strip()
+        personas_list = [p.strip() for p in personas_raw.split(',') if p.strip()][:3]
+        interest_tags_list = [t.strip() for t in tags_raw.split(',') if t.strip()]
+        labels = ', '.join([
+            next((p['label'] for p in PERSONAS if p['id'] == pid), pid)
+            for pid in personas_list
+        ])
+        if prefs:
+            prefs.personas         = ','.join(personas_list) or None
+            prefs.persona_labels   = labels or None
+            prefs.interest_tags    = ','.join(interest_tags_list) or None
+            prefs.preference_notes = notes or None
+            prefs.was_skipped      = not bool(personas_list)
+        else:
+            prefs = BookingPreferences(
+                preference_id    = generate_pk(),
+                booking_id       = booking_id,
+                personas         = ','.join(personas_list) or None,
+                persona_labels   = labels or None,
+                interest_tags    = ','.join(interest_tags_list) or None,
+                preference_notes = notes or None,
+                was_skipped      = not bool(personas_list),
+            )
+            db.session.add(prefs)
+        db.session.commit()
+        flash('Preferences updated.', 'success')
+        return redirect(url_for('admin.booking_detail', booking_id=booking_id))
+
+    all_tags = [tag for group in INTEREST_TAG_GROUPS.values() for tag in group]
+    return render_template('admin/booking_preferences.html',
+                           booking=booking,
+                           prefs=prefs,
+                           personas=PERSONAS,
+                           interest_tags=all_tags)
+
+
 # ── Admin: Assign BAE Staff to Booking (AJAX) ─────────────────────────────────
 
 @admin_bp.route('/bookings/<booking_id>/assign-staff', methods=['POST'])

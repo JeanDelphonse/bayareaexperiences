@@ -19,10 +19,16 @@ RULES:
 - The itinerary MUST start from the customer's pickup city.
 - The core stops must match exactly what is promised in the experience
   title and description. Do not invent new stops.
-- You may mention 1-2 local events happening near the pickup city on the
-  tour date as context/color - label them as optional 'Local Buzz' items.
-  Do NOT route the tour through the event venue unless it is directly on
-  the tour route. These are conversation pieces, not mandatory stops.
+- TRAVELER PERSONA INSTRUCTIONS: The customer has selected one or more traveler
+  personas. Apply the persona lens at every stop — adjust the description,
+  highlight, and conversational framing to match who this customer is.
+  A History Buff wants dates and stories. A Foodie wants what to eat nearby.
+  A Photographer wants the best angle and lighting. Honor these preferences
+  throughout the entire itinerary, not just in one section.
+- If the customer selected a Celebration persona, acknowledge the occasion
+  in the greeting and call out at least one scenic celebration moment.
+- Local events should be surfaced based on the customer's interests —
+  a Foodie will care more about a farmers market than a sports game.
 - Drive times must be reasonable and realistic for Bay Area traffic.
   San Jose to SF = 45-60 min depending on time of day.
   Santa Cruz to SF = 70-90 min.
@@ -49,15 +55,24 @@ BOOKING DETAILS:
   Pickup Address: {pickup_address}
   Tour Date: {tour_date}
   Timeslot Start: {start_time}
-  Special Requests: {special_requests}
+
+TRAVELER PROFILE:
+  Personas: {personas}
+  Persona Instructions:
+{persona_instructions}
+  Additional Interests: {interest_tags}
+  Customer Notes: {preference_notes}
 
 LOCAL EVENTS near {pickup_city} on {tour_date}:
 {local_events_text}
+(Surface events that align with the customer's personas and interests.
+ A Foodie cares about food events; a History Buff about cultural events.)
 
 Return a JSON object with this exact structure:
 {{
   "itinerary_title": "string",
-  "greeting": "2-3 sentence warm welcome personalized to the customer",
+  "greeting": "2-3 sentence warm welcome personalized to the customer and their personas",
+  "persona_note": "1 sentence explaining how you tailored this itinerary for their specific interests",
   "pickup": {{
     "address": "string",
     "time": "HH:MM AM/PM",
@@ -67,6 +82,7 @@ Return a JSON object with this exact structure:
     {{
       "title": "event name",
       "description": "1-2 sentences about this event and why it is interesting context for the day",
+      "why_relevant": "1 sentence — why this matches their interests",
       "venue": "venue name",
       "url": "event URL if available"
     }}
@@ -77,9 +93,9 @@ Return a JSON object with this exact structure:
       "name": "stop name",
       "arrival_time": "HH:MM AM/PM",
       "duration_minutes": 45,
-      "description": "what the customer will see/do here",
-      "highlight": "the single most memorable thing about this stop",
-      "historical_context": "a fun historical fact or story about this stop",
+      "description": "stop description — written through the persona lens",
+      "highlight": "the most compelling thing for THIS type of traveler",
+      "persona_tip": "a specific tip for their persona (best photo angle, must-try food nearby, etc.)",
       "drive_from_prev": "e.g. 25-min drive from San Jose along 101"
     }}
   ],
@@ -88,7 +104,7 @@ Return a JSON object with this exact structure:
     "drop_off": "same address as pickup unless otherwise noted"
   }},
   "inclusions": ["list", "of", "what", "is", "included"],
-  "staff_notes": "1-2 sentence note specifically for the guide about pickup logistics or anything unusual about this booking",
+  "staff_notes": "1-2 sentence note for guide: key persona context and preference-specific logistics",
   "generated_at": "ISO timestamp"
 }}
 """
@@ -101,12 +117,30 @@ def generate_itinerary(booking) -> dict:
     Never raises - returns a fallback dict on any failure.
     """
     try:
+        from app.models import BookingPreferences
+        from app.preferences.engine import PERSONAS, get_persona_instructions
+
         experience  = booking.experience
         timeslot    = booking.timeslot
         tour_date   = str(timeslot.slot_date)
         start_time  = timeslot.start_time.strftime('%I:%M %p') if timeslot.start_time else '9:00 AM'
         pickup_city = booking.pickup_city or 'San Francisco'
         state_code  = CITY_STATE.get(pickup_city, 'CA')
+
+        # Fetch booking preferences (if any)
+        prefs = BookingPreferences.query.filter_by(booking_id=booking.booking_id).first()
+        personas         = []
+        interest_tags    = []
+        preference_notes = 'None'
+        persona_display  = 'None selected'
+
+        if prefs and not prefs.was_skipped:
+            personas      = [p.strip() for p in (prefs.personas or '').split(',') if p.strip()]
+            interest_tags = [t.strip() for t in (prefs.interest_tags or '').split(',') if t.strip()]
+            preference_notes = prefs.preference_notes or 'None'
+            persona_display  = prefs.persona_labels or persona_display
+
+        persona_instructions = get_persona_instructions(personas)
 
         local_events = get_local_events(
             city=pickup_city,
@@ -139,7 +173,10 @@ def generate_itinerary(booking) -> dict:
             pickup_address=booking.pickup_address or f'{pickup_city}, CA',
             tour_date=tour_date,
             start_time=start_time,
-            special_requests=booking.special_requests or 'None',
+            personas=persona_display,
+            persona_instructions=persona_instructions,
+            interest_tags=', '.join(interest_tags) or 'None',
+            preference_notes=preference_notes,
             local_events_text=local_events_text,
         )
 

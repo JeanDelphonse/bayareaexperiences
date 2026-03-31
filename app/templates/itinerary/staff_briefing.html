@@ -63,6 +63,31 @@
 
 <div class="brief-body">
 
+  {# ── Traveler Profile ─────────────────────────────────────────────── #}
+  {% if booking.preferences and not booking.preferences.was_skipped %}
+  <div style="background:#FDF6EC;border-left:4px solid #C9952A;
+       border-radius:0 8px 8px 0;padding:14px 16px;margin-bottom:16px;">
+    <div style="font-size:10px;font-weight:500;letter-spacing:.06em;
+         color:#8B6419;margin-bottom:8px;">TRAVELER PROFILE</div>
+    {% if booking.preferences.persona_labels %}
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+      {% for label in booking.preferences.persona_labels.split(',') %}
+      <span style="background:#1A3557;color:#F5C97A;font-size:11px;font-weight:500;
+             padding:3px 10px;border-radius:9999px;">{{ label.strip() }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if booking.preferences.interest_tags %}
+    <div style="font-size:12px;color:#8B6419;margin-bottom:6px;">
+      <strong>Interests:</strong> {{ booking.preferences.interest_tags }}</div>
+    {% endif %}
+    {% if booking.preferences.preference_notes %}
+    <div style="font-size:13px;color:#1C1C1E;margin-top:4px;">
+      {{ booking.preferences.preference_notes }}</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
   {# ── GPS Tracking Widget ────────────────────────────────────────────── #}
   {% if booking.tracking_enabled and in_tracking_window %}
   <div style="margin-bottom:16px;">
@@ -142,6 +167,14 @@
   </div>
   {% endif %}
 
+  {# Persona note from itinerary #}
+  {% if itinerary.persona_note %}
+  <div class="brief-flag">
+    <strong>Personalization Note</strong>
+    {{ itinerary.persona_note }}
+  </div>
+  {% endif %}
+
   {# Special requests flag #}
   {% if booking.special_requests %}
   <div class="brief-flag">
@@ -179,6 +212,11 @@
       <div class="brief-stop-meta">{{ stop.duration_minutes }} min</div>
       {% if stop.drive_from_prev %}
       <div class="brief-stop-drive">{{ stop.drive_from_prev }}</div>
+      {% endif %}
+      {% if stop.persona_tip %}
+      <div style="font-size:0.8rem;color:#C9952A;margin-top:4px;font-style:italic;">
+        &#9670; {{ stop.persona_tip }}
+      </div>
       {% endif %}
     </div>
     {% endfor %}

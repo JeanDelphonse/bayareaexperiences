@@ -1,0 +1,107 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Edit Preferences — Booking {{ booking.booking_id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('admin.booking_detail', booking_id=booking.booking_id) }}"
+     class="btn btn-outline-secondary me-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h1 class="fw-bold mb-0">Edit Preferences
+    <span class="font-monospace text-muted fs-5 ms-2">{{ booking.booking_id }}</span>
+  </h1>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+
+        <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          {# Persona selection #}
+          <h6 class="fw-bold mb-3">Traveler Personas (select up to 3)</h6>
+          <div class="bae-persona-grid mb-4" id="personaGrid">
+            {% for persona in personas %}
+            {% set already_selected = prefs and prefs.personas and persona.id in prefs.personas.split(',') %}
+            <div class="bae-persona-card {% if already_selected %}selected{% endif %}"
+                 data-id="{{ persona.id }}" onclick="togglePersona(this)">
+              <div class="bae-persona-icon">{{ persona.emoji }}</div>
+              <div class="bae-persona-name">{{ persona.label }}</div>
+              <div class="bae-persona-desc">{{ persona.description }}</div>
+              <div class="bae-persona-check">&#10003;</div>
+            </div>
+            {% endfor %}
+          </div>
+          <input type="hidden" name="personas" id="personasInput"
+                 value="{{ prefs.personas if prefs and prefs.personas else '' }}">
+          <div id="personaLimitMsg"
+               style="display:none;color:#B03A2E;font-size:12px;margin-bottom:8px;">
+            Maximum 3 personas.
+          </div>
+
+          {# Interest tags #}
+          <h6 class="fw-bold mb-2 mt-3">Interest Tags</h6>
+          <div class="bae-tag-row mb-4" id="tagRow">
+            {% for tag in interest_tags %}
+            {% set tag_selected = prefs and prefs.interest_tags and tag in prefs.interest_tags.split(',') %}
+            <button type="button" class="bae-tag-chip {% if tag_selected %}selected{% endif %}"
+                    data-tag="{{ tag }}" onclick="toggleTag(this)">{{ tag }}</button>
+            {% endfor %}
+          </div>
+          <input type="hidden" name="interest_tags" id="tagsInput"
+                 value="{{ prefs.interest_tags if prefs and prefs.interest_tags else '' }}">
+
+          {# Notes #}
+          <h6 class="fw-bold mb-2">Customer Notes</h6>
+          <textarea name="preference_notes" rows="4" class="form-control mb-4"
+                    placeholder="Additional notes from the customer..."
+                    maxlength="500">{{ prefs.preference_notes if prefs and prefs.preference_notes else '' }}</textarea>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-warning px-4">Save Preferences</button>
+            <a href="{{ url_for('admin.booking_detail', booking_id=booking.booking_id) }}"
+               class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MAX_PERSONAS = 3;
+let selectedPersonas = (document.getElementById('personasInput').value || '').split(',').filter(Boolean);
+let selectedTags     = (document.getElementById('tagsInput').value || '').split(',').filter(Boolean);
+
+function togglePersona(card) {
+  const id = card.dataset.id;
+  if (card.classList.contains('selected')) {
+    card.classList.remove('selected');
+    selectedPersonas = selectedPersonas.filter(p => p !== id);
+  } else {
+    if (selectedPersonas.length >= MAX_PERSONAS) {
+      document.getElementById('personaLimitMsg').style.display = 'block';
+      return;
+    }
+    card.classList.add('selected');
+    selectedPersonas.push(id);
+    document.getElementById('personaLimitMsg').style.display = 'none';
+  }
+  document.getElementById('personasInput').value = selectedPersonas.join(',');
+}
+
+function toggleTag(chip) {
+  chip.classList.toggle('selected');
+  const tag = chip.dataset.tag;
+  if (chip.classList.contains('selected')) {
+    selectedTags.push(tag);
+  } else {
+    selectedTags = selectedTags.filter(t => t !== tag);
+  }
+  document.getElementById('tagsInput').value = selectedTags.join(',');
+}
+</script>
+{% endblock %}

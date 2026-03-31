@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+{% block title %}Personalize Your Experience — Bay Area Experiences{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+
+      {# Step header #}
+      <div class="text-center mb-4">
+        <div style="font-size:11px;font-weight:500;letter-spacing:.08em;color:#5A6A7A;margin-bottom:8px;">STEP 3 OF 5</div>
+        <h1 style="color:#1A3557;font-size:26px;font-weight:500;margin-bottom:8px;">Tell us about yourself</h1>
+        <p style="color:#5A6A7A;font-size:15px;">
+          Select up to 3 that describe you as a traveler.
+          Your guide will personalize the day around your interests.
+        </p>
+      </div>
+
+      {# Booking summary strip #}
+      <div class="d-flex align-items-center gap-3 mb-4 px-3 py-2"
+           style="background:#EFF4F9;border-radius:10px;font-size:13px;color:#1A3557;">
+        <span><strong>{{ experience.name }}</strong></span>
+        <span class="text-muted">·</span>
+        <span>{{ timeslot.slot_date.strftime('%b %-d, %Y') }}</span>
+        <span class="text-muted">·</span>
+        <span>{{ pickup_city }}</span>
+      </div>
+
+      <form method="POST" id="prefForm" action="{{ url_for('booking.booking_preferences_post', experience_id=experience.experience_id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {# ── Persona cards ─────────────────────────────────────── #}
+        <div class="bae-persona-grid" id="personaGrid">
+          {% for persona in personas %}
+          <div class="bae-persona-card" data-id="{{ persona.id }}"
+               onclick="togglePersona(this)">
+            <div class="bae-persona-icon">{{ persona.emoji }}</div>
+            <div class="bae-persona-name">{{ persona.label }}</div>
+            <div class="bae-persona-desc">{{ persona.description }}</div>
+            <div class="bae-persona-check">&#10003;</div>
+          </div>
+          {% endfor %}
+        </div>
+        <input type="hidden" name="personas" id="personasInput" value="">
+        <div id="personaLimitMsg"
+             style="display:none;color:#B03A2E;font-size:12px;margin-top:6px;text-align:center;">
+          Maximum 3 personas selected.
+        </div>
+
+        {# ── Interest tags ─────────────────────────────────────── #}
+        <div class="mt-4">
+          <div style="font-size:13px;font-weight:500;color:#5A6A7A;letter-spacing:.04em;margin-bottom:12px;">
+            Any specific interests? (optional)</div>
+          <div class="bae-tag-row" id="tagRow">
+            {% for tag in interest_tags %}
+            <button type="button" class="bae-tag-chip"
+                    data-tag="{{ tag }}"
+                    onclick="toggleTag(this)">{{ tag }}</button>
+            {% endfor %}
+          </div>
+          <input type="hidden" name="interest_tags" id="tagsInput" value="">
+        </div>
+
+        {# ── AI Recommendations panel (loads after persona selection) ── #}
+        <div id="recoPanel" style="display:none;margin-top:32px;">
+          <div style="background:#1A3557;border-radius:14px;padding:24px;">
+            <div style="font-size:10px;font-weight:500;letter-spacing:.08em;color:#F5C97A;margin-bottom:8px;">BASED ON YOUR INTERESTS</div>
+            <div id="recoHeadline"
+                 style="font-size:18px;font-weight:500;color:#fff;margin-bottom:16px;"></div>
+            <div id="recoList"></div>
+            <div id="recoLoading" style="color:rgba(255,255,255,0.55);font-size:14px;">
+              Generating your personalized preview...</div>
+          </div>
+        </div>
+
+        {# ── Free-text notes ───────────────────────────────────── #}
+        <div class="mt-4">
+          <label style="font-size:14px;font-weight:500;color:#1C1C1E;display:block;margin-bottom:6px;">
+            Anything else we should know? (optional)
+          </label>
+          <textarea name="preference_notes" rows="3" class="form-control"
+                    placeholder="Celebrating a birthday? Mobility considerations? A must-see spot you've always wanted to visit?"
+                    maxlength="500"
+                    style="border-color:#D0D8E0;border-radius:10px;font-size:14px;resize:none;"></textarea>
+          <div style="font-size:11px;color:#5A6A7A;text-align:right;margin-top:3px;" id="notesCount">0 / 500</div>
+        </div>
+
+        {# ── CTA ──────────────────────────────────────────────── #}
+        <div class="mt-4">
+          <button type="submit"
+                  style="background:#C9952A;color:#fff;border:none;width:100%;padding:14px;
+                         border-radius:9999px;font-size:16px;font-weight:500;cursor:pointer;">
+            Continue to Details &amp; Payment &rarr;
+          </button>
+          <div class="text-center mt-3">
+            <a href="{{ skip_url }}"
+               style="font-size:13px;color:#5A6A7A;text-decoration:none;">
+              Skip this step</a>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+const MAX_PERSONAS = 3;
+let selectedPersonas = [];
+let selectedTags     = [];
+let recoDebounce     = null;
+
+function getCsrfToken() {
+  const m = document.cookie.match(/csrf_token=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : (document.querySelector('meta[name="csrf-token"]')?.content || '');
+}
+
+function togglePersona(card) {
+  const id = card.dataset.id;
+  if (card.classList.contains('selected')) {
+    card.classList.remove('selected');
+    selectedPersonas = selectedPersonas.filter(p => p !== id);
+  } else {
+    if (selectedPersonas.length >= MAX_PERSONAS) {
+      document.getElementById('personaLimitMsg').style.display = 'block';
+      return;
+    }
+    card.classList.add('selected');
+    selectedPersonas.push(id);
+    document.getElementById('personaLimitMsg').style.display = 'none';
+  }
+  document.getElementById('personasInput').value = selectedPersonas.join(',');
+  triggerRecommendations();
+}
+
+function toggleTag(chip) {
+  chip.classList.toggle('selected');
+  const tag = chip.dataset.tag;
+  if (chip.classList.contains('selected')) {
+    selectedTags.push(tag);
+  } else {
+    selectedTags = selectedTags.filter(t => t !== tag);
+  }
+  document.getElementById('tagsInput').value = selectedTags.join(',');
+  triggerRecommendations();
+}
+
+function triggerRecommendations() {
+  if (selectedPersonas.length === 0) {
+    document.getElementById('recoPanel').style.display = 'none';
+    return;
+  }
+  clearTimeout(recoDebounce);
+  recoDebounce = setTimeout(fetchRecommendations, 800);
+}
+
+async function fetchRecommendations() {
+  const panel    = document.getElementById('recoPanel');
+  const loading  = document.getElementById('recoLoading');
+  const headline = document.getElementById('recoHeadline');
+  const list     = document.getElementById('recoList');
+
+  panel.style.display   = 'block';
+  loading.style.display = 'block';
+  headline.textContent  = '';
+  list.innerHTML        = '';
+
+  try {
+    const resp = await fetch('/booking/recommendations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken':  getCsrfToken(),
+      },
+      body: JSON.stringify({
+        experience_id: '{{ experience.experience_id }}',
+        timeslot_id:   '{{ timeslot.timeslot_id }}',
+        pickup_city:   '{{ pickup_city }}',
+        tour_date:     '{{ tour_date }}',
+        personas:      selectedPersonas,
+        interest_tags: selectedTags,
+      }),
+    });
+
+    loading.style.display = 'none';
+
+    if (!resp.ok) return;
+
+    const data = await resp.json();
+
+    if (data.headline) {
+      headline.textContent = data.headline;
+    }
+    if (data.recommendations && data.recommendations.length) {
+      list.innerHTML = data.recommendations.map(r =>
+        `<div style="display:flex;gap:10px;margin-bottom:12px;">
+           <span style="color:#F5C97A;flex-shrink:0;margin-top:2px;">&#9670;</span>
+           <span style="font-size:14px;color:rgba(255,255,255,0.85);line-height:1.6;">${r.text}</span>
+         </div>`
+      ).join('');
+    }
+  } catch (e) {
+    loading.style.display = 'none';
+  }
+}
+
+document.querySelector('[name=preference_notes]').addEventListener('input', function() {
+  document.getElementById('notesCount').textContent = this.value.length + ' / 500';
+});
+</script>
+{% endblock %}
