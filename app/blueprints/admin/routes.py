@@ -832,8 +832,9 @@ def admin_end_session(session_id):
     gps_session.ended_at        = datetime.now(timezone.utc)
     gps_session.auto_end_reason = 'admin_terminated'
     db.session.commit()
-    socketio.emit('tracking_ended', {},
-                  room=f'tracking_{session_id}', namespace='/tracking')
+    if socketio is not None:
+        socketio.emit('tracking_ended', {},
+                      room=f'tracking_{session_id}', namespace='/tracking')
     return jsonify({'ok': True})
 
 

@@ -65,9 +65,10 @@ def auto_terminate_sessions():
                 token.is_active = False
 
             try:
-                socketio.emit('tracking_ended', {},
-                              room=f'tracking_{session.session_id}',
-                              namespace='/tracking')
+                if socketio is not None:
+                    socketio.emit('tracking_ended', {},
+                                  room=f'tracking_{session.session_id}',
+                                  namespace='/tracking')
             except Exception:
                 pass
 
