@@ -54,7 +54,13 @@
     {% if booking.preferences and not booking.preferences.was_skipped %}
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
-        <span>Traveler Preferences</span>
+        <span>Traveler Preferences
+          {% if booking.preferences.preference_source == 'user_profile' %}
+          <span class="badge bg-info text-dark ms-2" style="font-size:10px;font-weight:500;">From saved profile</span>
+          {% else %}
+          <span class="badge bg-light text-secondary border ms-2" style="font-size:10px;font-weight:500;">Set during booking</span>
+          {% endif %}
+        </span>
         <a href="{{ url_for('admin.booking_preferences', booking_id=booking.booking_id) }}"
            class="btn btn-outline-secondary btn-sm">Edit</a>
       </div>

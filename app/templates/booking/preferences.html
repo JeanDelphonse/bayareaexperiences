@@ -16,6 +16,19 @@
         </p>
       </div>
 
+      {# Pre-fill banner #}
+      {% if has_saved_profile %}
+      <div style="background:#EFF4F9;border-radius:10px;padding:12px 16px;
+           margin-bottom:20px;display:flex;align-items:center;gap:10px;
+           font-size:13px;color:#1A3557;">
+        <span>&#10003;</span>
+        <span>Pre-filled from your saved preferences.
+          <a href="{{ url_for('account.profile') }}?tab=preferences"
+             style="color:#C9952A;text-decoration:none;">Edit profile &rarr;</a>
+        </span>
+      </div>
+      {% endif %}
+
       {# Booking summary strip #}
       <div class="d-flex align-items-center gap-3 mb-4 px-3 py-2"
            style="background:#EFF4F9;border-radius:10px;font-size:13px;color:#1A3557;">
@@ -32,7 +45,8 @@
         {# ── Persona cards ─────────────────────────────────────── #}
         <div class="bae-persona-grid" id="personaGrid">
           {% for persona in personas %}
-          <div class="bae-persona-card" data-id="{{ persona.id }}"
+          <div class="bae-persona-card{% if persona.id in prefilled_personas %} selected{% endif %}"
+               data-id="{{ persona.id }}"
                onclick="togglePersona(this)">
             <div class="bae-persona-icon">{{ persona.emoji }}</div>
             <div class="bae-persona-name">{{ persona.label }}</div>
@@ -41,7 +55,7 @@
           </div>
           {% endfor %}
         </div>
-        <input type="hidden" name="personas" id="personasInput" value="">
+        <input type="hidden" name="personas" id="personasInput" value="{{ prefilled_personas | join(',') }}">
         <div id="personaLimitMsg"
              style="display:none;color:#B03A2E;font-size:12px;margin-top:6px;text-align:center;">
           Maximum 3 personas selected.
@@ -53,12 +67,12 @@
             Any specific interests? (optional)</div>
           <div class="bae-tag-row" id="tagRow">
             {% for tag in interest_tags %}
-            <button type="button" class="bae-tag-chip"
+            <button type="button" class="bae-tag-chip{% if tag in prefilled_tags %} selected{% endif %}"
                     data-tag="{{ tag }}"
                     onclick="toggleTag(this)">{{ tag }}</button>
             {% endfor %}
           </div>
-          <input type="hidden" name="interest_tags" id="tagsInput" value="">
+          <input type="hidden" name="interest_tags" id="tagsInput" value="{{ prefilled_tags | join(',') }}">
         </div>
 
         {# ── AI Recommendations panel (loads after persona selection) ── #}
@@ -81,9 +95,33 @@
           <textarea name="preference_notes" rows="3" class="form-control"
                     placeholder="Celebrating a birthday? Mobility considerations? A must-see spot you've always wanted to visit?"
                     maxlength="500"
-                    style="border-color:#D0D8E0;border-radius:10px;font-size:14px;resize:none;"></textarea>
-          <div style="font-size:11px;color:#5A6A7A;text-align:right;margin-top:3px;" id="notesCount">0 / 500</div>
+                    style="border-color:#D0D8E0;border-radius:10px;font-size:14px;resize:none;">{{ prefilled_notes }}</textarea>
+          <div style="font-size:11px;color:#5A6A7A;text-align:right;margin-top:3px;" id="notesCount">{{ prefilled_notes | length }} / 500</div>
         </div>
+
+        {# ── Save as defaults ──────────────────────────────────── #}
+        {% if current_user.is_authenticated %}
+        <div class="mt-3"
+             style="padding:12px 14px;background:#F2F5F8;border-radius:10px;">
+          <label style="display:flex;align-items:flex-start;gap:10px;
+                 font-size:13px;color:#1C1C1E;cursor:pointer;">
+            <input type="checkbox" name="save_as_defaults"
+                   style="margin-top:2px;accent-color:#C9952A;">
+            <span>
+              {% if has_saved_profile %}
+                Update my saved travel preferences with these selections
+              {% else %}
+                Save these as my default travel preferences for future bookings
+              {% endif %}
+            </span>
+          </label>
+          {% if has_saved_profile and user_pref_profile %}
+          <div style="font-size:11px;color:#5A6A7A;margin-top:4px;margin-left:24px;">
+            Current defaults: {{ user_pref_profile.persona_labels or 'None set' }}
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
 
         {# ── CTA ──────────────────────────────────────────────── #}
         <div class="mt-4">
@@ -106,9 +144,20 @@
 
 <script>
 const MAX_PERSONAS = 3;
-let selectedPersonas = [];
-let selectedTags     = [];
+let selectedPersonas = {{ prefilled_personas | tojson }};
+let selectedTags     = {{ prefilled_tags | tojson }};
 let recoDebounce     = null;
+
+// Sync hidden inputs on load (arrays already pre-filled from Flask)
+document.getElementById('personasInput').value = selectedPersonas.join(',');
+document.getElementById('tagsInput').value = selectedTags.join(',');
+
+{% if prefilled_personas %}
+// Auto-trigger recommendations if pre-filled
+window.addEventListener('DOMContentLoaded', () => {
+  recoDebounce = setTimeout(fetchRecommendations, 1200);
+});
+{% endif %}
 
 function getCsrfToken() {
   return document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -119,6 +168,7 @@ function togglePersona(card) {
   if (card.classList.contains('selected')) {
     card.classList.remove('selected');
     selectedPersonas = selectedPersonas.filter(p => p !== id);
+    document.getElementById('personaLimitMsg').style.display = 'none';
   } else {
     if (selectedPersonas.length >= MAX_PERSONAS) {
       document.getElementById('personaLimitMsg').style.display = 'block';

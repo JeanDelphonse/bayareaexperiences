@@ -1,0 +1,218 @@
+{# Travel Preferences tab — persistent user preference profile #}
+
+<form method="POST"
+      action="{{ url_for('account.save_preference_profile') }}"
+      id="prefProfileForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  {# Saved status banner #}
+  {% if user_pref_profile %}
+  <div style="background:#EFF4F9;border-radius:10px;padding:14px 16px;
+       margin-bottom:20px;display:flex;align-items:center;
+       justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <div>
+      <div style="font-size:13px;font-weight:500;color:#1A3557;">
+        &#10003; Preferences saved</div>
+      <div style="font-size:12px;color:#5A6A7A;">
+        Last updated {{ user_pref_profile.updated_at.strftime('%B %d, %Y') }}
+        &bull; Pre-fills every future booking automatically
+      </div>
+    </div>
+    <form method="POST" action="{{ url_for('account.clear_preference_profile') }}"
+          style="margin:0;" onsubmit="return confirm('Clear all saved preferences? This cannot be undone.');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit"
+              style="background:none;border:1px solid #D0D8E0;color:#5A6A7A;
+                     font-size:12px;padding:5px 12px;border-radius:8px;cursor:pointer;">
+        Clear All</button>
+    </form>
+  </div>
+  {% else %}
+  <div style="background:#FDF6EC;border-radius:10px;padding:14px 16px;
+       margin-bottom:20px;font-size:13px;color:#8B6419;">
+    Set your traveler preferences once and they'll automatically pre-fill
+    every future booking — no re-selecting needed.
+  </div>
+  {% endif %}
+
+  {# ── Persona grid ────────────────────────────────────────────── #}
+  <div style="margin-bottom:8px;">
+    <div style="font-size:14px;font-weight:500;color:#1C1C1E;margin-bottom:4px;">
+      I travel as a...</div>
+    <div style="font-size:12px;color:#5A6A7A;margin-bottom:14px;">
+      Select up to 3 that describe you. These will pre-fill your next booking.</div>
+  </div>
+  <div class="bae-persona-grid" id="personaGrid">
+    {% for persona in personas %}
+    <div class="bae-persona-card{% if persona.id in saved_persona_ids %} selected{% endif %}"
+         data-id="{{ persona.id }}"
+         onclick="togglePersona(this)">
+      <div class="bae-persona-icon">{{ persona.emoji }}</div>
+      <div class="bae-persona-name">{{ persona.label }}</div>
+      <div class="bae-persona-desc">{{ persona.description }}</div>
+      <div class="bae-persona-check">&#10003;</div>
+    </div>
+    {% endfor %}
+  </div>
+  <input type="hidden" name="personas" id="personasInput"
+         value="{{ user_pref_profile.personas if user_pref_profile else '' }}">
+  <div id="personaLimitMsg"
+       style="display:none;color:#B03A2E;font-size:12px;margin-top:6px;">
+    Maximum 3 personas selected.
+  </div>
+
+  {# ── Interest tags ────────────────────────────────────────────── #}
+  <div class="mt-4">
+    <div style="font-size:14px;font-weight:500;color:#1C1C1E;margin-bottom:4px;">
+      My interests</div>
+    <div class="bae-tag-row mt-2" id="tagRow">
+      {% for tag in all_tags %}
+      <button type="button" class="bae-tag-chip{% if tag in saved_tags %} selected{% endif %}"
+              data-tag="{{ tag }}"
+              onclick="toggleTag(this)">{{ tag }}</button>
+      {% endfor %}
+    </div>
+    <input type="hidden" name="interest_tags" id="tagsInput"
+           value="{{ user_pref_profile.interest_tags if user_pref_profile else '' }}">
+  </div>
+
+  {# ── Default pickup city ─────────────────────────────────────── #}
+  <div class="mt-4">
+    <label style="font-size:14px;font-weight:500;color:#1C1C1E;
+           display:block;margin-bottom:6px;">
+      Default pickup city (optional)
+    </label>
+    <select name="default_pickup_city" class="form-select"
+            style="border-color:#D0D8E0;border-radius:10px;font-size:14px;max-width:320px;">
+      <option value="">— No preference —</option>
+      {% for city in pickup_cities %}
+      <option value="{{ city }}"
+        {% if user_pref_profile and user_pref_profile.default_pickup_city == city %}selected{% endif %}>
+        {{ city }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  {# ── Accessibility needs ─────────────────────────────────────── #}
+  <div class="mt-4">
+    <label style="font-size:14px;font-weight:500;color:#1C1C1E;
+           display:block;margin-bottom:4px;">
+      Accessibility needs (optional)
+    </label>
+    <div style="font-size:12px;color:#5A6A7A;margin-bottom:6px;">
+      Added to your bookings automatically so your guide is always prepared.
+    </div>
+    <textarea name="accessibility_needs" rows="2" class="form-control"
+              maxlength="500"
+              placeholder="e.g., Limited walking distance, wheelchair accessible stops preferred"
+              style="border-color:#D0D8E0;border-radius:10px;font-size:14px;resize:none;">{{ user_pref_profile.accessibility_needs if user_pref_profile else '' }}</textarea>
+  </div>
+
+  {# ── Dietary preferences ─────────────────────────────────────── #}
+  <div class="mt-4">
+    <label style="font-size:14px;font-weight:500;color:#1C1C1E;
+           display:block;margin-bottom:4px;">
+      Dietary preferences or food allergies (optional)
+    </label>
+    <div style="font-size:12px;color:#5A6A7A;margin-bottom:6px;">
+      Shared with your guide so snack selections and food recommendations can be adjusted.
+    </div>
+    <input type="text" name="dietary_preferences" class="form-control"
+           maxlength="300"
+           placeholder="e.g., Vegetarian, Gluten-Free, Nut allergy"
+           value="{{ user_pref_profile.dietary_preferences if user_pref_profile else '' }}"
+           style="border-color:#D0D8E0;border-radius:10px;font-size:14px;max-width:420px;">
+  </div>
+
+  {# ── Default preference notes ─────────────────────────────────── #}
+  <div class="mt-4">
+    <label style="font-size:14px;font-weight:500;color:#1C1C1E;
+           display:block;margin-bottom:4px;">
+      Anything we should always know (optional)
+    </label>
+    <textarea name="preference_notes" rows="3" class="form-control"
+              maxlength="500" id="prefNotes"
+              placeholder="Things that make every experience better for you..."
+              style="border-color:#D0D8E0;border-radius:10px;font-size:14px;resize:none;">{{ user_pref_profile.preference_notes if user_pref_profile else '' }}</textarea>
+    <div style="font-size:11px;color:#5A6A7A;text-align:right;margin-top:3px;"
+         id="notesCount">
+      {{ (user_pref_profile.preference_notes | length) if user_pref_profile else 0 }} / 500</div>
+  </div>
+
+  {# ── Marketing opt-in ────────────────────────────────────────── #}
+  <div class="mt-4 mb-4"
+       style="padding:14px;background:#F2F5F8;border-radius:10px;">
+    <label style="display:flex;align-items:flex-start;gap:10px;
+           font-size:13px;color:#1C1C1E;cursor:pointer;">
+      <input type="checkbox" name="marketing_opt_in"
+             {% if not user_pref_profile or user_pref_profile.marketing_opt_in %}checked{% endif %}
+             style="margin-top:2px;accent-color:#C9952A;">
+      <span>
+        Send me updates about new experiences, VIP offers, and seasonal promotions
+        from Bay Area Experiences.
+      </span>
+    </label>
+  </div>
+
+  {# ── Save button ─────────────────────────────────────────────── #}
+  <button type="submit"
+          style="background:#C9952A;color:#fff;border:none;
+                 padding:12px 32px;border-radius:9999px;
+                 font-size:15px;font-weight:500;cursor:pointer;">
+    Save My Preferences
+  </button>
+  {% if user_pref_profile %}
+  <span style="font-size:12px;color:#5A6A7A;margin-left:12px;">
+    Changes apply to all future bookings.</span>
+  {% endif %}
+
+</form>
+
+<script>
+const MAX_PERSONAS = 3;
+let selectedPersonas = [
+  {% if user_pref_profile and user_pref_profile.personas %}
+    ...('{{ user_pref_profile.personas }}'.split(',').filter(Boolean))
+  {% endif %}
+];
+let selectedTags = [
+  {% if user_pref_profile and user_pref_profile.interest_tags %}
+    ...('{{ user_pref_profile.interest_tags }}'.split(',').filter(Boolean))
+  {% endif %}
+];
+
+// Sync hidden inputs on page load
+document.getElementById('personasInput').value = selectedPersonas.join(',');
+document.getElementById('tagsInput').value = selectedTags.join(',');
+
+function togglePersona(card) {
+  const id = card.dataset.id;
+  if (card.classList.contains('selected')) {
+    card.classList.remove('selected');
+    selectedPersonas = selectedPersonas.filter(p => p !== id);
+    document.getElementById('personaLimitMsg').style.display = 'none';
+  } else {
+    if (selectedPersonas.length >= MAX_PERSONAS) {
+      document.getElementById('personaLimitMsg').style.display = 'block';
+      return;
+    }
+    card.classList.add('selected');
+    selectedPersonas.push(id);
+    document.getElementById('personaLimitMsg').style.display = 'none';
+  }
+  document.getElementById('personasInput').value = selectedPersonas.join(',');
+}
+
+function toggleTag(chip) {
+  chip.classList.toggle('selected');
+  const tag = chip.dataset.tag;
+  if (chip.classList.contains('selected')) { selectedTags.push(tag); }
+  else { selectedTags = selectedTags.filter(t => t !== tag); }
+  document.getElementById('tagsInput').value = selectedTags.join(',');
+}
+
+document.getElementById('prefNotes').addEventListener('input', function() {
+  document.getElementById('notesCount').textContent = this.value.length + ' / 500';
+});
+</script>

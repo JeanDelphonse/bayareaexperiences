@@ -77,6 +77,28 @@ def booking_preferences(experience_id):
 
     skip_url = url_for('booking.booking_preferences_skip', experience_id=experience_id)
 
+    # Pre-fill from saved profile for logged-in users
+    from flask_login import current_user
+    prefilled_personas = []
+    prefilled_tags     = []
+    prefilled_notes    = ''
+    has_saved_profile  = False
+    user_pref_profile  = None
+
+    if current_user.is_authenticated:
+        from app.models import UserPreferenceProfile
+        user_pref_profile = UserPreferenceProfile.query.filter_by(
+            user_id=current_user.user_id).first()
+        if user_pref_profile:
+            has_saved_profile = True
+            if user_pref_profile.personas:
+                prefilled_personas = [p.strip() for p in
+                                      user_pref_profile.personas.split(',') if p.strip()]
+            if user_pref_profile.interest_tags:
+                prefilled_tags = [t.strip() for t in
+                                  user_pref_profile.interest_tags.split(',') if t.strip()]
+            prefilled_notes = user_pref_profile.preference_notes or ''
+
     return render_template('booking/preferences.html',
                            experience=experience,
                            timeslot=timeslot,
@@ -84,15 +106,21 @@ def booking_preferences(experience_id):
                            interest_tags=all_tags,
                            pickup_city=pickup_city,
                            tour_date=str(timeslot.slot_date),
-                           skip_url=skip_url)
+                           skip_url=skip_url,
+                           prefilled_personas=prefilled_personas,
+                           prefilled_tags=prefilled_tags,
+                           prefilled_notes=prefilled_notes,
+                           has_saved_profile=has_saved_profile,
+                           user_pref_profile=user_pref_profile)
 
 
 @booking_bp.route('/booking/<experience_id>/preferences', methods=['POST'])
 def booking_preferences_post(experience_id):
     """Save preferences to session; proceed to cart."""
-    personas_raw  = request.form.get('personas', '')
-    tags_raw      = request.form.get('interest_tags', '')
-    notes         = request.form.get('preference_notes', '')[:500].strip()
+    personas_raw     = request.form.get('personas', '')
+    tags_raw         = request.form.get('interest_tags', '')
+    notes            = request.form.get('preference_notes', '')[:500].strip()
+    save_as_defaults = request.form.get('save_as_defaults') == 'on'
 
     personas      = [p.strip() for p in personas_raw.split(',') if p.strip()][:3]
     interest_tags = [t.strip() for t in tags_raw.split(',')     if t.strip()]
@@ -104,10 +132,11 @@ def booking_preferences_post(experience_id):
     ])
 
     session['booking_preferences'] = {
-        'personas':      personas,
-        'persona_labels': labels,
-        'interest_tags': interest_tags,
-        'notes':         notes,
+        'personas':         personas,
+        'persona_labels':   labels,
+        'interest_tags':    interest_tags,
+        'notes':            notes,
+        'save_as_defaults': save_as_defaults,
     }
     session.modified = True
 
@@ -278,9 +307,13 @@ def confirm_booking():
     # Save booking preferences from session
     try:
         from app.preferences.engine import PERSONAS as _PERSONAS
+        from app.blueprints.account.routes import _upsert_preference_profile
         prefs_data = session.pop('booking_preferences', None)
         if prefs_data is not None:
-            personas_list = prefs_data.get('personas', [])
+            personas_list    = prefs_data.get('personas', [])
+            interest_tags_list = prefs_data.get('interest_tags', [])
+            notes_val        = prefs_data.get('notes') or None
+            save_as_defaults = prefs_data.get('save_as_defaults', False)
             labels = prefs_data.get('persona_labels') or ', '.join([
                 next((p['label'] for p in _PERSONAS if p['id'] == pid), pid)
                 for pid in personas_list
@@ -290,17 +323,28 @@ def confirm_booking():
                 booking_id       = booking.booking_id,
                 personas         = ','.join(personas_list) or None,
                 persona_labels   = labels or None,
-                interest_tags    = ','.join(prefs_data.get('interest_tags', [])) or None,
-                preference_notes = prefs_data.get('notes') or None,
+                interest_tags    = ','.join(interest_tags_list) or None,
+                preference_notes = notes_val,
                 was_skipped      = not bool(personas_list),
+                preference_source = 'booking_step',
             )
             db.session.add(bp_obj)
+            # Optionally save as user's default profile
+            if save_as_defaults and booking.user_id:
+                _upsert_preference_profile(
+                    user_id       = booking.user_id,
+                    personas      = ','.join(personas_list),
+                    interest_tags = ','.join(interest_tags_list),
+                    notes         = prefs_data.get('notes', ''),
+                    source        = 'booking_flow',
+                )
         else:
             # No preferences in session → skipped
             bp_obj = BookingPreferences(
-                preference_id = generate_pk(),
-                booking_id    = booking.booking_id,
-                was_skipped   = True,
+                preference_id     = generate_pk(),
+                booking_id        = booking.booking_id,
+                was_skipped       = True,
+                preference_source = 'booking_step',
             )
             db.session.add(bp_obj)
     except Exception:

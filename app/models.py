@@ -884,14 +884,43 @@ class TrackingLocation(db.Model):
 class BookingPreferences(db.Model):
     __tablename__ = 'booking_preferences'
 
-    preference_id    = db.Column(db.String(9),   primary_key=True, default=generate_pk)
-    booking_id       = db.Column(db.String(9),   db.ForeignKey('bookings.booking_id'), unique=True, nullable=False)
-    personas         = db.Column(db.String(300), nullable=True)   # comma-separated IDs
-    persona_labels   = db.Column(db.String(500), nullable=True)   # human-readable labels
-    interest_tags    = db.Column(db.Text,        nullable=True)   # comma-separated tags
-    preference_notes = db.Column(db.Text,        nullable=True)   # free-text (max 500 chars)
-    recommendations_shown = db.Column(db.Text,   nullable=True)   # JSON of Claude preview shown
-    was_skipped      = db.Column(db.Boolean,     nullable=False, default=False)
-    created_at       = db.Column(db.DateTime,    nullable=False, default=lambda: datetime.now(timezone.utc))
+    preference_id      = db.Column(db.String(9),   primary_key=True, default=generate_pk)
+    booking_id         = db.Column(db.String(9),   db.ForeignKey('bookings.booking_id'), unique=True, nullable=False)
+    personas           = db.Column(db.String(300), nullable=True)
+    persona_labels     = db.Column(db.String(500), nullable=True)
+    interest_tags      = db.Column(db.Text,        nullable=True)
+    preference_notes   = db.Column(db.Text,        nullable=True)
+    recommendations_shown = db.Column(db.Text,     nullable=True)
+    was_skipped        = db.Column(db.Boolean,     nullable=False, default=False)
+    preference_source  = db.Column(
+        db.Enum('user_profile', 'booking_step', 'admin'),
+        nullable=False, default='booking_step')
+    created_at         = db.Column(db.DateTime,    nullable=False, default=lambda: datetime.now(timezone.utc))
 
     booking = db.relationship('Booking', backref=db.backref('preferences', uselist=False))
+
+
+# ── User Preference Profile ───────────────────────────────────────────────────
+
+class UserPreferenceProfile(db.Model):
+    __tablename__ = 'user_preference_profiles'
+
+    profile_id           = db.Column(db.String(9),    primary_key=True, default=generate_pk)
+    user_id              = db.Column(db.String(9),    db.ForeignKey('users.user_id'), unique=True, nullable=False)
+    personas             = db.Column(db.String(300),  nullable=True)
+    persona_labels       = db.Column(db.String(500),  nullable=True)
+    interest_tags        = db.Column(db.Text,         nullable=True)
+    preference_notes     = db.Column(db.Text,         nullable=True)
+    default_pickup_city  = db.Column(db.String(100),  nullable=True)
+    preferred_languages  = db.Column(db.String(200),  nullable=True)
+    accessibility_needs  = db.Column(db.String(500),  nullable=True)
+    dietary_preferences  = db.Column(db.String(300),  nullable=True)
+    marketing_opt_in     = db.Column(db.Boolean,      nullable=False, default=True)
+    preference_source    = db.Column(
+        db.Enum('profile_page', 'booking_flow', 'admin'),
+        nullable=False, default='profile_page')
+    created_at           = db.Column(db.DateTime,     nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at           = db.Column(db.DateTime,     nullable=False, default=lambda: datetime.now(timezone.utc),
+                                     onupdate=lambda: datetime.now(timezone.utc))
+
+    user = db.relationship('User', backref=db.backref('preference_profile', uselist=False))

@@ -5,6 +5,33 @@
 <div class="container py-5">
   <h1 class="fw-bold mb-4">My Bookings</h1>
 
+  {# Preference summary card #}
+  {% if user_pref_profile and user_pref_profile.personas %}
+  <div class="card border-0 mb-4"
+       style="border:0.5px solid #D0D8E0!important;border-radius:12px;padding:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:500;letter-spacing:.06em;color:#5A6A7A;">
+        MY TRAVEL PREFERENCES</div>
+      <a href="{{ url_for('account.profile') }}?tab=preferences"
+         style="font-size:12px;color:#1A3557;text-decoration:none;">
+        Edit &rarr;</a>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+      {% for label in user_pref_profile.persona_labels.split(',') %}
+      <span style="background:#FDF6EC;color:#8B6419;font-size:12px;font-weight:500;
+             padding:3px 10px;border-radius:9999px;">
+        {{ label.strip() }}
+      </span>
+      {% endfor %}
+    </div>
+    {% if user_pref_profile.interest_tags %}
+    <div style="font-size:12px;color:#5A6A7A;margin-top:8px;">
+      {{ user_pref_profile.interest_tags.replace(',', ' · ') }}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
   {% if not bookings %}
     <div class="text-center py-5">
       <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>

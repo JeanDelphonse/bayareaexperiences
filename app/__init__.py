@@ -114,4 +114,20 @@ def create_app(config_name='default'):
         except Exception:
             pass
 
+        # UserPrefs migration: add preference_source to booking_preferences if not yet present
+        try:
+            from sqlalchemy import text, inspect as sa_inspect
+            _insp = sa_inspect(db.engine)
+            if 'booking_preferences' in _insp.get_table_names():
+                _bp_cols = [c['name'] for c in _insp.get_columns('booking_preferences')]
+                if 'preference_source' not in _bp_cols:
+                    with db.engine.connect() as _conn:
+                        _conn.execute(text(
+                            "ALTER TABLE booking_preferences ADD COLUMN preference_source "
+                            "VARCHAR(20) NOT NULL DEFAULT 'booking_step'"
+                        ))
+                        _conn.commit()
+        except Exception:
+            pass
+
     return app
