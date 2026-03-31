@@ -111,8 +111,7 @@ let selectedTags     = [];
 let recoDebounce     = null;
 
 function getCsrfToken() {
-  const m = document.cookie.match(/csrf_token=([^;]+)/);
-  return m ? decodeURIComponent(m[1]) : (document.querySelector('meta[name="csrf-token"]')?.content || '');
+  return document.querySelector('meta[name="csrf-token"]')?.content || '';
 }
 
 function togglePersona(card) {
