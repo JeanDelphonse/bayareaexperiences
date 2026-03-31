@@ -48,6 +48,15 @@
         <i class="bi bi-clock-history me-2"></i>Review Queue</a></li>
       <li><a href="{{ url_for('admin.admin_marketplace_revenue') }}" class="nav-link px-2 py-1 {% if 'revenue' in request.endpoint %}active{% endif %}">
         <i class="bi bi-cash-coin me-2"></i>Revenue</a></li>
+      <li class="mt-2"><span class="px-2 py-1 text-secondary small">LOYALTY</span></li>
+      <li><a href="{{ url_for('admin.loyalty_overview') }}" class="nav-link px-2 py-1 {% if 'loyalty' in request.endpoint %}active{% endif %}">
+        <i class="bi bi-star-fill me-2"></i>Overview</a></li>
+      <li><a href="{{ url_for('admin.loyalty_vip_list') }}" class="nav-link px-2 py-1 {% if request.endpoint == 'admin.loyalty_vip_list' %}active{% endif %}">
+        <i class="bi bi-trophy me-2"></i>VIP Customers</a></li>
+      <li><a href="{{ url_for('admin.loyalty_referrals') }}" class="nav-link px-2 py-1 {% if request.endpoint == 'admin.loyalty_referrals' %}active{% endif %}">
+        <i class="bi bi-people me-2"></i>Referrals</a></li>
+      <li><a href="{{ url_for('admin.loyalty_discounts') }}" class="nav-link px-2 py-1 {% if request.endpoint == 'admin.loyalty_discounts' %}active{% endif %}">
+        <i class="bi bi-tag me-2"></i>Discount Codes</a></li>
       <li class="mt-2"><span class="px-2 py-1 text-secondary small">REVIEWS</span></li>
       <li><a href="{{ url_for('admin.reviews') }}" class="nav-link px-2 py-1 {% if 'review' in request.endpoint and 'marketplace' not in request.endpoint %}active{% endif %}">
         <i class="bi bi-star me-2"></i>All Reviews</a></li>

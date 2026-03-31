@@ -13,6 +13,40 @@
          class="btn btn-warning px-4 py-2 fw-semibold" style="border-radius:9999px;">
         Back to {{ experience.name }}
       </a>
+
+      {# VIP claim prompt for 5-star guest reviewers #}
+      {% if star_rating == 5 and not current_user.is_authenticated %}
+      <div style="background:#FDF6EC;border:1.5px solid #C9952A;border-radius:14px;
+           padding:24px;margin-top:32px;text-align:center;">
+        <div style="font-size:32px;margin-bottom:8px;">&#11088;</div>
+        <h3 style="color:#1A3557;font-size:18px;font-weight:500;margin-bottom:8px;">
+          You've earned VIP status!</h3>
+        <p style="color:#5A6A7A;font-size:14px;margin-bottom:16px;">
+          Create a free Bay Area Experiences account to claim your
+          <strong>15% VIP discount</strong> on your next booking,
+          plus a personal referral link to share with friends.
+        </p>
+        <a href="{{ url_for('auth.register', next='/loyalty/claim', prefill_email=booking.guest_email if booking else '') }}"
+           style="background:#C9952A;color:#fff;padding:12px 28px;border-radius:9999px;
+                  text-decoration:none;font-size:14px;font-weight:500;display:inline-block;">
+          Create My Account &rarr;
+        </a>
+        <p style="font-size:11px;color:#5A6A7A;margin-top:10px;">
+          Already have an account?
+          <a href="{{ url_for('auth.login', next='/loyalty/claim') }}"
+             style="color:#1A3557;">Sign in instead</a>
+        </p>
+      </div>
+      {% elif star_rating == 5 and current_user.is_authenticated and current_user.is_vip %}
+      <div style="background:#EFF4F9;border-radius:14px;padding:20px;margin-top:32px;text-align:center;">
+        <div style="font-size:28px;margin-bottom:6px;">&#11088;</div>
+        <p style="color:#1A3557;font-size:14px;font-weight:500;margin:0;">
+          VIP status confirmed — your 15% discount applies automatically at checkout.
+          <a href="{{ url_for('loyalty.vip_dashboard') }}" style="color:#C9952A;">View VIP Dashboard &rarr;</a>
+        </p>
+      </div>
+      {% endif %}
+
     </div>
   </div>
 </div>

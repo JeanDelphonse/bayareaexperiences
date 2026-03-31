@@ -27,6 +27,8 @@ class User(db.Model, UserMixin):
     notes          = db.Column(db.Text)
     is_admin       = db.Column(db.Boolean, default=False)
     email_verified = db.Column(db.Boolean, default=False)
+    is_vip                       = db.Column(db.Boolean,      nullable=False, default=False)
+    total_referral_credit_balance = db.Column(db.Numeric(8, 2), nullable=False, default=0.00)
     created_at     = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at     = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc),
                                onupdate=lambda: datetime.now(timezone.utc))
@@ -191,6 +193,11 @@ class Booking(db.Model):
     provider_amount     = db.Column(db.Numeric(10, 2), nullable=False, default=0.00)
 
     tracking_enabled = db.Column(db.Boolean, nullable=False, default=True)
+
+    # Loyalty / discount columns
+    discount_code_id        = db.Column(db.String(9),    db.ForeignKey('discount_codes.code_id'), nullable=True)
+    discount_amount         = db.Column(db.Numeric(10, 2), nullable=False, default=0.00)
+    referral_credit_applied = db.Column(db.Numeric(8, 2),  nullable=False, default=0.00)
 
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc),
@@ -924,3 +931,125 @@ class UserPreferenceProfile(db.Model):
                                      onupdate=lambda: datetime.now(timezone.utc))
 
     user = db.relationship('User', backref=db.backref('preference_profile', uselist=False))
+
+
+# ── Loyalty — Discount Codes ──────────────────────────────────────────────────
+
+class DiscountCode(db.Model):
+    __tablename__ = 'discount_codes'
+
+    code_id          = db.Column(db.String(9),    primary_key=True, default=generate_pk)
+    code             = db.Column(db.String(40),   unique=True, nullable=False)
+    code_type        = db.Column(db.Enum('vip_loyalty', 'referral_friend', 'promo', 'admin'),
+                                 nullable=False)
+    discount_percent = db.Column(db.Numeric(5, 2),  nullable=True)
+    discount_fixed   = db.Column(db.Numeric(8, 2),  nullable=True)
+    for_user_id      = db.Column(db.String(9),    db.ForeignKey('users.user_id'), nullable=True)
+    is_single_use    = db.Column(db.Boolean,      nullable=False, default=True)
+    max_uses         = db.Column(db.Integer,      nullable=False, default=1)
+    times_used       = db.Column(db.Integer,      nullable=False, default=0)
+    is_active        = db.Column(db.Boolean,      nullable=False, default=True)
+    expires_at       = db.Column(db.DateTime,     nullable=True)
+    applies_to_experience_id = db.Column(db.String(9), db.ForeignKey('experiences.experience_id'), nullable=True)
+    minimum_booking_amount   = db.Column(db.Numeric(8, 2), nullable=True)
+    notes            = db.Column(db.Text,         nullable=True)
+    created_at       = db.Column(db.DateTime,     nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    for_user = db.relationship('User', backref='discount_codes', foreign_keys=[for_user_id])
+
+
+# ── Loyalty — VIP Customers ───────────────────────────────────────────────────
+
+class VipCustomer(db.Model):
+    __tablename__ = 'vip_customers'
+
+    vip_id                   = db.Column(db.String(9),    primary_key=True, default=generate_pk)
+    user_id                  = db.Column(db.String(9),    db.ForeignKey('users.user_id'), nullable=False)
+    qualifying_review_id     = db.Column(db.String(9),    db.ForeignKey('experience_reviews.review_id'),
+                                         unique=True, nullable=False)
+    qualifying_booking_id    = db.Column(db.String(9),    db.ForeignKey('bookings.booking_id'), nullable=False)
+    status                   = db.Column(db.Enum('active', 'discount_used', 'expired'),
+                                         nullable=False, default='active')
+    discount_code_id         = db.Column(db.String(9),    db.ForeignKey('discount_codes.code_id'), nullable=False)
+    referral_code            = db.Column(db.String(30),   unique=True, nullable=False)
+    referral_credit_balance  = db.Column(db.Numeric(8, 2), nullable=False, default=0.00)
+    referral_credit_used     = db.Column(db.Numeric(8, 2), nullable=False, default=0.00)
+    total_referrals_sent     = db.Column(db.Integer,      nullable=False, default=0)
+    total_referrals_completed = db.Column(db.Integer,     nullable=False, default=0)
+    vip_earned_at            = db.Column(db.DateTime,     nullable=False)
+    discount_expires_at      = db.Column(db.DateTime,     nullable=False)
+    notification_sent_at     = db.Column(db.DateTime,     nullable=True)
+
+    user             = db.relationship('User',         backref='vip_records', foreign_keys=[user_id])
+    discount_code    = db.relationship('DiscountCode', backref='vip_record',  foreign_keys=[discount_code_id])
+    qualifying_booking = db.relationship('Booking',   backref='vip_grants',  foreign_keys=[qualifying_booking_id])
+
+    __table_args__ = (
+        db.Index('ix_vip_customers_user_id', 'user_id'),
+        db.Index('ix_vip_customers_referral_code', 'referral_code'),
+    )
+
+
+# ── Loyalty — Discount Redemptions ───────────────────────────────────────────
+
+class DiscountRedemption(db.Model):
+    __tablename__ = 'discount_redemptions'
+
+    redemption_id   = db.Column(db.String(9),    primary_key=True, default=generate_pk)
+    code_id         = db.Column(db.String(9),    db.ForeignKey('discount_codes.code_id'), nullable=False)
+    booking_id      = db.Column(db.String(9),    db.ForeignKey('bookings.booking_id'), unique=True, nullable=False)
+    user_id         = db.Column(db.String(9),    db.ForeignKey('users.user_id'), nullable=True)
+    original_amount = db.Column(db.Numeric(10, 2), nullable=False)
+    discount_amount = db.Column(db.Numeric(10, 2), nullable=False)
+    final_amount    = db.Column(db.Numeric(10, 2), nullable=False)
+    redeemed_at     = db.Column(db.DateTime,     nullable=False)
+
+    code    = db.relationship('DiscountCode', backref='redemptions')
+    booking = db.relationship('Booking',      backref='discount_redemption', uselist=False)
+
+
+# ── Loyalty — Referral Links (click tracking) ─────────────────────────────────
+
+class ReferralLink(db.Model):
+    __tablename__ = 'referral_links'
+
+    link_id            = db.Column(db.String(9),   primary_key=True, default=generate_pk)
+    referral_code      = db.Column(db.String(30),  nullable=False)
+    referrer_user_id   = db.Column(db.String(9),   db.ForeignKey('users.user_id'), nullable=False)
+    visitor_session_id = db.Column(db.String(64),  nullable=True)
+    visitor_ip_hash    = db.Column(db.String(64),  nullable=True)
+    utm_medium         = db.Column(db.String(100), nullable=True)
+    clicked_at         = db.Column(db.DateTime,    nullable=False)
+    converted          = db.Column(db.Boolean,     nullable=False, default=False)
+    converted_booking_id = db.Column(db.String(9), db.ForeignKey('bookings.booking_id'), nullable=True)
+    converted_at       = db.Column(db.DateTime,    nullable=True)
+
+    referrer = db.relationship('User', backref='referral_links_sent', foreign_keys=[referrer_user_id])
+
+    __table_args__ = (
+        db.Index('ix_referral_links_referral_code', 'referral_code'),
+    )
+
+
+# ── Loyalty — Referral Redemptions ($25 credit events) ───────────────────────
+
+class ReferralRedemption(db.Model):
+    __tablename__ = 'referral_redemptions'
+
+    redemption_id          = db.Column(db.String(9),    primary_key=True, default=generate_pk)
+    referrer_user_id       = db.Column(db.String(9),    db.ForeignKey('users.user_id'), nullable=False)
+    referred_user_id       = db.Column(db.String(9),    db.ForeignKey('users.user_id'), nullable=True)
+    referred_email         = db.Column(db.String(150),  nullable=False)
+    referral_code          = db.Column(db.String(30),   nullable=False)
+    booking_id             = db.Column(db.String(9),    db.ForeignKey('bookings.booking_id'),
+                                       unique=True, nullable=False)
+    referrer_credit_earned = db.Column(db.Numeric(8, 2), nullable=False, default=25.00)
+    friend_discount_code_id = db.Column(db.String(9),   db.ForeignKey('discount_codes.code_id'), nullable=True)
+    friend_discount_amount  = db.Column(db.Numeric(8, 2), nullable=False, default=0.00)
+    referrer_credited_at   = db.Column(db.DateTime,     nullable=False)
+    referrer_notified_at   = db.Column(db.DateTime,     nullable=True)
+
+    referrer = db.relationship('User', backref='referral_credits_earned', foreign_keys=[referrer_user_id])
+    referred = db.relationship('User', backref='referred_by',             foreign_keys=[referred_user_id])
+    booking  = db.relationship('Booking', backref='referral_redemption',  uselist=False,
+                                foreign_keys=[booking_id])

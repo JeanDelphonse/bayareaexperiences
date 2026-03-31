@@ -1,0 +1,72 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Referral Redemptions{% endblock %}
+
+{% block content %}
+<h1 class="fw-bold mb-4">Referral Redemptions</h1>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Date</th>
+          <th>Referrer</th>
+          <th>Referred Email</th>
+          <th>Referral Code</th>
+          <th>Booking</th>
+          <th>Credit Earned</th>
+          <th>Friend Discount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in redemptions.items %}
+        <tr>
+          <td class="text-muted small">{{ r.referrer_credited_at.strftime('%b %-d, %Y') }}</td>
+          <td>{{ r.referrer.full_name }}</td>
+          <td class="text-muted small">
+            {{ r.referred_email[:2] }}***@{{ r.referred_email.split('@')[1] if '@' in r.referred_email else '—' }}
+          </td>
+          <td><code class="small">{{ r.referral_code }}</code></td>
+          <td>
+            {% if r.booking %}
+            <a href="{{ url_for('admin.booking_detail', booking_id=r.booking_id) }}"
+               class="small text-decoration-none">
+              {{ r.booking_id }}
+              <span class="text-muted">— {{ r.booking.experience.name }}</span>
+            </a>
+            {% else %}
+            <span class="text-muted small">{{ r.booking_id }}</span>
+            {% endif %}
+          </td>
+          <td class="fw-semibold text-success">+${{ "%.2f"|format(r.referrer_credit_earned) }}</td>
+          <td class="text-muted small">
+            {% if r.friend_discount_amount %}
+              -${{ "%.2f"|format(r.friend_discount_amount) }}
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-muted text-center py-4">No referral completions yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if redemptions.pages > 1 %}
+  <div class="card-footer bg-white d-flex justify-content-center">
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% for p in redemptions.iter_pages() %}
+          {% if p %}
+            <li class="page-item {% if p == redemptions.page %}active{% endif %}">
+              <a class="page-link" href="?page={{ p }}">{{ p }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

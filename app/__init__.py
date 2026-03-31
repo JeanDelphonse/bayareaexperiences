@@ -44,6 +44,7 @@ def create_app(config_name='default'):
     from app.blueprints.reviews import reviews_bp
     from app.blueprints.itinerary import itinerary_bp
     from app.blueprints.staff import staff_bp
+    from app.blueprints.loyalty import loyalty_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
@@ -60,6 +61,7 @@ def create_app(config_name='default'):
     app.register_blueprint(reviews_bp)
     app.register_blueprint(itinerary_bp)
     app.register_blueprint(staff_bp)
+    app.register_blueprint(loyalty_bp)
 
     # Tracking middleware (analytics)
     from app.tracking.middleware import init_tracking
@@ -111,6 +113,29 @@ def create_app(config_name='default'):
                         'ALTER TABLE bookings ADD COLUMN tracking_enabled BOOLEAN NOT NULL DEFAULT 1'
                     ))
                     _conn.commit()
+        except Exception:
+            pass
+
+        # Loyalty migrations: add columns to users and bookings if not yet present
+        try:
+            from sqlalchemy import text, inspect as sa_inspect
+            _insp = sa_inspect(db.engine)
+            _ucols = [c['name'] for c in _insp.get_columns('users')]
+            with db.engine.connect() as _conn:
+                if 'is_vip' not in _ucols:
+                    _conn.execute(text('ALTER TABLE users ADD COLUMN is_vip BOOLEAN NOT NULL DEFAULT 0'))
+                if 'total_referral_credit_balance' not in _ucols:
+                    _conn.execute(text(
+                        'ALTER TABLE users ADD COLUMN total_referral_credit_balance DECIMAL(8,2) NOT NULL DEFAULT 0.00'
+                    ))
+                _bcols = [c['name'] for c in _insp.get_columns('bookings')]
+                if 'discount_code_id' not in _bcols:
+                    _conn.execute(text('ALTER TABLE bookings ADD COLUMN discount_code_id VARCHAR(9) NULL'))
+                if 'discount_amount' not in _bcols:
+                    _conn.execute(text('ALTER TABLE bookings ADD COLUMN discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00'))
+                if 'referral_credit_applied' not in _bcols:
+                    _conn.execute(text('ALTER TABLE bookings ADD COLUMN referral_credit_applied DECIMAL(8,2) NOT NULL DEFAULT 0.00'))
+                _conn.commit()
         except Exception:
             pass
 

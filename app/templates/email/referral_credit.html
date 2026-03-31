@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#F5F7FA;font-family:system-ui,-apple-system,sans-serif;">
+<div style="max-width:560px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06);">
+
+  <!-- Header -->
+  <div style="background:#1A3557;padding:28px 32px;text-align:center;">
+    <div style="color:#F5C97A;font-size:11px;font-weight:500;letter-spacing:.08em;margin-bottom:6px;">BAY AREA EXPERIENCES</div>
+    <div style="color:#fff;font-size:18px;font-weight:500;">Referral Credit Added ✓</div>
+  </div>
+
+  <!-- Body -->
+  <div style="padding:32px;">
+    <p style="color:#1A3557;font-size:16px;margin-top:0;">Hi {{ user.first_name }},</p>
+
+    <p style="color:#3D4A5A;font-size:14px;line-height:1.7;">
+      Great news — a friend you referred just completed a booking.
+      We've added <strong>${{ "%.2f"|format(credit_amount) }}</strong> in referral credit to your account.
+    </p>
+
+    <!-- Credit highlight -->
+    <div style="background:#EAF4EE;border-radius:10px;padding:16px 20px;margin:20px 0;text-align:center;">
+      <div style="font-size:32px;font-weight:500;color:#2D7A4F;">+${{ "%.2f"|format(credit_amount) }}</div>
+      <div style="font-size:13px;color:#5A6A7A;margin-top:4px;">added to your account</div>
+      <div style="font-size:14px;font-weight:500;color:#1A3557;margin-top:8px;">
+        New balance: ${{ "%.2f"|format(new_balance) }}</div>
+    </div>
+
+    <p style="color:#3D4A5A;font-size:14px;line-height:1.7;">
+      Your credit applies automatically at checkout on your next booking.
+      Keep sharing your referral link to earn more!
+    </p>
+
+    <!-- CTA -->
+    <div style="text-align:center;margin-top:24px;margin-bottom:24px;">
+      <a href="https://bayareaexperiences.com/account/vip"
+         style="background:#C9952A;color:#fff;padding:12px 28px;border-radius:9999px;
+                text-decoration:none;font-size:14px;font-weight:500;display:inline-block;">
+        View My VIP Dashboard</a>
+    </div>
+
+    <p style="color:#3D4A5A;font-size:14px;margin-bottom:0;">
+      Thank you for spreading the word,<br>
+      Jean Delphonse &amp; the Bay Area Experiences team<br>
+      <a href="tel:4088312101" style="color:#5A6A7A;">(408) 831-2101</a>
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <div style="background:#F5F7FA;padding:16px 32px;text-align:center;
+       font-size:11px;color:#8A96A2;">
+    Bay Area Experiences &middot; bayareaexperiences.com
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ vip.user.first_name }} invites you to Bay Area Experiences</title>
+  <meta property="og:title" content="{{ vip.user.first_name }} invited you — 10% off your first Bay Area tour">
+  <meta property="og:description" content="Bay Area Experiences: private guided tours of SF, wine country, coastal views &amp; more. Use {{ vip.user.first_name }}'s link for 10% off.">
+  <meta property="og:url" content="{{ referral_url }}">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+</head>
+<body style="margin:0;font-family:system-ui,sans-serif;background:#F5F7FA;">
+  <div style="max-width:500px;margin:60px auto;background:#fff;border-radius:16px;
+       padding:40px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08);">
+    <div style="font-size:48px;margin-bottom:12px;">&#11088;</div>
+    <h1 style="color:#1A3557;font-size:22px;font-weight:500;margin-bottom:8px;">
+      {{ vip.user.first_name }} invites you to Bay Area Experiences</h1>
+    <p style="color:#5A6A7A;font-size:15px;line-height:1.6;margin-bottom:24px;">
+      Get <strong>10% off</strong> your first private guided Bay Area tour
+      when you book through {{ vip.user.first_name }}'s link.
+    </p>
+    <a href="{{ referral_url }}"
+       style="background:#C9952A;color:#fff;padding:14px 32px;border-radius:9999px;
+              text-decoration:none;font-size:16px;font-weight:500;display:inline-block;">
+      Explore Experiences &rarr;
+    </a>
+    <p style="font-size:11px;color:#5A6A7A;margin-top:16px;">
+      bayareaexperiences.com &middot; (408) 831-2101</p>
+  </div>
+</body>
+</html>

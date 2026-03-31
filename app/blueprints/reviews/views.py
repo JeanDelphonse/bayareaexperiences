@@ -103,13 +103,27 @@ def _process_submission(rt, booking, experience):
         except Exception:
             pass
 
-    return redirect(url_for('reviews.thankyou', token=rt.token))
+    # Grant VIP if 5-star review published immediately
+    if status == 'published' and star_rating == 5:
+        try:
+            from app.loyalty.vip import maybe_grant_vip
+            maybe_grant_vip(review, booking)
+        except Exception:
+            pass
+
+    return redirect(url_for('reviews.thankyou',
+                             token=rt.token,
+                             star_rating=star_rating))
 
 
 @reviews_bp.route('/feedback/<token>/thankyou')
 def thankyou(token):
-    rt = ReviewToken.query.filter_by(token=token).first_or_404()
-    return render_template('reviews/thankyou.html', experience=rt.experience)
+    rt          = ReviewToken.query.filter_by(token=token).first_or_404()
+    star_rating = request.args.get('star_rating', type=int, default=0)
+    return render_template('reviews/thankyou.html',
+                           experience=rt.experience,
+                           booking=rt.booking,
+                           star_rating=star_rating)
 
 
 # ── AJAX: helpful vote ─────────────────────────────────────────────────────────

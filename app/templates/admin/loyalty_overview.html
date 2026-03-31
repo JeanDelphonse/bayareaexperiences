@@ -1,0 +1,113 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Loyalty Overview{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="fw-bold mb-0">Loyalty Overview</h1>
+  <a href="{{ url_for('admin.loyalty_export') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-download me-1"></i>Export VIPs CSV</a>
+</div>
+
+<!-- KPI row -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">Total VIPs (all time)</div>
+      <div class="display-6 fw-bold text-warning">{{ total_vip }}</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">Active VIPs</div>
+      <div class="display-6 fw-bold text-success">{{ active_vip }}</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">Discounts Redeemed</div>
+      <div class="display-6 fw-bold text-info">{{ discounts_used }}</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">Total Discount Value</div>
+      <div class="display-6 fw-bold text-danger">${{ "%.2f"|format(total_discount_value) }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">Referral Links Sent</div>
+      <div class="display-6 fw-bold">{{ total_ref_sent }}</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">Referral Completions</div>
+      <div class="display-6 fw-bold text-success">{{ total_ref_completions }}</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">Credits Issued</div>
+      <div class="display-6 fw-bold text-info">${{ "%.2f"|format(total_credits_issued) }}</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">Credits Outstanding</div>
+      <div class="display-6 fw-bold text-warning">${{ "%.2f"|format(total_credits_outstanding) }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent VIPs table -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white fw-semibold">Recent VIP Grants</div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Customer</th>
+          <th>Email</th>
+          <th>Status</th>
+          <th>Referral Code</th>
+          <th>Credit Balance</th>
+          <th>Earned</th>
+          <th>Expires</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for vip in recent_vips %}
+        <tr>
+          <td>{{ vip.user.full_name }}</td>
+          <td class="text-muted small">{{ vip.user.email }}</td>
+          <td>
+            {% if vip.status == 'active' %}
+              <span class="badge bg-success">active</span>
+            {% elif vip.status == 'discount_used' %}
+              <span class="badge bg-secondary">used</span>
+            {% else %}
+              <span class="badge bg-light text-muted">expired</span>
+            {% endif %}
+          </td>
+          <td><code class="small">{{ vip.referral_code }}</code></td>
+          <td>${{ "%.2f"|format(vip.referral_credit_balance) }}</td>
+          <td class="small text-muted">{{ vip.vip_earned_at.strftime('%b %-d, %Y') }}</td>
+          <td class="small text-muted">{{ vip.discount_expires_at.strftime('%b %-d, %Y') }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-muted text-center py-4">No VIP records yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if total_vip > 10 %}
+  <div class="card-footer bg-white">
+    <a href="{{ url_for('admin.loyalty_vip_list') }}" class="small">View all {{ total_vip }} VIPs &rarr;</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

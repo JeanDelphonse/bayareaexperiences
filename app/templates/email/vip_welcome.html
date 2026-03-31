@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#F5F7FA;font-family:system-ui,-apple-system,sans-serif;">
+<div style="max-width:560px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06);">
+
+  <!-- Header -->
+  <div style="background:#1A3557;padding:28px 32px;text-align:center;">
+    <div style="color:#F5C97A;font-size:11px;font-weight:500;letter-spacing:.08em;margin-bottom:6px;">BAY AREA EXPERIENCES</div>
+    <div style="color:#fff;font-size:18px;font-weight:500;">VIP Member</div>
+  </div>
+
+  <!-- Body -->
+  <div style="padding:32px;">
+    <p style="color:#1A3557;font-size:16px;margin-top:0;">Hi {{ user.first_name }},</p>
+
+    <p style="color:#3D4A5A;font-size:14px;line-height:1.7;">
+      Thank you for your 5-star review.
+      We're genuinely glad your experience was everything you hoped for.
+    </p>
+
+    <p style="color:#3D4A5A;font-size:14px;line-height:1.7;">
+      As a thank-you, you're now a <strong>Bay Area Experiences VIP</strong>.
+      Here's what that means:
+    </p>
+
+    <!-- VIP benefit 1 -->
+    <div style="background:#FDF6EC;border-radius:10px;padding:16px 20px;margin:20px 0;">
+      <div style="font-size:20px;margin-bottom:6px;">&#11088;</div>
+      <div style="font-size:14px;font-weight:500;color:#1A3557;">15% OFF your next booking</div>
+      <div style="font-size:13px;color:#5A6A7A;margin-top:4px;">
+        Applied automatically at checkout. No code needed.
+        Valid until {{ vip.discount_expires_at.strftime('%B %d, %Y') }}.
+      </div>
+    </div>
+
+    <!-- VIP benefit 2 -->
+    <div style="background:#EFF4F9;border-radius:10px;padding:16px 20px;margin:20px 0;">
+      <div style="font-size:20px;margin-bottom:6px;">&#128279;</div>
+      <div style="font-size:14px;font-weight:500;color:#1A3557;">Share the Bay Area with friends</div>
+      <div style="font-size:13px;color:#5A6A7A;margin-top:4px;">
+        Your personal referral link gives friends <strong>10% off</strong> their first booking
+        — and earns you <strong>$25 credit</strong> every time a friend books.
+      </div>
+    </div>
+
+    <!-- Referral link -->
+    <p style="color:#5A6A7A;font-size:13px;margin-bottom:6px;">Your referral link:</p>
+    <div style="background:#F2F5F8;border-radius:8px;padding:12px 16px;
+         font-family:monospace;font-size:13px;color:#1A3557;word-break:break-all;
+         margin-bottom:24px;">
+      {{ referral_url }}
+    </div>
+
+    <!-- CTAs -->
+    <div style="text-align:center;margin-bottom:24px;">
+      <a href="https://bayareaexperiences.com/experiences"
+         style="background:#C9952A;color:#fff;padding:12px 28px;border-radius:9999px;
+                text-decoration:none;font-size:14px;font-weight:500;display:inline-block;margin:6px;">
+        Book My Next Experience</a>
+      <a href="{{ referral_url }}"
+         style="background:#1A3557;color:#fff;padding:12px 28px;border-radius:9999px;
+                text-decoration:none;font-size:14px;font-weight:500;display:inline-block;margin:6px;">
+        Share My Link</a>
+    </div>
+
+    <p style="color:#3D4A5A;font-size:14px;line-height:1.7;">
+      We look forward to welcoming you back.
+    </p>
+    <p style="color:#3D4A5A;font-size:14px;margin-bottom:0;">
+      Jean Delphonse &amp; the Bay Area Experiences team<br>
+      <a href="tel:4088312101" style="color:#5A6A7A;">(408) 831-2101</a>
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <div style="background:#F5F7FA;padding:16px 32px;text-align:center;
+       font-size:11px;color:#8A96A2;">
+    Bay Area Experiences &middot; bayareaexperiences.com
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,94 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}VIP Customers{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="fw-bold mb-0">VIP Customers</h1>
+  <a href="{{ url_for('admin.loyalty_export') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-download me-1"></i>Export CSV</a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Customer</th>
+          <th>Email</th>
+          <th>Status</th>
+          <th>Discount Code</th>
+          <th>Referral Code</th>
+          <th>Credit Balance</th>
+          <th>Referrals</th>
+          <th>Earned</th>
+          <th>Expires</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for vip in vips.items %}
+        <tr>
+          <td class="fw-semibold">{{ vip.user.full_name }}</td>
+          <td class="text-muted small">{{ vip.user.email }}</td>
+          <td>
+            {% if vip.status == 'active' %}
+              <span class="badge bg-success">active</span>
+            {% elif vip.status == 'discount_used' %}
+              <span class="badge bg-secondary">used</span>
+            {% else %}
+              <span class="badge bg-light text-muted border">expired</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if vip.discount_code %}
+            <code class="small">{{ vip.discount_code.code }}</code>
+            {% if not vip.discount_code.is_active %}
+            <span class="text-muted small ms-1">(inactive)</span>
+            {% endif %}
+            {% endif %}
+          </td>
+          <td><code class="small">{{ vip.referral_code }}</code></td>
+          <td>${{ "%.2f"|format(vip.referral_credit_balance) }}</td>
+          <td class="text-muted small">{{ vip.total_referrals_completed }}/{{ vip.total_referrals_sent }}</td>
+          <td class="text-muted small">{{ vip.vip_earned_at.strftime('%b %-d, %Y') }}</td>
+          <td class="text-muted small">{{ vip.discount_expires_at.strftime('%b %-d, %Y') }}</td>
+          <td>
+            {% if vip.status != 'expired' %}
+            <form method="POST" action="{{ url_for('admin.loyalty_revoke_vip', user_id=vip.user_id) }}"
+                  onsubmit="return confirm('Revoke VIP status for {{ vip.user.full_name }}?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-outline-danger btn-sm">Revoke</button>
+            </form>
+            {% else %}
+            <form method="POST" action="{{ url_for('admin.loyalty_grant_vip', user_id=vip.user_id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-outline-success btn-sm">Re-grant</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10" class="text-muted text-center py-4">No VIP customers yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if vips.pages > 1 %}
+  <div class="card-footer bg-white d-flex justify-content-center">
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% for p in vips.iter_pages() %}
+          {% if p %}
+            <li class="page-item {% if p == vips.page %}active{% endif %}">
+              <a class="page-link" href="?page={{ p }}">{{ p }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

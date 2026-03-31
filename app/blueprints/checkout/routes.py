@@ -1,4 +1,5 @@
 import stripe
+from decimal import Decimal
 from flask import render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import current_user
 from app.blueprints.checkout import checkout_bp
@@ -40,16 +41,68 @@ def checkout():
         flash('Your cart is empty.', 'info')
         return redirect(url_for('cart.view'))
 
-    total = sum(i['price'] for i in cart_data)
+    subtotal = Decimal(str(sum(i['price'] for i in cart_data)))
+
+    # Loyalty: detect applicable discount (VIP or referral)
+    discount      = None
+    discount_amount = Decimal('0.00')
+    referral_info = None
+    credit_to_apply = Decimal('0.00')
+
+    try:
+        from app.loyalty.checkout import (get_applicable_discount,
+                                           calculate_discount_amount,
+                                           calculate_final_amounts)
+        from app.loyalty.referral import get_referral_discount
+
+        if current_user.is_authenticated:
+            discount = get_applicable_discount(current_user)
+
+        if not discount:
+            referral_info = get_referral_discount()
+
+        if discount:
+            discount_amount = calculate_discount_amount(subtotal, discount)
+        elif referral_info:
+            # Create/reuse a friend discount code
+            from app.models import VipCustomer
+            vip = VipCustomer.query.filter_by(
+                referral_code=referral_info['referral_code']).first()
+            if vip:
+                from app.loyalty.codes import generate_referral_friend_code
+                friend_code = generate_referral_friend_code(vip)
+                db.session.add(friend_code)
+                db.session.flush()
+                discount = friend_code
+                discount_amount = calculate_discount_amount(subtotal, discount)
+                db.session.commit()
+
+        credit_balance = (Decimal(str(current_user.total_referral_credit_balance))
+                          if current_user.is_authenticated else Decimal('0.00'))
+        after_discount  = subtotal - discount_amount
+        credit_to_apply = min(credit_balance, after_discount)
+
+    except Exception:
+        pass
+
+    final_total = max(subtotal - discount_amount - credit_to_apply, Decimal('0.00'))
+
     try:
         from app.tracking.events import track_event, track_funnel_step
         track_event('checkout_started', category='ecommerce')
         track_funnel_step('checkout_start')
     except Exception:
         pass
+
     stripe_key = current_app.config.get('STRIPE_PUBLISHABLE_KEY', '')
     return render_template('checkout/checkout.html',
-                           cart_items=cart_data, total=total,
+                           cart_items=cart_data,
+                           subtotal=float(subtotal),
+                           total=float(final_total),
+                           discount=discount,
+                           discount_amount=float(discount_amount),
+                           referral_info=referral_info,
+                           credit_to_apply=float(credit_to_apply),
                            stripe_key=stripe_key)
 
 

@@ -248,17 +248,22 @@ def _do_cart_add(experience_id, timeslot_id, guest_count, pickup_city, pickup_ad
 @booking_bp.route('/book/confirm', methods=['POST'])
 def confirm_booking():
     """Process booking after payment (called post-checkout or for offline/deposit modes)."""
-    experience_id = request.form.get('experience_id')
-    timeslot_id   = request.form.get('timeslot_id')
-    guest_count   = int(request.form.get('guest_count', 1))
-    pickup_city   = request.form.get('pickup_city')
-    pickup_address = request.form.get('pickup_address', '')
-    first_name    = request.form.get('first_name', '').strip()
-    last_name     = request.form.get('last_name', '').strip()
-    guest_email   = request.form.get('email', '').strip().lower()
-    guest_phone   = request.form.get('phone', '').strip()
-    special       = request.form.get('special_requests', '').strip()
+    experience_id     = request.form.get('experience_id')
+    timeslot_id       = request.form.get('timeslot_id')
+    guest_count       = int(request.form.get('guest_count', 1))
+    pickup_city       = request.form.get('pickup_city')
+    pickup_address    = request.form.get('pickup_address', '')
+    first_name        = request.form.get('first_name', '').strip()
+    last_name         = request.form.get('last_name', '').strip()
+    guest_email       = request.form.get('email', '').strip().lower()
+    guest_phone       = request.form.get('phone', '').strip()
+    special           = request.form.get('special_requests', '').strip()
     payment_intent_id = request.form.get('payment_intent_id', '')
+    # Loyalty fields passed from checkout form hidden inputs
+    discount_code_id  = request.form.get('discount_code_id', '').strip() or None
+    discount_amount   = float(request.form.get('discount_amount', 0) or 0)
+    credit_applied    = float(request.form.get('credit_applied', 0) or 0)
+    original_amount   = float(request.form.get('original_amount', 0) or 0)
 
     exp = Experience.query.filter_by(experience_id=experience_id, is_active=True).first_or_404()
 
@@ -357,6 +362,35 @@ def confirm_booking():
         session.pop('cart', None)
 
     db.session.commit()
+
+    # Loyalty accounting (discount + referral credit)
+    try:
+        from app.loyalty.checkout import finalize_loyalty_accounting
+        from app.loyalty.referral import get_referral_discount
+        referral_info = get_referral_discount()
+        friend_code   = None
+        if referral_info and discount_code_id:
+            from app.models import DiscountCode
+            friend_code = DiscountCode.query.get(discount_code_id)
+        finalize_loyalty_accounting(
+            booking          = booking,
+            discount_code_id = discount_code_id,
+            discount_amount  = discount_amount,
+            credit_applied   = credit_applied,
+            original_amount  = original_amount or float(exp.price),
+            final_amount     = float(exp.price) - discount_amount - credit_applied,
+            referral_info    = referral_info,
+            friend_code      = friend_code,
+        )
+        # Clear referral session after use
+        if referral_info:
+            session.pop('referral_code', None)
+            session.pop('referral_referrer', None)
+            session.pop('referral_expires', None)
+            session.pop('referral_discount_pct', None)
+            session.modified = True
+    except Exception:
+        pass
 
     # Queue itinerary generation asynchronously
     try:
