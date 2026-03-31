@@ -18,14 +18,11 @@
         &bull; Pre-fills every future booking automatically
       </div>
     </div>
-    <form method="POST" action="{{ url_for('account.clear_preference_profile') }}"
-          style="margin:0;" onsubmit="return confirm('Clear all saved preferences? This cannot be undone.');">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button type="submit"
-              style="background:none;border:1px solid #D0D8E0;color:#5A6A7A;
-                     font-size:12px;padding:5px 12px;border-radius:8px;cursor:pointer;">
-        Clear All</button>
-    </form>
+    <button type="submit" form="clearPrefForm"
+            onclick="return confirm('Clear all saved preferences? This cannot be undone.')"
+            style="background:none;border:1px solid #D0D8E0;color:#5A6A7A;
+                   font-size:12px;padding:5px 12px;border-radius:8px;cursor:pointer;">
+      Clear All</button>
   </div>
   {% else %}
   <div style="background:#FDF6EC;border-radius:10px;padding:14px 16px;
@@ -216,3 +213,12 @@ document.getElementById('prefNotes').addEventListener('input', function() {
   document.getElementById('notesCount').textContent = this.value.length + ' / 500';
 });
 </script>
+
+{# Clear preferences form — kept outside save form to avoid nested form bug #}
+{% if user_pref_profile %}
+<form id="clearPrefForm" method="POST"
+      action="{{ url_for('account.clear_preference_profile') }}"
+      style="display:none;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+{% endif %}
