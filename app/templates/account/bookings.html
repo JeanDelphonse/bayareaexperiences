@@ -63,11 +63,12 @@
             </td>
             <td>{{ b.guest_count }}</td>
             <td>
-              ${{ "%.2f"|format(b.amount_total) }}
               {% if b.experience.discount_percent %}
-              <br><small class="bae-checkout-discount-label" style="font-size:11px;">
-                {{ b.experience.discount_percent }}% off applied
-              </small>
+                <span class="bae-original-price" style="font-size:12px;">${{ "%.2f"|format(b.experience.price) }}</span>
+                <span class="bae-discount-badge" style="font-size:9px;padding:2px 6px;vertical-align:middle;">{{ b.experience.discount_percent }}% OFF</span>
+                <div class="bae-discounted-price" style="font-size:16px;">${{ "%.2f"|format(b.amount_total) }}</div>
+              {% else %}
+                ${{ "%.2f"|format(b.amount_total) }}
               {% endif %}
             </td>
             <td>

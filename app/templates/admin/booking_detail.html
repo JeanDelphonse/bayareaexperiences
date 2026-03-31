@@ -113,16 +113,16 @@
         <dl class="row mb-0">
           <dt class="col-sm-4">Payment Mode</dt>
           <dd class="col-sm-8">{{ booking.payment_mode|capitalize }}</dd>
-          {% if booking.experience.discount_percent %}
-          <dt class="col-sm-4">List Price</dt>
-          <dd class="col-sm-8 text-muted" style="text-decoration:line-through;">${{ "%.2f"|format(booking.experience.price) }}</dd>
-          <dt class="col-sm-4">Promo ({{ booking.experience.discount_percent }}% off)</dt>
-          <dd class="col-sm-8" style="color:#2D7A4F;">
-            &minus;${{ "%.2f"|format(booking.experience.price|float * (booking.experience.discount_percent|int / 100)) }}
+          <dt class="col-sm-4">Price Charged</dt>
+          <dd class="col-sm-8">
+            {% if booking.experience.discount_percent %}
+              <span class="bae-original-price" style="font-size:14px;">${{ "%.2f"|format(booking.experience.price) }}</span>
+              <span class="bae-discount-badge" style="font-size:10px;vertical-align:middle;margin-left:4px;">{{ booking.experience.discount_percent }}% OFF</span>
+              <div class="bae-discounted-price" style="font-size:18px;">${{ "%.2f"|format(booking.amount_total) }}</div>
+            {% else %}
+              ${{ "%.2f"|format(booking.amount_total) }}
+            {% endif %}
           </dd>
-          {% endif %}
-          <dt class="col-sm-4">Total</dt>
-          <dd class="col-sm-8">${{ "%.2f"|format(booking.amount_total) }}</dd>
           <dt class="col-sm-4">Amount Paid</dt>
           <dd class="col-sm-8">${{ "%.2f"|format(booking.amount_paid) }}</dd>
           <dt class="col-sm-4">Amount Due</dt>

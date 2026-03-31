@@ -37,7 +37,7 @@
                 <div class="mb-2">
                   {% if item.experience.is_discount_live %}
                     <div class="bae-original-price">${{ "%.2f"|format(item.experience.price) }}</div>
-                    <span class="bae-discount-badge" style="font-size:10px;padding:2px 8px;">{{ item.experience.discount_badge_text }}</span>
+                    <span class="bae-discount-badge" style="font-size:10px;padding:2px 8px;">{{ item.experience.discount_percent }}% OFF</span>
                     <div class="bae-discounted-price" style="font-size:18px;">${{ "%.2f"|format(item.price) }}</div>
                   {% else %}
                     <div class="fw-bold fs-5">${{ "%.0f"|format(item.price) }}</div>

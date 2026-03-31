@@ -102,15 +102,9 @@
             </div>
             <div class="text-muted small">Pickup: {{ item.pickup_city }}</div>
             {% if item.experience.is_discount_live %}
-              <div class="mt-1" style="font-size:13px;color:#9AABBF;text-decoration:line-through;">
-                ${{ "%.2f"|format(item.experience.price) }}</div>
-              <div class="bae-checkout-discount-row">
-                <span class="bae-checkout-discount-label">
-                  {{ item.experience.discount_badge_text }} applied</span>
-                <span class="bae-checkout-discount-amount">
-                  &minus;${{ "%.2f"|format(item.experience.price|float - item.experience.effective_price) }}</span>
-              </div>
-              <div class="fw-bold mt-1" style="color:#1558A7;">${{ "%.2f"|format(item.price) }}</div>
+              <div class="mt-1 bae-original-price" style="font-size:13px;">${{ "%.2f"|format(item.experience.price) }}</div>
+              <span class="bae-discount-badge" style="font-size:10px;padding:2px 8px;">{{ item.experience.discount_percent }}% OFF</span>
+              <div class="bae-discounted-price mt-1" style="font-size:18px;">${{ "%.2f"|format(item.price) }}</div>
             {% else %}
               <div class="fw-bold mt-1">${{ "%.2f"|format(item.price) }}</div>
             {% endif %}

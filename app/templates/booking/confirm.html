@@ -35,17 +35,16 @@
               {{ booking.pickup_city }}
               {% if booking.pickup_address %}<br><small class="text-muted">{{ booking.pickup_address }}</small>{% endif %}
             </dd>
-            {% if booking.experience.is_discount_live %}
-            <dt class="col-sm-4">Original Price</dt>
-            <dd class="col-sm-8 text-muted" style="text-decoration:line-through;">${{ "%.2f"|format(booking.experience.price) }}</dd>
-            <dt class="col-sm-4">You Saved</dt>
-            <dd class="col-sm-8 fw-semibold" style="color:#2D7A4F;">
-              ${{ "%.2f"|format(booking.experience.price|float - booking.experience.effective_price) }}
-              <span class="text-muted small">({{ booking.experience.discount_badge_text }})</span>
-            </dd>
-            {% endif %}
             <dt class="col-sm-4">Amount Paid</dt>
-            <dd class="col-sm-8">${{ "%.2f"|format(booking.amount_paid) }}</dd>
+            <dd class="col-sm-8">
+              {% if booking.experience.is_discount_live %}
+                <span class="bae-original-price" style="font-size:15px;">${{ "%.2f"|format(booking.experience.price) }}</span>
+                <span class="bae-discount-badge" style="font-size:10px;vertical-align:middle;margin-left:4px;">{{ booking.experience.discount_percent }}% OFF</span>
+                <div class="bae-discounted-price" style="font-size:20px;">${{ "%.2f"|format(booking.amount_paid) }}</div>
+              {% else %}
+                ${{ "%.2f"|format(booking.amount_paid) }}
+              {% endif %}
+            </dd>
             {% if booking.amount_due > 0 %}
             <dt class="col-sm-4">Amount Due</dt>
             <dd class="col-sm-8 text-danger">${{ "%.2f"|format(booking.amount_due) }}</dd>

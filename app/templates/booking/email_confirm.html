@@ -38,7 +38,7 @@
       <td style="padding: 10px; font-weight: bold; color: #155724;">You Saved</td>
       <td style="padding: 10px; color: #155724; font-weight: bold;">
         ${{ "%.2f"|format(experience.price|float - experience.effective_price) }}
-        ({{ experience.discount_badge_text }})
+        ({{ experience.discount_percent }}% OFF)
       </td>
     </tr>
     {% endif %}

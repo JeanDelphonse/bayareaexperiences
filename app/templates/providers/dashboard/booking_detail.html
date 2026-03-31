@@ -57,14 +57,16 @@
       <div class="card-header bg-white fw-bold">Payout Summary</div>
       <div class="card-body">
         <dl class="row mb-0">
-          {% if booking.experience.discount_percent %}
-          <dt class="col-sm-4">List Price</dt>
-          <dd class="col-sm-8 text-muted" style="text-decoration:line-through;">${{ "%.2f"|format(booking.experience.price) }}</dd>
-          <dt class="col-sm-4">After Promo ({{ booking.experience.discount_percent }}% off)</dt>
-          <dd class="col-sm-8">${{ "%.2f"|format(booking.experience.effective_price) }}</dd>
-          {% endif %}
-          <dt class="col-sm-4">Booking Total</dt>
-          <dd class="col-sm-8">${{ "%.2f"|format(booking.amount_total) }}</dd>
+          <dt class="col-sm-4">Booking Price</dt>
+          <dd class="col-sm-8">
+            {% if booking.experience.discount_percent %}
+              <span class="bae-original-price" style="font-size:14px;">${{ "%.2f"|format(booking.experience.price) }}</span>
+              <span class="bae-discount-badge" style="font-size:10px;vertical-align:middle;margin-left:4px;">{{ booking.experience.discount_percent }}% OFF</span>
+              <div class="bae-discounted-price" style="font-size:18px;">${{ "%.2f"|format(booking.amount_total) }}</div>
+            {% else %}
+              ${{ "%.2f"|format(booking.amount_total) }}
+            {% endif %}
+          </dd>
           <dt class="col-sm-4">Your Payout</dt>
           <dd class="col-sm-8 fw-semibold text-success">${{ "%.2f"|format(booking.provider_amount) }}</dd>
         </dl>

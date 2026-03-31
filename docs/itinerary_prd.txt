@@ -1,0 +1,1302 @@
+BAY AREA EXPERIENCES
+bayareaexperiences.com
+PROJECT REQUIREMENTS DOCUMENT
+Dynamic Itinerary Generation System
+Pickup-Based Routing · Live Events · Claude AI · Staff Briefing · 48-Hour Refresh
+Document Version
+1.0 — Initial Release
+Date
+March 26, 2026
+Prepared By
+JD (Jean M. Delphonse)
+Document Code
+BAE-PRD-ITINERARY-v1.0
+Status
+Ready for Development
+Parent PRDs
+BAE-PRD-CORE v3.0 · BAE-PRD-THEME-v1.0 · BAE-CONTEXT-v1.0
+AI Engine
+Anthropic Claude API (claude-sonnet-4-6)
+Event Data Source 1
+Ticketmaster Discovery API (free — 5,000 calls/day)
+Event Data Source 2
+Eventbrite API (free — 500 calls/day)
+Itinerary Trigger
+At booking confirmation + 48-hour pre-tour refresh
+Customer View
+Booking confirmation page + confirmation email
+Staff View
+/staff/briefing/<booking_id> — mobile-optimized
+Provider View
+Same as Staff — via provider dashboard
+Pickup Cities
+San Francisco, San Jose, Santa Cruz, Monterey + 9 Silicon Valley cities
+Every itinerary starts from the customer's pickup city, weaves in local events happening
+on that specific date, and is locked to the booking. Staff receive a mobile briefing at midnight.
+1. Feature Overview
+1.1 Purpose
+This PRD defines the Dynamic Itinerary Generation System for Bay Area Experiences. When a customer books an experience, the system automatically generates a personalized, day-of itinerary that: (1) starts from the customer's selected pickup city, (2) follows the core stops promised in the experience title and description, (3) integrates 1–2 relevant local events or activities happening near the pickup location on the tour date, and (4) is delivered to both the customer on their confirmation page and to the assigned staff member or provider via a dedicated mobile briefing page.
+1.2 The Problem Being Solved
+Currently, all customers booking the same experience receive an identical description regardless of where they are departing from or what is happening locally on their tour date. A customer picking up from San Jose sees the same itinerary as one picking up from San Francisco. There is no personalization, no local context, and no day-of relevance. The Dynamic Itinerary System changes this — each booking gets a unique, date-specific, location-aware itinerary that makes the experience feel curated specifically for that guest.
+1.3 System Flow — End to End
+Step
+Stage
+Action
+Actor
+1
+Booking Confirmed
+Customer completes checkout. Booking record created with booking_id, experience_id, timeslot date, pickup city.
+Customer
+2
+Event Lookup
+System queries Ticketmaster Discovery API + Eventbrite API for events near the pickup city on the tour date. Returns up to 5 candidates.
+System (async)
+3
+Event Filtering
+Filter candidates by relevance category (exclude events incompatible with the experience type). Select 1–2 best fits.
+System (AI)
+4
+Itinerary Generation
+Claude API called with: experience data, pickup city, tour date, filtered local events, optional customer notes. Returns structured JSON itinerary.
+System (Claude API)
+5
+Itinerary Storage
+Generated itinerary saved to booking_itineraries table. Locked to this booking — does not change unless explicitly refreshed.
+System
+6
+Customer Delivery
+Itinerary displayed on booking confirmation page and included in confirmation email.
+System
+7
+48-Hour Refresh
+48 hours before tour date: event data re-fetched; itinerary regenerated if better local events found; new version stored.
+System (scheduled)
+8
+Staff Briefing
+At midnight the night before the tour: staff member / provider receives email with link to /staff/briefing/<booking_id>. Page is mobile-optimized.
+System
+9
+Day-Of Access
+Staff accesses briefing page on their phone during pickup. All details visible without login (token-secured URL).
+Staff / Provider
+1.4 Itinerary Structure
+Every generated itinerary contains the following sections, regardless of experience or pickup city:
+Header — experience name, tour date, pickup city, pickup time, guest name, guest count
+Pickup details — exact pickup address (from booking), estimated departure time
+Local Context (1–2 items) — events or activities happening near the pickup city on the tour date with a note on how they relate to the day
+Experience Stops — ordered list of the core stops for the booked experience, each with: stop name, estimated arrival time, what to expect, approximate time at stop
+Travel notes — estimated drive times between stops from the pickup city (may differ from standard route)
+Inclusions reminder — snacks, water, what is included in the booking
+Drop-off details — estimated return time, drop-off location
+Customer notes — any special requests entered at booking (dietary needs, accessibility, occasion)
+2. Event Data Sources
+2.1 Ticketmaster Discovery API (Primary)
+The Ticketmaster Discovery API is the primary event data source. It is free, requires no upfront cost, and covers concerts, sports, arts, theatre, and family events across all 13 BAE pickup cities. The API returns structured JSON with event name, venue, date, category, and URL.
+Base URL
+https://app.ticketmaster.com/discovery/v2/events.json
+Authentication
+API key as query parameter: ?apikey={key}
+Free Quota
+5,000 API calls per day
+Rate Limit
+5 requests per second
+Registration
+developer.ticketmaster.com — free, instant API key
+.env Variable
+TICKETMASTER_API_KEY
+Key Filter Parameters
+city, stateCode, startDateTime, endDateTime, segmentName, size
+Segments Available
+Music, Sports, Arts & Theatre, Film, Family, Miscellaneous
+Response Fields Used
+name, url, dates.start.localDate, _embedded.venues[0].name, _embedded.venues[0].city.name, classifications[0].segment.name
+# app/itinerary/events.py — Ticketmaster fetch
+import requests, os
+from datetime import datetime, timedelta
+
+TM_BASE = 'https://app.ticketmaster.com/discovery/v2/events.json'
+
+# Segment names to include (exclude heavy metal, adult content, etc.)
+RELEVANT_SEGMENTS = ['Music', 'Arts & Theatre', 'Family', 'Sports', 'Miscellaneous']
+
+# Event categories to exclude per experience type
+EXCLUDE_FOR_EXPERIENCE = {
+    'airport-transfer':     ['Sports'],        # Don't suggest stadium events for airport runs
+    'corporate-team-outing':['Family'],         # Avoid kids events for corporate bookings
+    'celebration-tour':     [],                 # All events welcome for celebrations
+}
+
+def fetch_ticketmaster_events(city: str, state_code: str, tour_date: str,
+                              experience_slug: str = None) -> list:
+    """
+    Fetch up to 5 local events from Ticketmaster for the given city and date.
+    tour_date format: 'YYYY-MM-DD'
+    Returns list of dicts: {name, venue, date, category, url}
+    """
+    api_key = os.environ.get('TICKETMASTER_API_KEY', '')
+    if not api_key:
+        return []
+
+    # Search window: same day only (start of day to end of day)
+    start = f'{tour_date}T00:00:00Z'
+    end   = f'{tour_date}T23:59:59Z'
+
+    params = {
+        'apikey':         api_key,
+        'city':           city,
+        'stateCode':      state_code,
+        'startDateTime':  start,
+        'endDateTime':    end,
+        'size':           10,
+        'sort':           'relevance,desc',
+    }
+
+    try:
+        resp = requests.get(TM_BASE, params=params, timeout=8)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as e:
+        import logging
+        logging.getLogger('itinerary').warning(f'Ticketmaster fetch failed: {e}')
+        return []
+
+    events = []
+    for ev in data.get('_embedded', {}).get('events', []):
+        segment = ''
+        try:
+            segment = ev['classifications'][0]['segment']['name']
+        except (KeyError, IndexError):
+            pass
+
+        # Skip irrelevant segments
+        if segment and segment not in RELEVANT_SEGMENTS:
+            continue
+
+        # Skip excluded categories for this experience type
+        exclude = EXCLUDE_FOR_EXPERIENCE.get(experience_slug, [])
+        if segment in exclude:
+            continue
+
+        venue_name = ''
+        venue_city = ''
+        try:
+            venue_name = ev['_embedded']['venues'][0]['name']
+            venue_city = ev['_embedded']['venues'][0]['city']['name']
+        except (KeyError, IndexError):
+            pass
+
+        events.append({
+            'source':   'ticketmaster',
+            'name':     ev.get('name', ''),
+            'venue':    venue_name,
+            'city':     venue_city or city,
+            'date':     ev.get('dates', {}).get('start', {}).get('localDate', tour_date),
+            'category': segment,
+            'url':      ev.get('url', ''),
+        })
+
+        if len(events) >= 5:
+            break
+
+    return events
+2.2 Eventbrite API (Secondary)
+Eventbrite covers local community events — food markets, cultural festivals, outdoor gatherings — that Ticketmaster misses. It is free at 500 requests/day, which is sufficient given BAE's booking volume. Important: Eventbrite removed location-based search from its public API around 2020. The agent uses the private token approach to search by location.
+Base URL
+https://www.eventbriteapi.com/v3/events/search/
+Authentication
+Bearer token in Authorization header
+Free Quota
+500 API calls per day
+Registration
+eventbrite.com/platform — free developer account
+.env Variable
+EVENTBRITE_API_KEY
+Key Filter Parameters
+location.address, location.within, start_date.range_start, start_date.range_end, categories
+Categories Used
+Arts (103), Food & Drink (110), Community (113), Music (101), Outdoors (104)
+# app/itinerary/events.py (continued)
+
+EB_BASE = 'https://www.eventbriteapi.com/v3/events/search/'
+
+# Eventbrite category IDs most relevant to BAE experiences
+EB_CATEGORIES = '103,110,113,101,104'  # Arts, Food, Community, Music, Outdoors
+
+def fetch_eventbrite_events(city: str, state_code: str, tour_date: str) -> list:
+    """
+    Fetch local community events from Eventbrite.
+    Falls back gracefully if API key not set.
+    """
+    api_key = os.environ.get('EVENTBRITE_API_KEY', '')
+    if not api_key:
+        return []
+
+    address = f'{city}, {state_code}'
+    start   = f'{tour_date}T00:00:00'
+    end     = f'{tour_date}T23:59:59'
+
+    headers = {'Authorization': f'Bearer {api_key}'}
+    params  = {
+        'location.address':         address,
+        'location.within':          '20mi',
+        'start_date.range_start':   start,
+        'start_date.range_end':     end,
+        'categories':               EB_CATEGORIES,
+        'expand':                   'venue',
+        'page_size':                5,
+        'sort_by':                  'best',
+    }
+
+    try:
+        resp = requests.get(EB_BASE, headers=headers, params=params, timeout=8)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as e:
+        import logging
+        logging.getLogger('itinerary').warning(f'Eventbrite fetch failed: {e}')
+        return []
+
+    events = []
+    for ev in data.get('events', []):
+        venue_name = ''
+        try:
+            venue_name = ev['venue']['name']
+        except (KeyError, TypeError):
+            pass
+
+        events.append({
+            'source':   'eventbrite',
+            'name':     ev.get('name', {}).get('text', ''),
+            'venue':    venue_name,
+            'city':     city,
+            'date':     tour_date,
+            'category': 'Community Event',
+            'url':      ev.get('url', ''),
+        })
+
+    return events
+
+
+def get_local_events(city: str, state_code: str, tour_date: str,
+                      experience_slug: str = None) -> list:
+    """
+    Combine Ticketmaster + Eventbrite results, deduplicate, return up to 5.
+    Always returns a list (empty if both APIs fail) — never raises.
+    """
+    tm_events = fetch_ticketmaster_events(city, state_code, tour_date, experience_slug)
+    eb_events = fetch_eventbrite_events(city, state_code, tour_date)
+
+    # Combine: Ticketmaster first, then Eventbrite
+    combined = tm_events + eb_events
+
+    # Simple dedup by lowercase name
+    seen   = set()
+    unique = []
+    for ev in combined:
+        key = ev['name'].lower().strip()
+        if key and key not in seen:
+            seen.add(key)
+            unique.append(ev)
+
+    return unique[:5]  # Cap at 5 candidates for Claude
+2.3 City-to-State Code Map
+The event APIs require a city name and state code. All 13 BAE pickup cities are mapped here:
+City
+State Code
+Notes
+San Francisco
+CA
+Primary TM coverage; abundant events year-round
+San Jose
+CA
+SAP Center (sports/concerts); large South Bay event scene
+Santa Cruz
+CA
+Smaller TM footprint; Eventbrite stronger for community events
+Monterey
+CA
+Seasonal events; aquarium area; Eventbrite useful
+Cupertino
+CA
+Silicon Valley — Apple HQ area; community events
+Fremont
+CA
+East Bay; Holi festival; cultural events
+Los Gatos
+CA
+Boutique event scene; Eventbrite primary
+Menlo Park
+CA
+Tech corridor; closer to SF events
+Monterey
+CA
+See above
+Mountain View
+CA
+Shoreline Amphitheatre — TM strong; Google events
+Palo Alto
+CA
+Stanford area; arts and community events
+Redwood City
+CA
+Fox Theatre venue; growing event scene
+Santa Clara
+CA
+Levi's Stadium — TM very strong; FIFA, 49ers, concerts
+Sunnyvale
+CA
+Tech corridor; Eventbrite community events
+3. Claude AI — Itinerary Generation
+3.1 Architecture Decision
+Claude (claude-sonnet-4-6) is called once per itinerary generation. It receives a structured prompt containing all inputs and returns a complete itinerary as a JSON object. The temperature is set low (0.4) for consistency and factual grounding. Claude does not invent stops, drive times, or local facts — it structures and personalizes the content from the verified data provided in the prompt.
+3.2 Prompt Structure
+# app/itinerary/generator.py
+import anthropic, json, os
+from app.itinerary.events import get_local_events
+
+client = anthropic.Anthropic(api_key=os.environ['ANTHROPIC_API_KEY'])
+
+SYSTEM_PROMPT = """
+You are an expert Bay Area tour planner for Bay Area Experiences.
+Your task is to generate a personalized, well-structured day itinerary
+for a customer who has booked a specific tour experience.
+
+RULES:
+- The itinerary MUST start from the customer's pickup city.
+- The core stops must match exactly what is promised in the experience
+  title and description. Do not invent new stops.
+- You may mention 1–2 local events happening near the pickup city on the
+  tour date as context/color — label them as optional 'Local Buzz' items.
+  Do NOT route the tour through the event venue unless it is directly on
+  the tour route. These are conversation pieces, not mandatory stops.
+- Drive times must be reasonable and realistic for Bay Area traffic.
+  San Jose to SF = 45–60 min depending on time of day.
+  Santa Cruz to SF = 70–90 min.
+  Monterey to SF = 100–120 min.
+- All times are suggestions — the guide has discretion on the day.
+- Keep language warm, conversational, and specific to the Bay Area.
+- Output ONLY valid JSON — no prose before or after the JSON object.
+"""
+
+USER_PROMPT_TEMPLATE = """
+Generate a day itinerary for this booking:
+
+EXPERIENCE:
+  Name: {experience_name}
+  Description: {experience_description}
+  Duration: {duration_hours} hours
+  Core stops/highlights: {core_stops}
+  Inclusions: Door-to-door pickup, complimentary snacks and water on board
+
+BOOKING DETAILS:
+  Customer: {customer_name}
+  Guest Count: {guest_count}
+  Pickup City: {pickup_city}, CA
+  Pickup Address: {pickup_address}
+  Tour Date: {tour_date}
+  Timeslot Start: {start_time}
+  Special Requests: {special_requests}
+
+LOCAL EVENTS near {pickup_city} on {tour_date}:
+{local_events_text}
+
+Return a JSON object with this exact structure:
+{{
+  "itinerary_title": "string",
+  "greeting": "2-3 sentence warm welcome personalized to the customer",
+  "pickup": {{
+    "address": "string",
+    "time": "HH:MM AM/PM",
+    "note": "brief note for customer about the pickup"
+  }},
+  "local_buzz": [
+    {{
+      "title": "event name",
+      "description": "1-2 sentences about this event and why it is interesting context for the day",
+      "venue": "venue name",
+      "url": "event URL if available"
+    }}
+  ],
+  "stops": [
+    {{
+      "order": 1,
+      "name": "stop name",
+      "arrival_time": "HH:MM AM/PM",
+      "duration_minutes": 45,
+      "description": "what the customer will see/do here",
+      "highlight": "the single most memorable thing about this stop",
+      "drive_from_prev": "e.g. 25-min drive from San Jose along 101"
+    }}
+  ],
+  "return": {{
+    "estimated_time": "HH:MM AM/PM",
+    "drop_off": "same address as pickup unless otherwise noted"
+  }},
+  "inclusions": ["list", "of", "what", "is", "included"],
+  "staff_notes": "1-2 sentence note specifically for the guide about pickup logistics or anything unusual about this booking",
+  "generated_at": "ISO timestamp"
+}}
+"""
+3.3 Generator Function
+# app/itinerary/generator.py (continued)
+from datetime import datetime, timezone
+from app.models import Experience, Booking, Timeslot
+
+def generate_itinerary(booking: Booking) -> dict:
+    """
+    Generate a personalized itinerary for a booking.
+    Returns the itinerary as a Python dict.
+    Never raises — returns a fallback dict on any failure.
+    """
+    try:
+        experience = booking.experience
+        timeslot   = booking.timeslot
+        tour_date  = str(timeslot.slot_date)
+        start_time = timeslot.start_time.strftime('%I:%M %p') if timeslot.start_time else '9:00 AM'
+        pickup_city = booking.pickup_city or 'San Francisco'
+        state_code  = 'CA'
+
+        # 1. Fetch local events from Ticketmaster + Eventbrite
+        local_events = get_local_events(
+            city=pickup_city,
+            state_code=state_code,
+            tour_date=tour_date,
+            experience_slug=experience.slug,
+        )
+
+        # Format local events for the prompt
+        if local_events:
+            local_events_text = '\n'.join([
+                f'- {ev["name"]} at {ev["venue"]} ({ev["category"]}) — {ev["url"]}'
+                for ev in local_events[:3]  # Pass top 3 to Claude
+            ])
+        else:
+            local_events_text = 'No major events found for this date — the city will be relaxed.'
+
+        # Customer name
+        if booking.user:
+            customer_name = f'{booking.user.first_name} {booking.user.last_name}'
+        else:
+            customer_name = f'{booking.guest_first_name} {booking.guest_last_name}'
+
+        # Build the user prompt
+        prompt = USER_PROMPT_TEMPLATE.format(
+            experience_name=experience.name,
+            experience_description=experience.description or '',
+            duration_hours=experience.duration_hours,
+            core_stops=experience.core_stops or 'As described in the experience',
+            customer_name=customer_name,
+            guest_count=booking.guest_count or 1,
+            pickup_city=pickup_city,
+            pickup_address=booking.pickup_address or f'{pickup_city}, CA',
+            tour_date=tour_date,
+            start_time=start_time,
+            special_requests=booking.special_requests or 'None',
+            local_events_text=local_events_text,
+        )
+
+        # 2. Call Claude API
+        message = client.messages.create(
+            model='claude-sonnet-4-6',
+            max_tokens=2048,
+            temperature=0.4,
+            system=SYSTEM_PROMPT,
+            messages=[{'role': 'user', 'content': prompt}],
+        )
+
+        raw = message.content[0].text.strip()
+
+        # Strip any accidental markdown fences
+        if raw.startswith('```'):
+            raw = raw.split('\n', 1)[1].rsplit('```', 1)[0]
+
+        itinerary = json.loads(raw)
+        itinerary['generated_at'] = datetime.now(timezone.utc).isoformat()
+        itinerary['booking_id']   = booking.booking_id
+        itinerary['version']      = 1
+        itinerary['local_events_raw'] = local_events  # Store raw event data
+
+        return itinerary
+
+    except Exception as e:
+        import logging
+        logging.getLogger('itinerary').error(f'Itinerary generation failed for {booking.booking_id}: {e}')
+        return _fallback_itinerary(booking)
+
+
+def _fallback_itinerary(booking) -> dict:
+    """
+    Minimal fallback used when Claude or event APIs fail.
+    Ensures the booking still has a usable itinerary.
+    """
+    return {
+        'itinerary_title': booking.experience.name,
+        'greeting': f'We look forward to welcoming you on {booking.timeslot.slot_date}.',
+        'pickup': {
+            'address': booking.pickup_address or booking.pickup_city,
+            'time': booking.timeslot.start_time.strftime('%I:%M %p') if booking.timeslot.start_time else '9:00 AM',
+            'note': 'Your guide will be in touch to confirm pickup details.',
+        },
+        'local_buzz': [],
+        'stops': [],
+        'return': {
+            'estimated_time': 'As per booking duration',
+            'drop_off': booking.pickup_address or booking.pickup_city,
+        },
+        'inclusions': ['Door-to-door pickup', 'Snacks and water on board'],
+        'staff_notes': 'Standard pickup — no special requests.',
+        'generated_at': datetime.now(timezone.utc).isoformat(),
+        'booking_id': booking.booking_id,
+        'version': 0,  # 0 = fallback
+        'is_fallback': True,
+    }
+3.4 experience.core_stops — New Field
+The experiences table needs a new text field core_stops to give Claude the structured list of guaranteed stops for each experience. This prevents Claude from guessing and ensures the generated itinerary always matches what was sold to the customer.
+Column to Add
+Type
+Notes
+core_stops
+TEXT NULLABLE
+Pipe-separated list of core stops for this experience. E.g.: 'Painted Ladies|Golden Gate Bridge|Fisherman's Wharf|Lombard Street|Twin Peaks Overlook'. Added to experiences table. Editable in admin.
+Admin UI: Add a core_stops textarea field to the admin experience edit form (/admin/experiences/<id>). This is the most important field for itinerary quality — if left blank, Claude falls back to the experience description.
+4. Database Schema
+4.1 New Table — booking_itineraries
+Stores the generated itinerary for each booking. The itinerary JSON is stored as a TEXT field (not JSON column) for maximum MySQL compatibility. Multiple versions can exist per booking — only the latest active version is shown.
+Column
+Type
+Constraints
+Notes
+itinerary_id
+CHAR(9)
+PK
+9-char alphanumeric
+booking_id
+CHAR(9)
+FK bookings NOT NULL
+A booking can have multiple versions
+version
+TINYINT
+DEFAULT 1
+1 = original; 2 = 48-hour refresh; increments on each regeneration
+is_active
+BOOLEAN
+DEFAULT TRUE
+Only one active itinerary per booking at a time
+itinerary_json
+MEDIUMTEXT
+NOT NULL
+Complete Claude-generated itinerary as JSON string
+pickup_city
+VARCHAR(100)
+NOT NULL
+Denormalized from booking.pickup_city at generation time
+tour_date
+DATE
+NOT NULL
+Denormalized from timeslot.slot_date at generation time
+local_events_found
+TINYINT
+DEFAULT 0
+Count of local events fetched (0 = none found)
+ticketmaster_events
+TEXT
+NULLABLE
+Raw Ticketmaster results (JSON) stored for debugging
+eventbrite_events
+TEXT
+NULLABLE
+Raw Eventbrite results (JSON) stored for debugging
+is_fallback
+BOOLEAN
+DEFAULT FALSE
+TRUE if Claude API failed and fallback was used
+generation_trigger
+ENUM('booking_confirmed','48hr_refresh','manual_regen','admin')
+NOT NULL
+What triggered this generation
+generated_at
+DATETIME
+NOT NULL
+UTC
+staff_notified_at
+DATETIME
+NULLABLE
+UTC — when staff briefing email was sent
+4.2 New Field — bookings.pickup_address
+Add a pickup_address field to the bookings table to capture the specific street address the customer wants pickup from (entered during checkout). The itinerary uses this for the pickup section.
+Column to Add
+Type
+Notes
+pickup_address
+VARCHAR(300) NULLABLE
+Customer's specific pickup address (e.g., 'Marriott San Jose, 301 S Market St'). Shown in itinerary and staff briefing.
+special_requests
+TEXT NULLABLE
+Dietary needs, accessibility requirements, occasion notes, any custom requests. Already planned in BAE PRD v3.0 — confirm present.
+5. Itinerary Generation Triggers
+5.1 Trigger 1 — Booking Confirmation
+The primary trigger. Immediately after a booking is confirmed (Stripe webhook checkout.session.completed fires), the itinerary generation job is queued asynchronously so it does not block the checkout response.
+# app/blueprints/payments/webhook.py (update existing handler)
+from app.itinerary.tasks import queue_itinerary_generation
+
+# Inside checkout.session.completed handler, after booking is confirmed:
+if booking.booking_status == 'confirmed':
+    # ... existing confirmation logic ...
+
+    # Queue itinerary generation (async — does not block webhook response)
+    queue_itinerary_generation(booking.booking_id, trigger='booking_confirmed')
+
+
+# app/itinerary/tasks.py
+from app.itinerary.generator import generate_itinerary
+from app.itinerary.storage import save_itinerary
+from app.models import Booking
+import threading
+
+def queue_itinerary_generation(booking_id: str, trigger: str = 'booking_confirmed'):
+    """
+    Run itinerary generation in a background thread.
+    For production, replace threading with Celery or APScheduler task queue.
+    """
+    def _run():
+        from app import create_app
+        app = create_app('production')
+        with app.app_context():
+            booking = Booking.query.get(booking_id)
+            if not booking:
+                return
+            itinerary = generate_itinerary(booking)
+            save_itinerary(booking_id, itinerary, trigger=trigger)
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+5.2 Trigger 2 — 48-Hour Pre-Tour Refresh
+48 hours before the tour date, the system re-fetches local events (some events are only announced days before) and regenerates the itinerary if better local events are found. The new version is stored with version incremented; the old version is archived (is_active=False).
+# app/itinerary/refresh.py
+from datetime import datetime, timezone, timedelta
+from app.models import Booking, Timeslot, BookingItinerary
+from app.itinerary.generator import generate_itinerary
+from app.itinerary.storage import save_itinerary
+from app.extensions import db
+from sqlalchemy import cast, Date
+
+def refresh_upcoming_itineraries():
+    """
+    Called by cron job every 6 hours.
+    Finds confirmed bookings with tours 48 hours away and refreshes itineraries.
+    """
+    now         = datetime.now(timezone.utc)
+    refresh_from = now + timedelta(hours=46)  # 46–50 hour window
+    refresh_to   = now + timedelta(hours=50)
+
+    upcoming = (
+        Booking.query
+        .join(Timeslot, Booking.timeslot_id == Timeslot.timeslot_id)
+        .filter(
+            Booking.booking_status == 'confirmed',
+            Timeslot.slot_datetime >= refresh_from,
+            Timeslot.slot_datetime <= refresh_to,
+        )
+        .all()
+    )
+
+    refreshed = 0
+    for booking in upcoming:
+        try:
+            itinerary = generate_itinerary(booking)
+            save_itinerary(booking.booking_id, itinerary, trigger='48hr_refresh')
+            refreshed += 1
+        except Exception as e:
+            import logging
+            logging.getLogger('itinerary').error(
+                f'48hr refresh failed for {booking.booking_id}: {e}')
+
+    return refreshed
+
+# Cron (GoDaddy cPanel):
+# 0 */6 * * *  python -c 'from app.itinerary.refresh import refresh_upcoming_itineraries; ...'
+5.3 Trigger 3 — Staff Briefing Email (Midnight the Night Before)
+# app/itinerary/staff.py
+from datetime import datetime, timezone, timedelta, date
+from app.models import Booking, Timeslot, BookingItinerary
+from app.extensions import db, mail
+from flask_mail import Message
+from flask import url_for
+import os
+
+def send_staff_briefings():
+    """
+    Called by cron at 00:05 UTC each day.
+    Sends briefing email to the assigned staff member / provider
+    for every confirmed booking with a timeslot scheduled for today.
+    """
+    today = date.today()
+
+    bookings = (
+        Booking.query
+        .join(Timeslot, Booking.timeslot_id == Timeslot.timeslot_id)
+        .filter(
+            Booking.booking_status == 'confirmed',
+            Timeslot.slot_date == today,
+        )
+        .all()
+    )
+
+    sent = 0
+    for booking in bookings:
+        # Determine recipient: assigned staff or provider
+        recipient_email = None
+        recipient_name  = 'Team'
+
+        if booking.staff_member:
+            recipient_email = booking.staff_member.email
+            recipient_name  = booking.staff_member.full_name.split()[0]
+        elif booking.experience.provider:
+            recipient_email = booking.experience.provider.user.email
+            recipient_name  = booking.experience.provider.business_name
+
+        if not recipient_email:
+            recipient_email = os.environ.get('ADMIN_EMAIL')
+
+        # Build briefing URL (no login required — token secured)
+        briefing_url = url_for('itinerary.staff_briefing',
+                                booking_id=booking.booking_id,
+                                _external=True)
+
+        msg = Message(
+            subject=f'[BAE Today] {booking.experience.name} — {booking.pickup_city} pickup',
+            recipients=[recipient_email],
+        )
+        msg.body = (
+            f'Good morning {recipient_name},\n\n'
+            f'You have a tour today:\n'
+            f'  Experience: {booking.experience.name}\n'
+            f'  Guest: {booking.guest_first_name} {booking.guest_last_name}'
+            f' ({booking.guest_count} guest(s))\n'
+            f'  Pickup: {booking.pickup_address or booking.pickup_city}\n'
+            f'  Time: {booking.timeslot.start_time.strftime("%I:%M %p")}\n\n'
+            f'Full briefing (mobile-optimized):\n{briefing_url}\n\n'
+            f'Bay Area Experiences | (408) 831-2101'
+        )
+        mail.send(msg)
+
+        # Mark briefing as sent on the itinerary record
+        itinerary = BookingItinerary.query.filter_by(
+            booking_id=booking.booking_id, is_active=True).first()
+        if itinerary:
+            itinerary.staff_notified_at = datetime.now(timezone.utc)
+            db.session.commit()
+
+        sent += 1
+
+    return sent
+
+# Cron (GoDaddy cPanel — runs at 12:05 AM daily):
+# 5 0 * * *  python -c 'from app.itinerary.staff import send_staff_briefings; ...'
+6. Customer-Facing Itinerary Display
+6.1 Booking Confirmation Page — Itinerary Section
+After checkout, the booking confirmation page displays the generated itinerary below the booking summary. If generation is still in progress (async), a loading state shows; the page polls every 5 seconds until the itinerary is ready.
+{# templates/booking/confirm.html — itinerary section #}
+<section class='bae-itinerary-section' id='itinerary'>
+  <div class='container py-5'>
+    <div class='d-flex align-items-center gap-3 mb-4'>
+      <div style='width:40px;height:40px;border-radius:50%;background:#FDF6EC;
+           display:flex;align-items:center;justify-content:center;
+           color:#C9952A;font-size:20px;'>&#128205;</div>
+      <div>
+        <h2 style='color:#1A3557;font-size:22px;font-weight:500;margin:0;'>
+          Your Day Itinerary
+        </h2>
+        <p style='color:#5A6A7A;font-size:13px;margin:0;'>
+          Personalized for your {{ booking.pickup_city }} pickup
+        </p>
+      </div>
+    </div>
+
+    {% if itinerary %}
+
+      {# Greeting #}
+      <div class='bae-itinerary-greeting'>{{ itinerary.greeting }}</div>
+
+      {# Local Buzz — events near pickup city #}
+      {% if itinerary.local_buzz %}
+      <div class='bae-local-buzz-card'>
+        <div class='bae-buzz-eyebrow'>LOCAL BUZZ ON YOUR TOUR DATE</div>
+        {% for event in itinerary.local_buzz %}
+        <div class='bae-buzz-item'>
+          <div class='bae-buzz-title'>{{ event.title }}</div>
+          <div class='bae-buzz-desc'>{{ event.description }}</div>
+          {% if event.url %}
+          <a href='{{ event.url }}' target='_blank' class='bae-buzz-link'>
+            Learn more &rarr;</a>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {# Pickup #}
+      <div class='bae-itin-stop bae-itin-pickup'>
+        <div class='bae-stop-time'>{{ itinerary.pickup.time }}</div>
+        <div class='bae-stop-content'>
+          <div class='bae-stop-name'>Pickup</div>
+          <div class='bae-stop-address'>{{ itinerary.pickup.address }}</div>
+          <div class='bae-stop-note'>{{ itinerary.pickup.note }}</div>
+        </div>
+      </div>
+
+      {# Experience stops #}
+      {% for stop in itinerary.stops %}
+      <div class='bae-itin-stop'>
+        <div class='bae-stop-time'>{{ stop.arrival_time }}</div>
+        <div class='bae-stop-content'>
+          <div class='bae-stop-name'>{{ stop.name }}</div>
+          <div class='bae-stop-desc'>{{ stop.description }}</div>
+          <div class='bae-stop-highlight'>
+            <span class='bae-star-icon'>&#9733;</span> {{ stop.highlight }}
+          </div>
+          <div class='bae-drive-note'>{{ stop.drive_from_prev }}</div>
+        </div>
+      </div>
+      {% endfor %}
+
+      {# Return / Drop-off #}
+      <div class='bae-itin-stop bae-itin-return'>
+        <div class='bae-stop-time'>~{{ itinerary.return.estimated_time }}</div>
+        <div class='bae-stop-content'>
+          <div class='bae-stop-name'>Drop-off</div>
+          <div class='bae-stop-address'>{{ itinerary.return.drop_off }}</div>
+        </div>
+      </div>
+
+      {# Inclusions #}
+      <div class='bae-itin-inclusions'>
+        <div class='bae-incl-label'>What's included</div>
+        {% for item in itinerary.inclusions %}
+        <span class='bae-incl-chip'>&#10003; {{ item }}</span>
+        {% endfor %}
+      </div>
+
+    {% else %}
+    {# Loading state — itinerary still generating #}
+    <div id='itinLoading' class='text-center py-4'>
+      <div class='spinner-border' style='color:#C9952A;'></div>
+      <p class='mt-3' style='color:#5A6A7A;'>Personalizing your itinerary...</p>
+    </div>
+    <script>
+    (function poll(){
+      setTimeout(function(){
+        fetch('/booking/{{ booking.booking_id }}/itinerary')
+          .then(r=>r.json())
+          .then(d=>{ if(d.ready){ location.reload(); } else { poll(); } });
+      }, 5000);
+    })();
+    </script>
+    {% endif %}
+
+  </div>
+</section>
+6.2 Confirmation Email — Itinerary Section
+The confirmation email sent to the customer includes a condensed version of the itinerary. If the itinerary is still generating at email send time, the email is sent without the itinerary section and a follow-up email is sent 10 minutes later with the itinerary once it's ready.
+Email itinerary section: pickup time + address, numbered stop list (name + arrival time), drop-off time
+Local Buzz section: 1–2 local events listed with name and brief description
+'View Full Itinerary' link → links to /booking/<id>/itinerary (requires login or booking token)
+Subject line when itinerary is included: 'Your Bay Area Experiences itinerary is ready — [Experience Name], [Date]'
+7. Staff & Provider Briefing Page
+7.1 Route
+/staff/briefing/<booking_id> — does not require staff login. Access is controlled by the booking_id which is already a 9-char opaque alphanumeric. For production, consider adding a time-limited HMAC token to the URL. This page is mobile-first — designed to be read on a phone at 7 AM before pickup.
+7.2 Page Layout — Mobile-First
+{# templates/itinerary/staff_briefing.html #}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <title>Tour Briefing — {{ booking.experience.name }}</title>
+  <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css' rel='stylesheet'>
+  <style>
+    body { background: #F2F5F8; font-family: 'Inter', Arial, sans-serif; }
+    .brief-header { background:#1A3557; color:#fff; padding:20px; }
+    .brief-title { font-size:18px; font-weight:500; margin:0 0 4px; }
+    .brief-meta  { color:rgba(255,255,255,0.65); font-size:13px; }
+    .brief-section { background:#fff; border-radius:12px; padding:16px; margin:12px 0; }
+    .brief-section-label { font-size:10px; font-weight:500; letter-spacing:.08em;
+                           color:#5A6A7A; text-transform:uppercase; margin-bottom:8px; }
+    .brief-pickup-box { background:#FDF6EC; border-left:4px solid #C9952A;
+                        border-radius:8px; padding:14px; margin:12px 0; }
+    .brief-pickup-time { font-size:28px; font-weight:500; color:#1A3557; }
+    .brief-pickup-addr { font-size:15px; color:#1C1C1E; margin-top:4px; }
+    .brief-stop { display:flex; gap:12px; padding:10px 0;
+                  border-bottom:0.5px solid #E8ECF0; }
+    .brief-stop:last-child { border-bottom:none; }
+    .brief-stop-time { font-size:13px; font-weight:500; color:#C9952A;
+                       min-width:64px; padding-top:2px; }
+    .brief-stop-name { font-size:15px; font-weight:500; color:#1C1C1E; }
+    .brief-stop-desc { font-size:13px; color:#5A6A7A; margin-top:2px; }
+    .brief-drive    { font-size:11px; color:#2E7D8C; margin-top:3px; }
+    .brief-flag     { background:#FAECEA; border-left:3px solid #B03A2E;
+                      border-radius:6px; padding:10px 12px; margin:8px 0; }
+    .call-btn { background:#C9952A; color:#fff; border:none; border-radius:9999px;
+                padding:12px 24px; font-size:15px; font-weight:500;
+                width:100%; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <div class='brief-header'>
+    <div class='brief-title'>{{ booking.experience.name }}</div>
+    <div class='brief-meta'>
+      {{ booking.timeslot.slot_date.strftime('%A, %B %d, %Y') }}
+      &bull; {{ booking.guest_first_name }} {{ booking.guest_last_name }}
+      &bull; {{ booking.guest_count }} guest(s)
+    </div>
+  </div>
+
+  <div class='container' style='max-width:540px;padding:12px;'>
+
+    {# Pickup box — most important info, largest on page #}
+    <div class='brief-pickup-box'>
+      <div class='brief-section-label'>Pickup</div>
+      <div class='brief-pickup-time'>{{ itinerary.pickup.time }}</div>
+      <div class='brief-pickup-addr'>{{ itinerary.pickup.address }}</div>
+      {% if itinerary.pickup.note %}
+      <div style='font-size:12px;color:#8B6419;margin-top:6px;'>
+        {{ itinerary.pickup.note }}</div>
+      {% endif %}
+      <a href='tel:{{ booking.guest_phone or ""}}'
+         style='display:block;margin-top:10px;font-size:14px;color:#1A3557;'>
+        Call guest: {{ booking.guest_phone or 'No phone provided' }}</a>
+    </div>
+
+    {# Staff notes from Claude #}
+    {% if itinerary.staff_notes %}
+    <div class='brief-flag'>
+      <div class='brief-section-label'>Guide Notes</div>
+      <div style='font-size:14px;color:#1C1C1E;'>{{ itinerary.staff_notes }}</div>
+    </div>
+    {% endif %}
+
+    {# Special requests flag #}
+    {% if booking.special_requests %}
+    <div class='brief-flag'>
+      <div class='brief-section-label'>Special Requests</div>
+      <div style='font-size:14px;color:#1C1C1E;'>{{ booking.special_requests }}</div>
+    </div>
+    {% endif %}
+
+    {# Today's Local Buzz — conversation starters for the guide #}
+    {% if itinerary.local_buzz %}
+    <div class='brief-section'>
+      <div class='brief-section-label'>Local Buzz Today</div>
+      {% for event in itinerary.local_buzz %}
+      <div style='margin-bottom:8px;'>
+        <div style='font-size:14px;font-weight:500;color:#1C1C1E;'>{{ event.title }}</div>
+        <div style='font-size:12px;color:#5A6A7A;'>{{ event.description }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Stop list #}
+    <div class='brief-section'>
+      <div class='brief-section-label'>Today's Route</div>
+      {% for stop in itinerary.stops %}
+      <div class='brief-stop'>
+        <div class='brief-stop-time'>{{ stop.arrival_time }}</div>
+        <div>
+          <div class='brief-stop-name'>{{ stop.name }}</div>
+          <div class='brief-stop-desc'>~{{ stop.duration_minutes }} min</div>
+          <div class='brief-drive'>{{ stop.drive_from_prev }}</div>
+        </div>
+      </div>
+      {% endfor %}
+      <div class='brief-stop'>
+        <div class='brief-stop-time' style='color:#5A6A7A;'>
+          ~{{ itinerary.return.estimated_time }}</div>
+        <div>
+          <div class='brief-stop-name'>Drop-off</div>
+          <div class='brief-stop-desc'>{{ itinerary.return.drop_off }}</div>
+        </div>
+      </div>
+    </div>
+
+    {# Emergency call button #}
+    <a href='tel:+14088312101'>
+      <button class='call-btn'>Call BAE HQ: (408) 831-2101</button>
+    </a>
+    <p style='text-align:center;font-size:11px;color:#5A6A7A;margin-top:8px;'>
+      Briefing for booking {{ booking.booking_id }}</p>
+  </div>
+</body>
+</html>
+8. New Routes & Files
+8.1 New Flask Routes
+Method
+Route
+Description
+GET
+/booking/<id>/itinerary
+Customer view — full itinerary for a booking (login or token required)
+GET
+/booking/<id>/itinerary/status
+AJAX polling endpoint — returns {ready: true/false}
+GET
+/staff/briefing/<booking_id>
+Staff/provider mobile briefing page — no login required
+POST
+/admin/bookings/<id>/regen-itinerary
+Admin manual regeneration trigger
+GET
+/admin/itineraries
+Admin list — all itineraries with version, generation trigger, fallback flag
+GET
+/admin/itineraries/<id>
+Admin view — full itinerary JSON + raw event data for debugging
+8.2 New Files & Directories
+app/
+├── itinerary/
+│   ├── __init__.py
+│   ├── generator.py        # generate_itinerary() + Claude prompt + _fallback_itinerary()
+│   ├── events.py           # fetch_ticketmaster_events() + fetch_eventbrite_events()
+│   │                       # get_local_events() — combines both sources
+│   ├── storage.py          # save_itinerary() — writes to booking_itineraries table
+│   │                       # get_active_itinerary() — retrieves latest active version
+│   ├── refresh.py          # refresh_upcoming_itineraries() — 48-hour refresh job
+│   ├── staff.py            # send_staff_briefings() — midnight email job
+│   └── tasks.py            # queue_itinerary_generation() — async background runner
+├── models.py               # Add: BookingItinerary model
+│                           # Modify: experiences (core_stops), bookings (pickup_address)
+├── templates/
+│   ├── booking/
+│   │   └── confirm.html    # Modified: add itinerary section + polling JS
+│   ├── itinerary/
+│   │   ├── staff_briefing.html   # Mobile-first staff briefing page
+│   │   └── full_itinerary.html   # Customer full itinerary view
+│   └── email/
+│       ├── itinerary_ready.html  # Follow-up email when itinerary is generated after
+│       │                         # confirmation email was already sent
+│       └── staff_briefing.txt    # Plain-text staff briefing email
+└── blueprints/
+    └── itinerary/
+        ├── __init__.py
+        └── views.py        # All itinerary-facing routes
+8.3 Environment Variables
+# Add to .env
+TICKETMASTER_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  # Free — developer.ticketmaster.com
+EVENTBRITE_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx    # Free — eventbrite.com/platform
+ITINERARY_ENABLED=True         # Master toggle
+ITINERARY_REFRESH_HOURS=48     # Hours before tour to trigger refresh
+ITINERARY_MAX_EVENTS=3         # Max local events to pass to Claude prompt
+ITINERARY_CLAUDE_MAX_TOKENS=2048
+ITINERARY_CLAUDE_TEMPERATURE=0.4
+9. Testing Checklist
+#
+Test Case
+Expected Result
+Category
+1
+Book SF City Icons tour, pickup from San Jose
+Itinerary starts in San Jose; drive time to SF noted; core SF stops included
+Generation
+2
+Book same tour, pickup from San Francisco
+Different itinerary — starts in SF; no peninsula drive time
+Generation
+3
+Book Coastal Charm tour, pickup from Santa Cruz
+Itinerary starts Santa Cruz; coastal route stays south-to-north
+Generation
+4
+Book tour on a date with Ticketmaster events found
+1–2 local events in 'Local Buzz' section; labeled as optional context
+Events
+5
+Book tour on a date with no events found
+Itinerary generates successfully; no Local Buzz section shown
+Events Fallback
+6
+Ticketmaster API returns error (bad key/timeout)
+Itinerary still generates without events; no crash; event count=0 in DB
+Error Handling
+7
+Claude API returns malformed JSON
+_fallback_itinerary() used; is_fallback=True in DB; version=0
+Error Handling
+8
+Claude API key missing from .env
+Graceful fallback; admin logged; customer still gets basic itinerary
+Error Handling
+9
+Booking confirmation page before itinerary ready
+Spinner shown; page polls /itinerary/status every 5 seconds; reloads when ready
+Polling
+10
+Booking confirmation page when itinerary is ready
+Full itinerary rendered inline — no spinner
+Display
+11
+Customer confirmation email includes itinerary
+Stop list in email with pickup time and address
+Email
+12
+48-hour refresh runs for upcoming booking
+New itinerary version saved with trigger='48hr_refresh'; old version is_active=False
+Refresh
+13
+48-hour refresh finds better events than original
+New events appear in refreshed itinerary Local Buzz section
+Refresh
+14
+Staff briefing email sent at midnight
+Staff member receives email with link to /staff/briefing/<id>
+Staff
+15
+Staff accesses briefing on mobile
+Briefing page loads without login; pickup info is the largest element
+Staff
+16
+Booking has special requests
+Special requests flagged prominently at top of staff briefing
+Staff
+17
+Admin regenerates itinerary manually
+New version created; trigger='admin'; shown in admin itinerary list
+Admin
+18
+Itinerary with no core_stops set on experience
+Claude uses experience description for stops; generates reasonable itinerary
+Data Quality
+19
+Guest booking (no user account)
+Itinerary uses guest_first_name + guest_last_name from booking
+Guest Bookings
+20
+Corporate team outing booking
+Itinerary excludes family events from Local Buzz (EXCLUDE_FOR_EXPERIENCE)
+Event Filtering
+10. Acceptance Criteria
+#
+Criterion
+Priority
+Section
+1
+booking_itineraries table created; BookingItinerary SQLAlchemy model added
+Must Have
+§4.1
+2
+experiences.core_stops column added; editable in admin experience form
+Must Have
+§3.4
+3
+bookings.pickup_address column added; collected during checkout
+Must Have
+§4.2
+4
+On booking confirmation, itinerary generation is queued asynchronously
+Must Have
+§5.1
+5
+Ticketmaster Discovery API fetches events by city + date for the tour day
+Must Have
+§2.1
+6
+Eventbrite API fetches community events by city + date as secondary source
+Should Have
+§2.2
+7
+get_local_events() combines both sources, deduplicates, returns up to 5 candidates
+Must Have
+§2.2
+8
+Claude API called with experience data, pickup city, tour date, and local events
+Must Have
+§3.3
+9
+Claude prompt specifies JSON output format; response parsed and saved to DB
+Must Have
+§3.2
+10
+Fallback itinerary used when Claude API fails — never raises to customer
+Must Have
+§3.3
+11
+Itinerary contains: greeting, pickup, local_buzz, stops, return, inclusions, staff_notes
+Must Have
+§1.4
+12
+Each stop includes: name, arrival_time, duration_minutes, description, highlight, drive_from_prev
+Must Have
+§3.2
+13
+Core stops in itinerary match the experience's core_stops field — no invented stops
+Must Have
+§3.4
+14
+Drive times in itinerary are realistic for Bay Area pickup cities (SJC→SF ~50min)
+Must Have
+§3.2
+15
+Booking confirmation page displays full itinerary below booking summary
+Must Have
+§6.1
+16
+Polling (5-second interval) shown while itinerary generates; page reloads when ready
+Must Have
+§6.1
+17
+1–2 local events shown in 'Local Buzz' section when found; section hidden when none
+Must Have
+§6.1
+18
+Customer confirmation email includes condensed itinerary (stops + pickup time)
+Must Have
+§6.2
+19
+48-hour refresh job regenerates itinerary with updated event data
+Must Have
+§5.2
+20
+48-hour refresh runs every 6 hours; only processes bookings in the 46–50 hour window
+Must Have
+§5.2
+21
+Staff briefing email sent to assigned staff/provider at midnight the night before
+Must Have
+§5.3
+22
+Staff briefing page /staff/briefing/<id> is mobile-optimized; pickup time is largest element
+Must Have
+§7.2
+23
+Special requests shown as a flagged alert on staff briefing page
+Must Have
+§7.2
+24
+'Call BAE HQ' tel: button present on staff briefing page
+Must Have
+§7.2
+25
+Admin can manually regenerate an itinerary from /admin/bookings/<id>
+Should Have
+§8.1
+26
+Admin itinerary list shows version, trigger, fallback flag, and generation timestamp
+Should Have
+§8.1
+27
+EXCLUDE_FOR_EXPERIENCE filtering prevents irrelevant event categories
+Should Have
+§2.1
+28
+City-to-state-code map covers all 13 BAE pickup cities
+Must Have
+§2.3
+29
+ITINERARY_ENABLED=False disables all generation without errors
+Must Have
+§8.3
+30
+Event API failures (timeout/bad key) are logged and never crash the booking flow
+Must Have
+§2.1
+End of Document
+Bay Area Experiences — Dynamic Itinerary Generation PRD v1.0 — March 26, 2026
+Document Code: BAE-PRD-ITINERARY-v1.0 · AI: Claude claude-sonnet-4-6 · Events: Ticketmaster + Eventbrite APIs

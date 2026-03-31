@@ -1,17 +1,16 @@
 {#
   price_block(experience, size, show_savings)
   ───────────────────────────────────────────
-  Renders the price display for an experience, handling live promotional
-  discounts.
+  Renders discount pricing: X% OFF badge, original struck-through, discounted in blue.
 
   Parameters:
     experience   — Experience model instance
-    size         — 'sm' (card, cart item), 'lg' (detail page booking card)
-    show_savings — True adds "You save $X (Y%)" line (lg only)
+    size         — 'sm' (cards), 'lg' (detail page booking card)
+    show_savings — True adds "You save $X" line (lg only)
 #}
 {% macro price_block(experience, size='sm', show_savings=False) %}
 {% if experience.is_discount_live %}
-  <span class="bae-discount-badge">{{ experience.discount_badge_text }}</span>
+  <span class="bae-discount-badge">{{ experience.discount_percent }}% OFF</span>
   {% if size == 'lg' %}
     <div style="display:flex;align-items:baseline;gap:10px;justify-content:center;flex-wrap:wrap;">
       <span class="bae-detail-orig-price">${{ "%.2f"|format(experience.price) }}</span>
@@ -19,7 +18,7 @@
     </div>
     {% if show_savings %}
     <div class="bae-detail-savings">
-      You save ${{ "%.2f"|format(experience.price|float - experience.effective_price) }} ({{ experience.discount_percent }}%)
+      You save ${{ "%.2f"|format(experience.price|float - experience.effective_price) }} ({{ experience.discount_percent }}% off)
     </div>
     {% endif %}
   {% else %}
