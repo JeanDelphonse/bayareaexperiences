@@ -64,9 +64,11 @@
         <dt class="col-sm-4">Amount Paid</dt>
         <dd class="col-sm-8">
           {% if booking.experience.discount_percent %}
-            <span class="bae-original-price" style="font-size:15px;">${{ "%.2f"|format(booking.experience.price) }}</span>
-            <span class="bae-discount-badge" style="font-size:10px;vertical-align:middle;margin-left:4px;">{{ booking.experience.discount_percent }}% OFF</span>
-            <div class="bae-discounted-price" style="font-size:20px;">${{ "%.2f"|format(booking.amount_paid) }}</div>
+            <div style="font-size:14px;line-height:1.3;margin-bottom:2px;">
+              <span style="color:#9AABBF;text-decoration:line-through;text-decoration-thickness:1.5px;">${{ "%.2f"|format(booking.experience.price) }}</span>
+              <span style="font-size:11px;color:#8B6419;font-weight:500;margin-left:4px;">{{ booking.experience.discount_percent }}% off</span>
+            </div>
+            <div style="font-size:20px;font-weight:700;color:#1558A7;line-height:1.1;">${{ "%.2f"|format(booking.amount_paid) }}</div>
           {% else %}
             <span class="fw-semibold">${{ "%.2f"|format(booking.amount_paid) }}</span>
           {% endif %}
