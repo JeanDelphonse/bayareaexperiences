@@ -100,5 +100,18 @@ def create_app(config_name='default'):
 
     with app.app_context():
         db.create_all()
+        # GPS migration: add tracking_enabled to bookings if not yet present
+        try:
+            from sqlalchemy import text, inspect as sa_inspect
+            _insp = sa_inspect(db.engine)
+            _cols = [c['name'] for c in _insp.get_columns('bookings')]
+            if 'tracking_enabled' not in _cols:
+                with db.engine.connect() as _conn:
+                    _conn.execute(text(
+                        'ALTER TABLE bookings ADD COLUMN tracking_enabled BOOLEAN NOT NULL DEFAULT 1'
+                    ))
+                    _conn.commit()
+        except Exception:
+            pass
 
     return app
