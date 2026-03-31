@@ -34,7 +34,15 @@
                 </div>
               </div>
               <div class="col-auto text-end">
-                <div class="fw-bold fs-5 mb-2">${{ "%.0f"|format(item.price) }}</div>
+                <div class="mb-2">
+                  {% if item.experience.is_discount_live %}
+                    <div class="bae-original-price">${{ "%.2f"|format(item.experience.price) }}</div>
+                    <span class="bae-discount-badge" style="font-size:10px;padding:2px 8px;">{{ item.experience.discount_badge_text }}</span>
+                    <div class="bae-discounted-price" style="font-size:18px;">${{ "%.2f"|format(item.price) }}</div>
+                  {% else %}
+                    <div class="fw-bold fs-5">${{ "%.0f"|format(item.price) }}</div>
+                  {% endif %}
+                </div>
                 <form method="POST" action="{{ url_for('cart.remove', item_id=item.cart_item_id) }}">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="btn btn-outline-danger btn-sm">

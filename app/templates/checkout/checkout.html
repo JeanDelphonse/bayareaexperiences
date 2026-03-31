@@ -108,7 +108,7 @@
                 <span class="bae-checkout-discount-label">
                   {{ item.experience.discount_badge_text }} applied</span>
                 <span class="bae-checkout-discount-amount">
-                  &minus;${{ "%.2f"|format(item.experience.price - item.experience.effective_price) }}</span>
+                  &minus;${{ "%.2f"|format(item.experience.price|float - item.experience.effective_price) }}</span>
               </div>
               <div class="fw-bold mt-1" style="color:#1558A7;">${{ "%.2f"|format(item.price) }}</div>
             {% else %}

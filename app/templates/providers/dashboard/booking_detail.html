@@ -54,9 +54,17 @@
 
     {# Payout Summary #}
     <div class="card border-0 shadow-sm mb-4">
-      <div class="card-header bg-white fw-bold">Your Payout</div>
+      <div class="card-header bg-white fw-bold">Payout Summary</div>
       <div class="card-body">
         <dl class="row mb-0">
+          {% if booking.experience.discount_percent %}
+          <dt class="col-sm-4">List Price</dt>
+          <dd class="col-sm-8 text-muted" style="text-decoration:line-through;">${{ "%.2f"|format(booking.experience.price) }}</dd>
+          <dt class="col-sm-4">After Promo ({{ booking.experience.discount_percent }}% off)</dt>
+          <dd class="col-sm-8">${{ "%.2f"|format(booking.experience.effective_price) }}</dd>
+          {% endif %}
+          <dt class="col-sm-4">Booking Total</dt>
+          <dd class="col-sm-8">${{ "%.2f"|format(booking.amount_total) }}</dd>
           <dt class="col-sm-4">Your Payout</dt>
           <dd class="col-sm-8 fw-semibold text-success">${{ "%.2f"|format(booking.provider_amount) }}</dd>
         </dl>

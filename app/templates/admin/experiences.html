@@ -31,7 +31,19 @@
           <td class="fw-semibold">{{ exp.name }}</td>
           <td><span class="badge bg-warning text-dark">{{ exp.category }}</span></td>
           <td>{{ exp.duration_hours }}h</td>
-          <td>${{ "%.0f"|format(exp.price) }}</td>
+          <td>
+            ${{ "%.0f"|format(exp.price) }}
+            {% if exp.discount_percent %}
+            <br><small class="bae-checkout-discount-label">
+              → ${{ "%.2f"|format(exp.effective_price) }}
+              {% if exp.is_discount_live %}
+              <span class="badge bg-success" style="font-size:9px;">LIVE</span>
+              {% else %}
+              <span class="badge bg-secondary" style="font-size:9px;">OFF</span>
+              {% endif %}
+            </small>
+            {% endif %}
+          </td>
           <td>
             {% if exp.is_active %}
               <span class="badge bg-success">Active</span>

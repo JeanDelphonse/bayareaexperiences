@@ -168,7 +168,7 @@ textarea:focus-visible {
   font-weight: 500;
 }
 
-/* ── Discount Pricing (BAE-PRD-DISCOUNT-v1.0) ──────────────────────────────── */
+/* ── Discount Pricing (BAE-PRD-DISCOUNT-v1.1) ──────────────────────────────── */
 
 /* Experience Card */
 .bae-discount-badge {
@@ -254,4 +254,24 @@ textarea:focus-visible {
   font-size: 13px;
   color: #1558A7;
   font-weight: 500;
+}
+
+/* Booking confirmation savings */
+.bae-savings-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #2D7A4F;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+/* Admin / account discount indicator */
+.bae-discount-indicator {
+  font-size: 11px;
+  color: #1558A7;
+  font-weight: 500;
+  display: block;
+  margin-top: 2px;
 }

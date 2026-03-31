@@ -62,7 +62,14 @@
               <small class="text-muted">{{ b.timeslot.start_time.strftime('%I:%M %p') }}</small>
             </td>
             <td>{{ b.guest_count }}</td>
-            <td>${{ "%.2f"|format(b.amount_total) }}</td>
+            <td>
+              ${{ "%.2f"|format(b.amount_total) }}
+              {% if b.experience.discount_percent %}
+              <br><small class="bae-checkout-discount-label" style="font-size:11px;">
+                {{ b.experience.discount_percent }}% off applied
+              </small>
+              {% endif %}
+            </td>
             <td>
               {% if b.booking_status == 'confirmed' %}
                 <span class="badge bg-success">Confirmed</span>

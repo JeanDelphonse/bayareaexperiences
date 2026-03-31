@@ -1,9 +1,32 @@
 {% extends "base.html" %}
+{% from 'macros/price.html' import price_block %}
 
 {% block title %}{{ experience.name }} — Bay Area Experiences{% endblock %}
 
 {% block meta_description %}
 <meta name="description" content="{{ experience.description[:160] if experience.description else 'Book this Bay Area experience today.' }}">
+<meta property="og:title" content="{{ experience.name }} — Bay Area Experiences">
+<meta property="og:description" content="{{ experience.description[:160] if experience.description else 'Book this Bay Area experience today.' }}">
+<meta property="og:price:amount" content="{{ '%.2f'|format(experience.effective_price) }}">
+<meta property="og:price:currency" content="USD">
+{% if experience.photo_url %}
+<meta property="og:image" content="{{ request.url_root.rstrip('/') }}/images/{{ experience.photo_url }}">
+{% endif %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": "{{ experience.name }}",
+  "description": "{{ experience.description[:160] if experience.description else '' }}",
+  "offers": {
+    "@type": "Offer",
+    "priceCurrency": "USD",
+    "price": "{{ '%.2f'|format(experience.effective_price) }}",
+    "availability": "https://schema.org/InStock",
+    "url": "{{ request.url_root.rstrip('/') }}/experience/{{ experience.slug }}"
+  }
+}
+</script>
 {% endblock %}
 
 {% block canonical %}
@@ -85,18 +108,7 @@
           <div class="card-body p-4">
             <div class="text-center mb-3">
               <div class="text-muted small">Price per booking</div>
-              {% if experience.is_discount_live %}
-                <div class="bae-detail-badge">{{ experience.discount_badge_text }}</div>
-                <div style="display:flex;align-items:baseline;gap:10px;justify-content:center;flex-wrap:wrap;">
-                  <span class="bae-detail-orig-price">${{ "%.2f"|format(experience.price) }}</span>
-                  <span class="bae-detail-disc-price">${{ "%.2f"|format(experience.effective_price) }}</span>
-                </div>
-                <div class="bae-detail-savings">
-                  You save ${{ "%.2f"|format(experience.price|float - experience.effective_price) }} ({{ experience.discount_percent }}%)
-                </div>
-              {% else %}
-                <div class="display-5 fw-bold text-dark">${{ "%.0f"|format(experience.price) }}</div>
-              {% endif %}
+              {{ price_block(experience, size='lg', show_savings=True) }}
               <div class="text-muted small">Up to {{ experience.max_guests }} guests</div>
             </div>
             {% if experience.payment_mode == 'full' %}
