@@ -92,7 +92,7 @@
                   <span class="bae-detail-disc-price">${{ "%.2f"|format(experience.effective_price) }}</span>
                 </div>
                 <div class="bae-detail-savings">
-                  You save ${{ "%.2f"|format(experience.price - experience.effective_price) }} ({{ experience.discount_percent }}%)
+                  You save ${{ "%.2f"|format(experience.price|float - experience.effective_price) }} ({{ experience.discount_percent }}%)
                 </div>
               {% else %}
                 <div class="display-5 fw-bold text-dark">${{ "%.0f"|format(experience.price) }}</div>
