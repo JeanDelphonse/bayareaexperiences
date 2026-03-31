@@ -190,6 +190,8 @@ class Booking(db.Model):
     platform_fee_amount = db.Column(db.Numeric(10, 2), nullable=False, default=0.00)
     provider_amount     = db.Column(db.Numeric(10, 2), nullable=False, default=0.00)
 
+    tracking_enabled = db.Column(db.Boolean, nullable=False, default=True)
+
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc),
                            onupdate=lambda: datetime.now(timezone.utc))
@@ -205,6 +207,11 @@ class Booking(db.Model):
         db.Index('ix_bookings_user_id', 'user_id'),
         db.Index('ix_bookings_experience_id', 'experience_id'),
     )
+
+    @property
+    def active_tracking_session(self):
+        return TrackingSession.query.filter_by(
+            booking_id=self.booking_id, status='active').first()
 
 
 # ── Cart Items ─────────────────────────────────────────────────────────────────
@@ -806,4 +813,67 @@ class StaffAssignmentLog(db.Model):
     __table_args__ = (
         db.Index('ix_staff_assignment_log_booking_id', 'booking_id'),
         db.Index('ix_staff_assignment_log_changed_at', 'changed_at'),
+    )
+
+
+# ── GPS Tracking ───────────────────────────────────────────────────────────────
+
+class BookingTrackingToken(db.Model):
+    __tablename__ = 'booking_tracking_tokens'
+
+    token_id   = db.Column(db.String(9),   primary_key=True, default=generate_pk)
+    booking_id = db.Column(db.String(9),   db.ForeignKey('bookings.booking_id'), unique=True, nullable=False)
+    token      = db.Column(db.String(64),  unique=True, nullable=False)
+    is_active  = db.Column(db.Boolean,     nullable=False, default=False)
+    expires_at = db.Column(db.DateTime,    nullable=False)
+    created_at = db.Column(db.DateTime,    nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    booking = db.relationship('Booking', backref=db.backref('tracking_token', uselist=False))
+
+
+class TrackingSession(db.Model):
+    __tablename__ = 'tracking_sessions'
+
+    session_id           = db.Column(db.String(9),    primary_key=True, default=generate_pk)
+    booking_id           = db.Column(db.String(9),    db.ForeignKey('bookings.booking_id'), nullable=False)
+    staff_user_id        = db.Column(db.String(9),    db.ForeignKey('users.user_id'), nullable=False)
+    tracking_token       = db.Column(db.String(64),   nullable=True)
+    status               = db.Column(db.Enum('active', 'ended', 'expired', 'error'), nullable=False, default='active')
+    started_at           = db.Column(db.DateTime,     nullable=False)
+    ended_at             = db.Column(db.DateTime,     nullable=True)
+    last_lat             = db.Column(db.Numeric(10, 8), nullable=True)
+    last_lng             = db.Column(db.Numeric(11, 8), nullable=True)
+    last_accuracy_meters = db.Column(db.Numeric(8, 2),  nullable=True)
+    last_updated_at      = db.Column(db.DateTime,     nullable=True)
+    update_count         = db.Column(db.Integer,      nullable=False, default=0)
+    customer_views       = db.Column(db.Integer,      nullable=False, default=0)
+    staff_consent_given  = db.Column(db.Boolean,      nullable=False, default=False)
+    auto_end_reason      = db.Column(db.String(200),  nullable=True)
+
+    booking    = db.relationship('Booking',  backref='tracking_sessions')
+    staff_user = db.relationship('User',     backref='tracking_sessions_led', foreign_keys=[staff_user_id])
+    location   = db.relationship('TrackingLocation', backref='session', uselist=False)
+
+    __table_args__ = (
+        db.Index('ix_tracking_sessions_booking_id', 'booking_id'),
+        db.Index('ix_tracking_sessions_status',     'status'),
+    )
+
+
+class TrackingLocation(db.Model):
+    __tablename__ = 'tracking_locations'
+
+    location_id        = db.Column(db.String(9),    primary_key=True, default=generate_pk)
+    session_id         = db.Column(db.String(9),    db.ForeignKey('tracking_sessions.session_id'), unique=True, nullable=False)
+    booking_id         = db.Column(db.String(9),    db.ForeignKey('bookings.booking_id'), nullable=False)
+    lat                = db.Column(db.Numeric(10, 8), nullable=False)
+    lng                = db.Column(db.Numeric(11, 8), nullable=False)
+    accuracy_meters    = db.Column(db.Numeric(8, 2),  nullable=True)
+    heading            = db.Column(db.Numeric(6, 2),  nullable=True)
+    speed_kmh          = db.Column(db.Numeric(6, 2),  nullable=True)
+    recorded_at        = db.Column(db.DateTime,     nullable=False)
+    server_received_at = db.Column(db.DateTime,     nullable=False)
+
+    __table_args__ = (
+        db.Index('ix_tracking_locations_booking_id', 'booking_id'),
     )

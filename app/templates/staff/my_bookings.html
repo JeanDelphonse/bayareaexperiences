@@ -45,11 +45,17 @@
               <span class="badge bg-success">Confirmed</span>
             </td>
             <td>
-              <a href="{{ url_for('itinerary.staff_briefing', booking_id=b.booking_id) }}"
-                 target="_blank"
-                 class="btn btn-sm btn-outline-warning">
-                View Briefing
-              </a>
+              <div class="d-flex gap-1 flex-wrap">
+                <a href="{{ url_for('itinerary.staff_briefing', booking_id=b.booking_id) }}"
+                   target="_blank"
+                   class="btn btn-sm btn-outline-warning">
+                  View Briefing
+                </a>
+                <a href="{{ url_for('staff_portal.my_booking_detail', booking_id=b.booking_id) }}"
+                   class="btn btn-sm btn-outline-secondary">
+                  &#128205; Track
+                </a>
+              </div>
             </td>
           </tr>
           {% endfor %}

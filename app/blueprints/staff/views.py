@@ -7,7 +7,7 @@ Routes:
   GET  /staff/setup/<token>        — Portal invite setup page
   POST /staff/setup/<token>        — Complete portal account setup
 """
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 
 from flask import render_template, redirect, url_for, flash, request, abort
 from flask_login import login_required, current_user
@@ -71,10 +71,24 @@ def my_booking_detail(booking_id):
     if prov_staff and booking.provider_staff_id != prov_staff.provider_staff_id:
         abort(403)
 
+    # GPS tracking window check (30 min before pickup → 30 min after end)
+    from flask import current_app
+    pre_min  = current_app.config.get('GPS_WINDOW_PRE_MINUTES', 30)
+    post_min = current_app.config.get('GPS_WINDOW_POST_MINUTES', 30)
+    now_utc  = datetime.now(timezone.utc)
+    ts       = booking.timeslot
+    start_dt = datetime.combine(ts.slot_date, ts.start_time, tzinfo=timezone.utc)
+    end_dt   = datetime.combine(ts.slot_date, ts.end_time,   tzinfo=timezone.utc)
+    in_tracking_window = (
+        booking.tracking_enabled and
+        (start_dt - timedelta(minutes=pre_min)) <= now_utc <= (end_dt + timedelta(minutes=post_min))
+    )
+
     return render_template(
         'staff/my_booking_detail.html',
         booking=booking,
         staff_member=bae_staff or prov_staff,
+        in_tracking_window=in_tracking_window,
     )
 
 

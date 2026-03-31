@@ -78,6 +78,28 @@ def _handle_checkout_completed(session):
 
     db.session.commit()
 
+    # Generate GPS tracking token for the customer
+    try:
+        from app.models import BookingTrackingToken
+        from datetime import timedelta
+        import secrets
+        if booking.tracking_enabled and not BookingTrackingToken.query.filter_by(booking_id=booking_id).first():
+            timeslot = booking.timeslot
+            tour_end = datetime.combine(
+                timeslot.slot_date, timeslot.end_time, tzinfo=timezone.utc)
+            ttl_hours = current_app.config.get('GPS_TOKEN_TTL_HOURS', 6)
+            tracking_token = BookingTrackingToken(
+                token_id   = generate_pk(),
+                booking_id = booking_id,
+                token      = secrets.token_hex(32),
+                expires_at = tour_end + timedelta(hours=ttl_hours),
+                is_active  = False,
+            )
+            db.session.add(tracking_token)
+            db.session.commit()
+    except Exception:
+        pass
+
     # Queue itinerary generation asynchronously
     try:
         from app.itinerary.tasks import queue_itinerary_generation

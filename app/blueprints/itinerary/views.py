@@ -60,8 +60,23 @@ def staff_briefing(booking_id):
         except Exception:
             pass
 
+    # GPS tracking window check
+    from datetime import datetime, timezone, timedelta
+    from flask import current_app
+    pre_min  = current_app.config.get('GPS_WINDOW_PRE_MINUTES', 30)
+    post_min = current_app.config.get('GPS_WINDOW_POST_MINUTES', 30)
+    now_utc  = datetime.now(timezone.utc)
+    ts       = booking.timeslot
+    start_dt = datetime.combine(ts.slot_date, ts.start_time, tzinfo=timezone.utc)
+    end_dt   = datetime.combine(ts.slot_date, ts.end_time,   tzinfo=timezone.utc)
+    in_tracking_window = (
+        booking.tracking_enabled and
+        (start_dt - timedelta(minutes=pre_min)) <= now_utc <= (end_dt + timedelta(minutes=post_min))
+    )
+
     return render_template('itinerary/staff_briefing.html',
-                           booking=booking, itinerary=itinerary)
+                           booking=booking, itinerary=itinerary,
+                           in_tracking_window=in_tracking_window)
 
 
 # ── Admin: list all itineraries ───────────────────────────────────────────────

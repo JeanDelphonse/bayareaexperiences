@@ -37,6 +37,7 @@ def booking_detail(booking_id):
             itinerary = json.loads(itinerary_record.itinerary_json)
         except (ValueError, TypeError):
             itinerary = None
+    from datetime import date
     return render_template(
         'account/booking_detail.html',
         booking=booking,
@@ -44,6 +45,7 @@ def booking_detail(booking_id):
         itinerary_version=itinerary_record.version if itinerary_record else None,
         itinerary_generated_at=itinerary_record.generated_at if itinerary_record else None,
         is_fallback=itinerary_record.is_fallback if itinerary_record else False,
+        today=date.today(),
     )
 
 

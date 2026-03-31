@@ -39,6 +39,16 @@ class Config:
     TRACKING_RETENTION_DAYS  = int(os.environ.get('TRACKING_RETENTION_DAYS', 90))
     GEOIP_PROVIDER           = os.environ.get('GEOIP_PROVIDER', 'ip-api')
 
+    # GPS Tracking
+    GOOGLE_MAPS_API_KEY              = os.environ.get('GOOGLE_MAPS_API_KEY', '')
+    GPS_TRACKING_ENABLED             = os.environ.get('GPS_TRACKING_ENABLED', 'True') == 'True'
+    GPS_WINDOW_PRE_MINUTES           = int(os.environ.get('TRACKING_WINDOW_PRE_MINUTES', 30))
+    GPS_WINDOW_POST_MINUTES          = int(os.environ.get('TRACKING_WINDOW_POST_MINUTES', 30))
+    GPS_IDLE_TIMEOUT_MINUTES         = int(os.environ.get('TRACKING_IDLE_TIMEOUT_MINUTES', 30))
+    GPS_TOKEN_TTL_HOURS              = int(os.environ.get('TRACKING_TOKEN_TTL_HOURS', 6))
+    GPS_DATA_PURGE_HOURS             = int(os.environ.get('TRACKING_DATA_PURGE_HOURS', 2))
+    GPS_UPDATE_INTERVAL_SECONDS      = int(os.environ.get('TRACKING_UPDATE_INTERVAL_SECONDS', 10))
+
     # Marketplace / Provider tiers
     STRIPE_PRO_MONTHLY_PRICE_ID = os.environ.get('STRIPE_PRO_MONTHLY_PRICE_ID', '')
     STRIPE_PRO_ANNUAL_PRICE_ID  = os.environ.get('STRIPE_PRO_ANNUAL_PRICE_ID', '')

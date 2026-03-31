@@ -63,6 +63,62 @@
 
 <div class="brief-body">
 
+  {# ── GPS Tracking Widget ────────────────────────────────────────────── #}
+  {% if booking.tracking_enabled and in_tracking_window %}
+  <div style="margin-bottom:16px;">
+
+    <div id="trackStart">
+      <div style="background:#EFF4F9;border-radius:10px;padding:16px;margin-bottom:12px;">
+        <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;
+                      color:#1C1C1E;cursor:pointer;">
+          <input type="checkbox" id="consentCheck" style="margin-top:2px;accent-color:#C9952A;">
+          <span>I agree to share my location with the customer during this tour.
+                My location will only be visible while tracking is active and will
+                not be stored after the tour ends.</span>
+        </label>
+      </div>
+      <button id="startBtn" onclick="startTracking()" disabled
+              style="background:#C9952A;color:#fff;border:none;width:100%;
+                     padding:14px;border-radius:9999px;font-size:16px;
+                     font-weight:500;cursor:pointer;opacity:0.45;">
+        &#128205; Start Tracking
+      </button>
+    </div>
+
+    <div id="trackActive" style="display:none;">
+      <div style="background:#EAF4EE;border-radius:10px;padding:14px;
+                  display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:14px;font-weight:500;color:#1A5230;">&#128994; Tracking Active</div>
+          <div id="trackStatus" style="font-size:12px;color:#2D7A4F;margin-top:3px;">Acquiring GPS&hellip;</div>
+        </div>
+        <button onclick="stopTracking()"
+                style="background:#B03A2E;color:#fff;border:none;
+                       padding:8px 16px;border-radius:9999px;font-size:13px;cursor:pointer;">
+          Stop
+        </button>
+      </div>
+    </div>
+
+    <div id="trackEnded" style="display:none;">
+      <div style="background:#F2F5F8;border-radius:10px;padding:12px;
+                  font-size:13px;color:#5A6A7A;text-align:center;">
+        Tracking ended. Customer can no longer see your location.
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    var BOOKING_ID                  = '{{ booking.booking_id }}';
+    var GPS_UPDATE_INTERVAL_SECONDS = 10;
+    var CSRF_TOKEN                  = '{{ csrf_token() }}';
+  </script>
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+  <script src="/static/js/staff_tracking.js"></script>
+  {% endif %}
+  {# ── End GPS Tracking Widget ─────────────────────────────────────────── #}
+
   {% if itinerary %}
 
   {# Pickup box #}

@@ -5,7 +5,7 @@ import pymysql
 pymysql.install_as_MySQLdb()
 from flask import Flask, session, g
 from config import config
-from app.extensions import db, login_manager, bcrypt, mail, csrf, limiter
+from app.extensions import db, login_manager, bcrypt, mail, csrf, limiter, socketio
 from app.models import CartItem
 
 
@@ -20,6 +20,12 @@ def create_app(config_name='default'):
     mail.init_app(app)
     csrf.init_app(app)
     limiter.init_app(app)
+    socketio.init_app(app,
+        cors_allowed_origins='*',
+        async_mode='eventlet',
+        logger=False,
+        engineio_logger=False,
+    )
 
     # Blueprints
     from app.blueprints.main   import main_bp
@@ -54,9 +60,12 @@ def create_app(config_name='default'):
     app.register_blueprint(itinerary_bp)
     app.register_blueprint(staff_bp)
 
-    # Tracking middleware
+    # Tracking middleware (analytics)
     from app.tracking.middleware import init_tracking
     init_tracking(app)
+
+    # GPS SocketIO event handlers — import to register decorators
+    from app.blueprints.tracking import socketio_handlers  # noqa: F401
 
     # Template filters
     @app.template_filter('format_number')

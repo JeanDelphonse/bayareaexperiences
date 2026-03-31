@@ -43,6 +43,8 @@
         <dd class="col-sm-8">{{ booking.special_requests }}</dd>
         {% endif %}
       </dl>
+      {% include 'staff/tracking_widget.html' %}
+
       <a href="{{ url_for('itinerary.staff_briefing', booking_id=booking.booking_id) }}"
          target="_blank"
          class="btn btn-warning">

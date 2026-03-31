@@ -44,10 +44,16 @@
           <a class="nav-link {% if request.endpoint == 'contact.contact' %}active{% endif %}"
              href="{{ url_for('contact.contact') }}">Contact</a>
         </li>
-        <li class="nav-item{% if not (current_user.is_authenticated and current_user.provider) %} dropdown{% endif %}">
+        <li class="nav-item dropdown">
           {% if current_user.is_authenticated and current_user.provider %}
-          <a class="nav-link {% if 'providers' in request.endpoint %}active{% endif %}"
-             href="{{ url_for('providers.dashboard') }}">Provider Hub</a>
+          <a class="nav-link dropdown-toggle {% if 'providers' in request.endpoint %}active{% endif %}"
+             href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Provider Hub</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{{ url_for('providers.dashboard') }}">Dashboard</a></li>
+            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#providerLearnModal">
+              <i class="bi bi-play-circle me-1"></i>Learn
+            </a></li>
+          </ul>
           {% else %}
           <a class="nav-link dropdown-toggle {% if request.endpoint == 'providers.apply' %}active{% endif %}"
              href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Become a Provider</a>
@@ -130,6 +136,11 @@
       </div>
       <div class="col-md-6 text-center text-md-end">
         <small>
+          {% if current_user.is_authenticated and current_user.provider %}
+          <a href="{{ url_for('providers.dashboard') }}" class="text-light text-decoration-none me-3">Provider Hub</a>
+          {% else %}
+          <a href="{{ url_for('providers.apply') }}" class="text-light text-decoration-none me-3">Become a Provider</a>
+          {% endif %}
           <a href="{{ url_for('contact.contact') }}" class="text-light text-decoration-none me-3">Contact Us</a>
           Powered by <a href="https://colloquyai.com" class="text-warning text-decoration-none"
                         target="_blank" rel="noopener">ColloquyAI</a>

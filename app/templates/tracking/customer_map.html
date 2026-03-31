@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Track Your Guide — Bay Area Experiences</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', Arial, sans-serif;
+           background:#1A3557; }
+    #header {
+      background:#1A3557; padding:14px 20px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    #header .brand { color:#fff; font-size:15px; font-weight:500; }
+    #header .brand span { color:#F5C97A; }
+    #header .exp-name { color:rgba(255,255,255,.6); font-size:12px; }
+    #status-bar {
+      padding:10px 20px; font-size:13px; font-weight:500;
+      display:flex; align-items:center; gap:8px;
+    }
+    #status-bar.active  { background:#EAF4EE; color:#1A5230; }
+    #status-bar.waiting { background:#EFF4F9; color:#1A3557; }
+    #status-bar.signal  { background:#FDF6EC; color:#8B6419; }
+    #status-bar.ended   { background:#EAF4EE; color:#1A5230; }
+    #map { width:100%; height:calc(100vh - 120px); }
+    #info-panel {
+      position:fixed; bottom:0; left:0; right:0;
+      background:#fff; border-radius:14px 14px 0 0;
+      padding:16px 20px; box-shadow:0 -4px 20px rgba(0,0,0,.1);
+      z-index:10;
+    }
+    #eta-text  { font-size:26px; font-weight:500; color:#1A3557; }
+    #eta-sub   { font-size:13px; color:#5A6A7A; margin-top:4px; }
+    #pickup-info { margin-top:12px; font-size:14px; color:#1C1C1E; }
+  </style>
+</head>
+<body>
+
+<div id="header">
+  <span class="brand">Bay Area <span>Experiences</span></span>
+  <span class="exp-name">{{ booking.experience.name }}</span>
+</div>
+
+<div id="status-bar" class="{{ 'active' if session else 'waiting' }}">
+  {% if session %}
+    <span>&#128994;</span> Your guide is on the way
+  {% else %}
+    <span>&#128336;</span>
+    Pickup at {{ booking.timeslot.start_time.strftime('%I:%M %p') }}
+    &bull; Tracking starts soon
+  {% endif %}
+</div>
+
+<div id="map"></div>
+
+<div id="info-panel">
+  <div id="eta-text">
+    {% if session %}Calculating ETA&hellip;{% else %}
+    Pickup: {{ booking.timeslot.start_time.strftime('%I:%M %p') }}
+    {% endif %}
+  </div>
+  <div id="eta-sub">
+    {% if session %}
+      Your guide is heading to your pickup location
+    {% else %}
+      {{ booking.experience.name }}
+    {% endif %}
+  </div>
+  <div id="pickup-info">
+    &#128205; {{ booking.pickup_address or booking.pickup_city }}
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+<script
+  src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&callback=initMap&libraries=geometry"
+  async defer></script>
+
+<script>
+var SESSION_ID    = '{{ session.session_id if session else "" }}';
+var BOOKING_TOKEN = '{{ token }}';
+var PICKUP_LAT    = {{ pickup_lat or 37.7749 }};
+var PICKUP_LNG    = {{ pickup_lng or -122.4194 }};
+var INITIAL_LAT   = {{ session.last_lat | float if session and session.last_lat else 'null' }};
+var INITIAL_LNG   = {{ session.last_lng | float if session and session.last_lng else 'null' }};
+
+var map, driverMarker, pickupMarker, _signalTimer;
+
+function initMap() {
+  var center = INITIAL_LAT
+    ? { lat: INITIAL_LAT, lng: INITIAL_LNG }
+    : { lat: PICKUP_LAT,  lng: PICKUP_LNG  };
+
+  map = new google.maps.Map(document.getElementById('map'), {
+    zoom: 13,
+    center: center,
+    disableDefaultUI: true,
+    zoomControl: true,
+    styles: [
+      { featureType: 'poi',     stylers: [{ visibility: 'off' }] },
+      { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+    ],
+  });
+
+  // Gold pickup pin
+  pickupMarker = new google.maps.Marker({
+    position: { lat: PICKUP_LAT, lng: PICKUP_LNG },
+    map: map,
+    title: 'Your Pickup Location',
+    icon: {
+      path: google.maps.SymbolPath.CIRCLE,
+      scale: 10,
+      fillColor: '#C9952A', fillOpacity: 1,
+      strokeColor: '#fff', strokeWeight: 2,
+    },
+  });
+
+  if (INITIAL_LAT) {
+    _placeDriverMarker({ lat: INITIAL_LAT, lng: INITIAL_LNG });
+    calculateETA(INITIAL_LAT, INITIAL_LNG);
+  }
+
+  if (SESSION_ID) { connectSocket(); }
+}
+
+function _placeDriverMarker(pos) {
+  if (driverMarker) {
+    _animateMarker(driverMarker, pos);
+  } else {
+    driverMarker = new google.maps.Marker({
+      position: pos,
+      map: map,
+      title: 'Your Guide',
+      label: { text: '&#128652;', fontSize: '22px' },
+    });
+  }
+}
+
+function connectSocket() {
+  var socket = io('/tracking', { transports: ['websocket', 'polling'] });
+
+  socket.on('connect', function () {
+    socket.emit('join_session', { session_id: SESSION_ID, role: 'viewer' });
+  });
+
+  socket.on('driver_location', function (data) {
+    var pos = { lat: data.lat, lng: data.lng };
+    _placeDriverMarker(pos);
+    map.panTo(pos);
+    calculateETA(data.lat, data.lng);
+    updateStatusBar('active');
+    _resetSignalTimer(socket);
+  });
+
+  socket.on('tracking_ended', function () {
+    updateStatusBar('ended');
+    document.getElementById('eta-text').textContent = 'Your guide has arrived!';
+    document.getElementById('eta-sub').textContent  = 'Enjoy your Bay Area Experience.';
+  });
+
+  _resetSignalTimer(socket);
+}
+
+function _resetSignalTimer(socket) {
+  clearTimeout(_signalTimer);
+  _signalTimer = setTimeout(function () {
+    updateStatusBar('signal');
+  }, 2 * 60 * 1000); // amber after 2 min no update
+}
+
+function calculateETA(driverLat, driverLng) {
+  var service = new google.maps.DistanceMatrixService();
+  service.getDistanceMatrix({
+    origins:      [{ lat: driverLat, lng: driverLng }],
+    destinations: [{ lat: PICKUP_LAT, lng: PICKUP_LNG }],
+    travelMode:   google.maps.TravelMode.DRIVING,
+  }, function (resp, status) {
+    if (status !== 'OK') { return; }
+    var el = resp.rows[0].elements[0];
+    if (el.status === 'OK') {
+      document.getElementById('eta-text').textContent = el.duration.text + ' away';
+      document.getElementById('eta-sub').textContent  =
+        el.distance.text + ' \u00b7 Your guide is on the way';
+    }
+  });
+}
+
+function _animateMarker(marker, target) {
+  var start  = marker.getPosition();
+  var frames = 20;
+  var i      = 0;
+  var iv = setInterval(function () {
+    i++;
+    var lat = start.lat() + (target.lat - start.lat()) * (i / frames);
+    var lng = start.lng() + (target.lng - start.lng()) * (i / frames);
+    marker.setPosition({ lat: lat, lng: lng });
+    if (i >= frames) { clearInterval(iv); }
+  }, 50);
+}
+
+function updateStatusBar(state) {
+  var bar  = document.getElementById('status-bar');
+  bar.className = state;
+  var msgs = {
+    active:  '<span>&#128994;</span> Your guide is on the way',
+    signal:  '<span>&#128992;</span> Signal lost \u2014 last known position shown',
+    ended:   '<span>&#128994;</span> Your guide has arrived',
+    waiting: '<span>&#128336;</span> Tracking will begin at pickup time',
+  };
+  bar.innerHTML = msgs[state] || msgs.waiting;
+}
+</script>
+</body>
+</html>

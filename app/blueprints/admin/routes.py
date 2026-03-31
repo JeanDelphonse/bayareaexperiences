@@ -781,6 +781,62 @@ def test_mail():
     return f'<pre>{lines}\n\nResult: {result}</pre>'
 
 
+# ── GPS Tracking ──────────────────────────────────────────────────────────────
+
+@admin_bp.route('/admin/tracking')
+@login_required
+@admin_required
+def admin_tracking():
+    from app.models import TrackingSession
+    active_sessions = TrackingSession.query.filter_by(
+        status='active').order_by(TrackingSession.started_at.desc()).all()
+    from datetime import datetime, timezone
+    return render_template(
+        'admin/tracking.html',
+        sessions=active_sessions,
+        now=datetime.now(timezone.utc),
+        GOOGLE_MAPS_API_KEY=current_app.config.get('GOOGLE_MAPS_API_KEY', ''),
+    )
+
+
+@admin_bp.route('/admin/tracking/active.json')
+@login_required
+@admin_required
+def admin_tracking_json():
+    from app.models import TrackingSession
+    sessions = TrackingSession.query.filter_by(status='active').all()
+    return jsonify([{
+        'session_id':      s.session_id,
+        'booking_id':      s.booking_id,
+        'lat':             float(s.last_lat)  if s.last_lat  else None,
+        'lng':             float(s.last_lng)  if s.last_lng  else None,
+        'last_updated_at': s.last_updated_at.isoformat() if s.last_updated_at else None,
+        'staff_name':      s.staff_user.first_name if s.staff_user else 'Unknown',
+        'experience':      s.booking.experience.name,
+        'pickup_city':     s.booking.pickup_city,
+        'pickup_time':     s.booking.timeslot.start_time.strftime('%I:%M %p'),
+        'customer_name':   f'{s.booking.guest_first_name} {s.booking.guest_last_name}',
+    } for s in sessions])
+
+
+@admin_bp.route('/admin/tracking/<session_id>/end', methods=['POST'])
+@login_required
+@admin_required
+def admin_end_session(session_id):
+    from app.models import TrackingSession
+    from app.extensions import socketio
+    from datetime import datetime, timezone
+    gps_session = TrackingSession.query.filter_by(
+        session_id=session_id, status='active').first_or_404()
+    gps_session.status          = 'ended'
+    gps_session.ended_at        = datetime.now(timezone.utc)
+    gps_session.auto_end_reason = 'admin_terminated'
+    db.session.commit()
+    socketio.emit('tracking_ended', {},
+                  room=f'tracking_{session_id}', namespace='/tracking')
+    return jsonify({'ok': True})
+
+
 def _update_review_rating(experience_id):
     from app.models import ExperienceReview, Experience
     result = db.session.query(

@@ -1,0 +1,180 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Live GPS Tracking — Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="fw-bold fs-4 mb-0">Live GPS Tracking</h1>
+  <span class="badge bg-success fs-6">{{ sessions | length }} Active</span>
+</div>
+
+<div class="row g-4">
+
+  {# ── Left panel: active session list ─────────────────────────────── #}
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body p-0">
+        {% if sessions %}
+        <div class="list-group list-group-flush" id="sessionList">
+          {% for s in sessions %}
+          {% set mins_ago = ((now - s.last_updated_at).total_seconds() // 60) | int if s.last_updated_at else 999 %}
+          <div class="list-group-item py-3 px-3" id="session-row-{{ s.session_id }}">
+            <div class="d-flex justify-content-between align-items-start mb-1">
+              <div class="fw-semibold" style="font-size:14px;color:#1A3557;">
+                {% if mins_ago < 2 %}
+                  <span class="text-success me-1">&#9679;</span>
+                {% elif mins_ago < 5 %}
+                  <span class="text-warning me-1">&#9679;</span>
+                {% else %}
+                  <span class="text-danger me-1">&#9679;</span>
+                {% endif %}
+                {{ s.staff_user.first_name if s.staff_user else 'Unknown' }}
+              </div>
+              <small class="text-muted">
+                {% if s.last_updated_at %}
+                  {{ mins_ago }}m ago
+                {% else %}
+                  No signal
+                {% endif %}
+              </small>
+            </div>
+            <div style="font-size:12px;color:#5A6A7A;">
+              {{ s.booking.experience.name | truncate(32) }}<br>
+              {{ s.booking.guest_first_name }} {{ s.booking.guest_last_name }} &bull;
+              {{ s.booking.timeslot.start_time.strftime('%I:%M %p') }}<br>
+              {{ s.booking.pickup_city }}
+            </div>
+            <div class="d-flex gap-2 mt-2">
+              <a href="{{ url_for('admin.booking_detail', booking_id=s.booking_id) }}"
+                 class="btn btn-outline-secondary btn-sm" style="font-size:11px;">
+                View Booking
+              </a>
+              <button onclick="adminEndSession('{{ s.session_id }}')"
+                      class="btn btn-outline-danger btn-sm" style="font-size:11px;">
+                End Session
+              </button>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-muted" style="font-size:14px;">
+          No active tracking sessions right now.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Right panel: live map ────────────────────────────────────────── #}
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-0" style="border-radius:12px;overflow:hidden;">
+        <div id="adminMap" style="width:100%;height:520px;"></div>
+      </div>
+    </div>
+    <small class="text-muted d-block mt-2">
+      Auto-refreshes every 15 seconds &mdash;
+      <span id="lastRefresh"></span>
+    </small>
+  </div>
+
+</div>
+
+<script
+  src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&callback=initAdminMap"
+  async defer></script>
+
+<script>
+var _map, _markers = {}, _infoWindows = {};
+var _sessions = {{ sessions | tojson(default=str) if sessions else '[]' }};
+
+function initAdminMap() {
+  _map = new google.maps.Map(document.getElementById('adminMap'), {
+    zoom: 10,
+    center: { lat: 37.5, lng: -122.0 },
+    disableDefaultUI: true,
+    zoomControl: true,
+  });
+
+  _sessions.forEach(function (s) {
+    if (s.lat && s.lng) { _updatePin(s); }
+  });
+}
+
+function _updatePin(s) {
+  var pos = { lat: s.lat, lng: s.lng };
+  var label = s.staff_name || '?';
+
+  if (_markers[s.session_id]) {
+    _markers[s.session_id].setPosition(pos);
+  } else {
+    _markers[s.session_id] = new google.maps.Marker({
+      position: pos,
+      map: _map,
+      title: label,
+      label: { text: label[0], color: '#fff', fontWeight: 'bold' },
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 14,
+        fillColor: '#1A3557', fillOpacity: 1,
+        strokeColor: '#C9952A', strokeWeight: 2,
+      },
+    });
+
+    var iw = new google.maps.InfoWindow({
+      content:
+        '<div style="font-size:13px;line-height:1.6;">' +
+        '<strong>' + (s.staff_name || 'Staff') + '</strong><br>' +
+        (s.experience || '') + '<br>' +
+        (s.customer_name || '') + '<br>' +
+        'Pickup: ' + (s.pickup_time || '') + '<br>' +
+        '<a href="/admin/bookings/' + s.booking_id + '">View Booking</a>' +
+        '</div>',
+    });
+
+    _markers[s.session_id].addListener('click', function () {
+      Object.values(_infoWindows).forEach(function (w) { w.close(); });
+      iw.open(_map, _markers[s.session_id]);
+    });
+
+    _infoWindows[s.session_id] = iw;
+  }
+}
+
+/* Poll for updates every 15 seconds */
+function refreshSessions() {
+  fetch('/admin/tracking/active.json')
+    .then(function (r) { return r.json(); })
+    .then(function (sessions) {
+      sessions.forEach(function (s) {
+        if (s.lat && s.lng) { _updatePin(s); }
+      });
+      document.getElementById('lastRefresh').textContent =
+        'Last refreshed: ' + new Date().toLocaleTimeString();
+    })
+    .catch(function () {});
+}
+
+setInterval(refreshSessions, 15000);
+document.getElementById('lastRefresh').textContent =
+  'Last refreshed: ' + new Date().toLocaleTimeString();
+
+/* Admin force-end a session */
+function adminEndSession(sessionId) {
+  if (!confirm('End this tracking session?')) { return; }
+  fetch('/admin/tracking/' + sessionId + '/end', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content },
+  }).then(function (r) {
+    if (r.ok) {
+      var row = document.getElementById('session-row-' + sessionId);
+      if (row) { row.remove(); }
+      if (_markers[sessionId]) {
+        _markers[sessionId].setMap(null);
+        delete _markers[sessionId];
+      }
+    }
+  });
+}
+</script>
+{% endblock %}
