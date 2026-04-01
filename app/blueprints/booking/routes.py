@@ -54,7 +54,7 @@ def get_timeslots():
 @booking_bp.route('/booking/<experience_id>/preferences', methods=['GET'])
 def booking_preferences(experience_id):
     """Step 3: Persona & preference selection."""
-    from app.preferences.engine import PERSONAS, INTEREST_TAG_GROUPS
+    from app.preferences.engine import PERSONAS
     experience = Experience.query.filter_by(
         experience_id=experience_id, is_active=True).first_or_404()
 
@@ -74,45 +74,30 @@ def booking_preferences(experience_id):
     session['pref_tour_date']     = tour_date
     session.modified = True
 
-    all_tags = [tag for group in INTEREST_TAG_GROUPS.values() for tag in group]
-
     skip_url = url_for('booking.booking_preferences_skip', experience_id=experience_id)
 
     # Pre-fill from saved profile for logged-in users
-    from flask_login import current_user
     prefilled_personas = []
-    prefilled_tags     = []
     prefilled_notes    = ''
-    has_saved_profile  = False
-    user_pref_profile  = None
 
     if current_user.is_authenticated:
         from app.models import UserPreferenceProfile
-        user_pref_profile = UserPreferenceProfile.query.filter_by(
+        profile = UserPreferenceProfile.query.filter_by(
             user_id=current_user.user_id).first()
-        if user_pref_profile:
-            has_saved_profile = True
-            if user_pref_profile.personas:
+        if profile:
+            if profile.personas:
                 prefilled_personas = [p.strip() for p in
-                                      user_pref_profile.personas.split(',') if p.strip()]
-            if user_pref_profile.interest_tags:
-                prefilled_tags = [t.strip() for t in
-                                  user_pref_profile.interest_tags.split(',') if t.strip()]
-            prefilled_notes = user_pref_profile.preference_notes or ''
+                                      profile.personas.split(',') if p.strip()]
+            prefilled_notes = profile.preference_notes or ''
 
     return render_template('booking/preferences.html',
                            experience=experience,
                            timeslot=timeslot,
                            personas=PERSONAS,
-                           interest_tags=all_tags,
                            pickup_city=pickup_city,
-                           tour_date=str(timeslot.slot_date),
                            skip_url=skip_url,
                            prefilled_personas=prefilled_personas,
-                           prefilled_tags=prefilled_tags,
-                           prefilled_notes=prefilled_notes,
-                           has_saved_profile=has_saved_profile,
-                           user_pref_profile=user_pref_profile)
+                           prefilled_notes=prefilled_notes)
 
 
 @booking_bp.route('/booking/<experience_id>/preferences', methods=['POST'])
