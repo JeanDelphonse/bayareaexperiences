@@ -25,10 +25,17 @@
           <div class="bae-persona-card{% if persona.id in prefilled_personas %} selected{% endif %}"
                data-id="{{ persona.id }}"
                onclick="togglePersona(this)">
-            <div class="bae-persona-icon">{{ persona.emoji }}</div>
-            <div class="bae-persona-name">{{ persona.label }}</div>
-            <div class="bae-persona-desc">{{ persona.description }}</div>
-            <div class="bae-persona-check">&#10003;</div>
+            <div style="display:flex;align-items:flex-start;gap:10px;">
+              <input type="checkbox" class="persona-cb" data-id="{{ persona.id }}"
+                     {% if persona.id in prefilled_personas %}checked{% endif %}
+                     onclick="event.stopPropagation()"
+                     style="margin-top:3px;width:16px;height:16px;flex-shrink:0;accent-color:#C9952A;cursor:pointer;">
+              <div>
+                <div class="bae-persona-icon" style="margin-bottom:2px;">{{ persona.emoji }}</div>
+                <div class="bae-persona-name">{{ persona.label }}</div>
+                <div class="bae-persona-desc">{{ persona.description }}</div>
+              </div>
+            </div>
           </div>
           {% endfor %}
         </div>
@@ -74,8 +81,10 @@ document.getElementById('personasInput').value = selectedPersonas.join(',');
 
 function togglePersona(card) {
   const id = card.dataset.id;
+  const cb = card.querySelector('.persona-cb');
   if (card.classList.contains('selected')) {
     card.classList.remove('selected');
+    cb.checked = false;
     selectedPersonas = selectedPersonas.filter(p => p !== id);
     document.getElementById('personaLimitMsg').style.display = 'none';
   } else {
@@ -84,6 +93,7 @@ function togglePersona(card) {
       return;
     }
     card.classList.add('selected');
+    cb.checked = true;
     selectedPersonas.push(id);
     document.getElementById('personaLimitMsg').style.display = 'none';
   }
