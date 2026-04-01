@@ -437,10 +437,8 @@ def confirm_booking():
 
 @booking_bp.route('/booking/confirm/<booking_id>')
 def booking_confirm(booking_id):
-    from app.itinerary.storage import get_itinerary_data
-    booking   = Booking.query.get_or_404(booking_id)
-    itinerary = get_itinerary_data(booking_id)
-    return render_template('booking/confirm.html', booking=booking, itinerary=itinerary)
+    booking = Booking.query.get_or_404(booking_id)
+    return render_template('booking/confirm.html', booking=booking)
 
 
 @booking_bp.route('/booking/ics/<booking_id>')

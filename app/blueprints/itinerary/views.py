@@ -43,6 +43,25 @@ def itinerary_status(booking_id):
     return jsonify({'ready': record is not None})
 
 
+# ── AJAX fragment — rendered itinerary HTML for async injection ───────────────
+
+@itinerary_bp.route('/booking/<booking_id>/itinerary/fragment')
+def itinerary_fragment(booking_id):
+    import json as _json
+    from app.models import Booking
+    from app.itinerary.storage import get_active_itinerary
+    record = get_active_itinerary(booking_id)
+    if not record:
+        return jsonify({'ready': False})
+    try:
+        itinerary = _json.loads(record.itinerary_json)
+    except Exception:
+        return jsonify({'ready': False})
+    html = render_template('itinerary/_itinerary_panel.html', itinerary=itinerary)
+    view_url = url_for('itinerary.booking_itinerary', booking_id=booking_id)
+    return jsonify({'ready': True, 'html': html, 'view_url': view_url})
+
+
 # ── Staff briefing page — no login required ───────────────────────────────────
 
 @itinerary_bp.route('/staff/briefing/<booking_id>')
