@@ -26,6 +26,15 @@ def add():
     exp  = Experience.query.filter_by(experience_id=experience_id, is_active=True).first_or_404()
     slot = Timeslot.query.filter_by(timeslot_id=timeslot_id).first_or_404()
 
+    # Enforce 1-item cart limit
+    if current_user.is_authenticated:
+        existing = CartItem.query.filter_by(user_id=current_user.user_id).count()
+    else:
+        existing = len(_get_session_cart())
+    if existing >= 1:
+        flash('Your cart already has an experience. Please complete or remove it before adding another.', 'warning')
+        return redirect(url_for('cart.view'))
+
     # Save pending item to session; redirect to preferences step
     session['pending_cart_item'] = {
         'experience_id':  experience_id,

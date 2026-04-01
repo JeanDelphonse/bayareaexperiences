@@ -205,6 +205,13 @@ def _do_cart_add(experience_id, timeslot_id, guest_count, pickup_city, pickup_ad
     if not exp or not slot:
         return
     if current_user.is_authenticated:
+        if CartItem.query.filter_by(user_id=current_user.user_id).count() >= 1:
+            return
+    else:
+        from flask import session as _session
+        if len(_session.get('cart', [])) >= 1:
+            return
+    if current_user.is_authenticated:
         item = CartItem(
             cart_item_id=generate_pk(),
             user_id=current_user.user_id,
