@@ -63,7 +63,7 @@ def view():
                 'guest_count':  item.guest_count,
                 'pickup_city':  item.pickup_city,
                 'pickup_address': item.pickup_address,
-                'price':        float(item.experience.price),
+                'price':        float(item.experience.effective_price),
             })
     else:
         cart = _get_session_cart()
@@ -79,7 +79,7 @@ def view():
                     'guest_count':  item['guest_count'],
                     'pickup_city':  item['pickup_city'],
                     'pickup_address': item.get('pickup_address', ''),
-                    'price':        float(exp.price),
+                    'price':        float(exp.effective_price),
                 })
 
     total = sum(i['price'] for i in cart_data)

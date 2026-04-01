@@ -277,7 +277,7 @@ def confirm_booking():
         flash('Sorry, that timeslot just became fully booked. Please choose another.', 'danger')
         return redirect(url_for('booking.book', experience_id=experience_id))
 
-    amount_total = float(exp.price)
+    amount_total = float(exp.effective_price)
     amount_paid  = amount_total if payment_intent_id else 0.0
     amount_due   = 0.0 if payment_intent_id else amount_total
     payment_status = 'paid' if payment_intent_id else ('offline' if exp.payment_mode == 'offline' else 'pending')
