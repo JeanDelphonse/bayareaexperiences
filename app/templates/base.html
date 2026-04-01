@@ -23,7 +23,11 @@
 <!-- ── Navigation ─────────────────────────────────────────────────────────── -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
   <div class="container">
-    <a class="navbar-brand fw-bold" href="{{ url_for('main.index') }}">Bay Area Experiences</a>
+    <a class="navbar-brand" href="{{ url_for('main.index') }}">
+      <img src="{{ url_for('static', filename='images/bae_logo.jpg') }}"
+           alt="Bay Area Experiences"
+           style="height:40px;width:auto;object-fit:contain;">
+    </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
             data-bs-target="#navbarMain" aria-controls="navbarMain"
             aria-expanded="false" aria-label="Toggle navigation">
