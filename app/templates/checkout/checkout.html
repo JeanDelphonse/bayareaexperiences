@@ -154,6 +154,12 @@
 {% if stripe_key %}
 <script>
 const stripe = Stripe('{{ stripe_key }}');
+
+// Clear validation state when user edits a field
+['first_name','last_name','email','phone'].forEach(n => {
+  const el = document.querySelector(`[name="${n}"]`);
+  if (el) el.addEventListener('input', () => el.classList.remove('is-invalid'));
+});
 let elements;
 
 const msgEl  = document.getElementById('payment-message');
@@ -200,6 +206,33 @@ if (csFromUrl && rdStatus === 'succeeded' && piFromUrl) {
 document.getElementById('paymentForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   msgEl.style.display = 'none';
+
+  // Validate required contact fields before touching Stripe
+  const fields = [
+    {name: 'first_name', label: 'First name'},
+    {name: 'last_name',  label: 'Last name'},
+    {name: 'email',      label: 'Email'},
+    {name: 'phone',      label: 'Phone'},
+  ];
+  let valid = true;
+  fields.forEach(f => {
+    const el = document.querySelector(`[name="${f.name}"]`);
+    if (!el) return;
+    el.classList.remove('is-invalid');
+    if (!el.value.trim()) {
+      el.classList.add('is-invalid');
+      valid = false;
+    }
+  });
+  const emailEl = document.querySelector('[name="email"]');
+  if (emailEl && emailEl.value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEl.value.trim())) {
+    emailEl.classList.add('is-invalid');
+    valid = false;
+  }
+  if (!valid) {
+    showError('Please fill in all required fields before paying.');
+    return;
+  }
 
   if (!elements) {
     showError('Payment form is not ready yet. Please wait a moment and try again.');
