@@ -31,7 +31,9 @@ def dashboard():
     week_start       = date.today() - timedelta(days=date.today().weekday())
     week_bookings    = Booking.query.join(Timeslot).filter(
         Timeslot.slot_date >= week_start).count()
-    total_revenue    = db.session.query(func.sum(Booking.amount_paid)).scalar() or 0
+    total_revenue    = db.session.query(
+                           func.sum(Booking.amount_total - Booking.discount_amount - Booking.referral_credit_applied)
+                       ).scalar() or 0
     recent_bookings  = (Booking.query.order_by(Booking.created_at.desc()).limit(10).all())
     null_staff_count = Booking.query.filter(
         Booking.staff_id == None,

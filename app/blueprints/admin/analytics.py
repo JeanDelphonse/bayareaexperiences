@@ -75,7 +75,9 @@ def analytics_overview():
             Booking.created_at <= end_dt,
             Booking.booking_status == 'confirmed').all()
         total_bookings = len(confirmed_bookings)
-        total_revenue  = sum(float(b.amount_total or 0) for b in confirmed_bookings)
+        total_revenue  = sum(
+            float((b.amount_total or 0) - (b.discount_amount or 0) - (b.referral_credit_applied or 0))
+            for b in confirmed_bookings)
         avg_bounce     = 0
         avg_duration   = 0
 
@@ -99,7 +101,7 @@ def analytics_overview():
         for b in confirmed_bookings:
             d = b.created_at.date()
             if d in day_revenue:
-                day_revenue[d] += float(b.amount_total or 0)
+                day_revenue[d] += float((b.amount_total or 0) - (b.discount_amount or 0) - (b.referral_credit_applied or 0))
 
         chart_labels   = [d.strftime('%b %d') for d in sorted(day_counts)]
         chart_sessions = [day_counts[d] for d in sorted(day_counts)]
@@ -209,14 +211,14 @@ def analytics_experiences():
         rows = (db.session.query(
                     Experience.name,
                     func.count(Booking.booking_id).label('completed'),
-                    func.sum(Booking.amount_total).label('revenue'),
+                    func.sum(Booking.amount_total - Booking.discount_amount - Booking.referral_credit_applied).label('revenue'),
                 )
                 .join(Booking, Booking.experience_id == Experience.experience_id)
                 .filter(Booking.created_at >= start_dt,
                         Booking.created_at <= end_dt,
                         Booking.booking_status == 'confirmed')
                 .group_by(Experience.experience_id, Experience.name)
-                .order_by(func.sum(Booking.amount_total).desc())
+                .order_by(func.sum(Booking.amount_total - Booking.discount_amount - Booking.referral_credit_applied).desc())
                 .all())
         # Patch missing columns for template compatibility
         rows = [type('R', (), {
