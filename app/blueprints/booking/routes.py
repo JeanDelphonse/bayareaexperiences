@@ -2,7 +2,7 @@ import threading
 from datetime import date, timedelta
 from flask import (render_template, redirect, url_for, flash,
                    request, jsonify, current_app, session, abort)
-from flask_login import current_user
+from flask_login import current_user, login_required
 from app.blueprints.booking import booking_bp
 from app.extensions import db, mail
 from app.models import Experience, Timeslot, Booking, CartItem, BookingPreferences
@@ -10,6 +10,7 @@ from app.utils import generate_pk, send_email
 
 
 @booking_bp.route('/book/<experience_id>', methods=['GET', 'POST'])
+@login_required
 def book(experience_id):
     exp = Experience.query.filter_by(experience_id=experience_id, is_active=True).first_or_404()
     try:
@@ -246,6 +247,7 @@ def _do_cart_add(experience_id, timeslot_id, guest_count, pickup_city, pickup_ad
 
 
 @booking_bp.route('/book/confirm', methods=['POST'])
+@login_required
 def confirm_booking():
     """Process booking after payment (called post-checkout or for offline/deposit modes)."""
     experience_id     = request.form.get('experience_id')
@@ -264,6 +266,10 @@ def confirm_booking():
     discount_amount   = float(request.form.get('discount_amount', 0) or 0)
     credit_applied    = float(request.form.get('credit_applied', 0) or 0)
     original_amount   = float(request.form.get('original_amount', 0) or 0)
+
+    if not all([first_name, last_name, guest_email, guest_phone]):
+        flash('First name, last name, email, and phone are required.', 'danger')
+        return redirect(url_for('checkout.checkout'))
 
     exp = Experience.query.filter_by(experience_id=experience_id, is_active=True).first_or_404()
 

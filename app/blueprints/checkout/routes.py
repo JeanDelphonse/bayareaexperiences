@@ -1,13 +1,14 @@
 import stripe
 from decimal import Decimal
 from flask import render_template, redirect, url_for, flash, request, current_app, jsonify
-from flask_login import current_user
+from flask_login import current_user, login_required
 from app.blueprints.checkout import checkout_bp
 from app.models import Experience, Timeslot, CartItem
 from app.extensions import db
 
 
 @checkout_bp.route('/checkout')
+@login_required
 def checkout():
     # Build cart preview for order summary
     if current_user.is_authenticated:
@@ -107,6 +108,7 @@ def checkout():
 
 
 @checkout_bp.route('/checkout/create-payment-intent', methods=['POST'])
+@login_required
 def create_payment_intent():
     """Create a Stripe PaymentIntent, routing to provider via Connect if applicable."""
     from decimal import Decimal
