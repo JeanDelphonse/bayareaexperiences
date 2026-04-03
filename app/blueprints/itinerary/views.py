@@ -147,8 +147,9 @@ def admin_regen_itinerary(booking_id):
 
     # Pre-flight: quick ping to Claude before queuing background job.
     # Catches bad keys, quota errors, and model issues before the admin walks away.
+    # 5-second timeout prevents Passenger from killing the connection on slow networks.
     try:
-        _anthropic.Anthropic(api_key=key).messages.create(
+        _anthropic.Anthropic(api_key=key, timeout=5.0).messages.create(
             model='claude-haiku-4-5-20251001',
             max_tokens=1,
             messages=[{'role': 'user', 'content': '1'}],
