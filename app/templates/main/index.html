@@ -71,28 +71,27 @@
 <section class="bae-weather-widget" id="weatherWidget">
   <div class="container">
 
-    <div class="bae-weather-header">
-      <div>
-        <div class="bae-weather-label">&#128205; Weather for your pickup city</div>
-        <div class="bae-city-pills" id="cityPills">
-          {% for city in serving_cities %}
-          <button class="bae-city-pill{% if city.is_default %} active{% endif %}"
-                  data-city="{{ city.name }}"
-                  onclick="selectCity('{{ city.name }}')">{{ city.display }}</button>
-          {% endfor %}
-        </div>
-      </div>
-      <div class="bae-current-conditions" id="currentConditions">
-        <div class="bae-current-emoji" id="currentEmoji">☀️</div>
-        <div>
-          <div class="bae-current-temp" id="currentTemp">—°F</div>
-          <div class="bae-current-cond" id="currentCond">Loading...</div>
-        </div>
+    <div class="bae-weather-city-row">
+      <span class="bae-weather-label">&#128205; Pickup city forecast</span>
+      <div class="bae-city-pills" id="cityPills">
+        {% for city in serving_cities %}
+        <button class="bae-city-pill{% if city.is_default %} active{% endif %}"
+                data-city="{{ city.name }}"
+                onclick="selectCity('{{ city.name }}')">{{ city.display }}</button>
+        {% endfor %}
       </div>
     </div>
 
-    <div class="bae-forecast-strip" id="forecastStrip">
-      {% for _ in range(5) %}<div class="bae-forecast-day bae-skeleton"></div>{% endfor %}
+    <div class="bae-weather-card">
+      <div class="bae-weather-now" id="currentConditions">
+        <div class="bae-current-emoji" id="currentEmoji">☀️</div>
+        <div class="bae-current-temp" id="currentTemp">—°F</div>
+        <div class="bae-current-cond" id="currentCond">Loading…</div>
+      </div>
+      <div class="bae-weather-vdivider"></div>
+      <div class="bae-forecast-strip" id="forecastStrip">
+        {% for _ in range(5) %}<div class="bae-forecast-day bae-skeleton"></div>{% endfor %}
+      </div>
     </div>
 
     <div class="bae-weather-attribution">

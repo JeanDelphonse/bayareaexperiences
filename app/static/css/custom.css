@@ -278,43 +278,46 @@ textarea:focus-visible {
 
 /* ── Weather Widget (homepage) ──────────────────────────────────────────── */
 .bae-weather-widget {
-  background: #1A3557;
+  background: linear-gradient(135deg, #0f2440 0%, #1A3557 60%, #1e4a7a 100%);
   color: #fff;
-  padding: 20px 0;
+  padding: 28px 0 20px;
 }
-.bae-weather-header {
+
+/* City selector row */
+.bae-weather-city-row {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 16px;
 }
 .bae-weather-label {
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: .06em;
+  letter-spacing: .08em;
   color: #C9952A;
-  margin-bottom: 8px;
+  white-space: nowrap;
 }
 .bae-city-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 5px;
 }
 .bae-city-pill {
-  background: rgba(255,255,255,.1);
-  color: #fff;
-  border: 1px solid rgba(255,255,255,.2);
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.8);
+  border: 1px solid rgba(255,255,255,.15);
   border-radius: 9999px;
-  padding: 4px 12px;
-  font-size: 12px;
+  padding: 3px 11px;
+  font-size: 11.5px;
   cursor: pointer;
-  transition: background .15s, border-color .15s;
+  transition: background .18s, border-color .18s, color .18s;
+  line-height: 1.6;
 }
 .bae-city-pill:hover {
-  background: rgba(201,149,42,.25);
-  border-color: #C9952A;
+  background: rgba(201,149,42,.2);
+  border-color: rgba(201,149,42,.6);
+  color: #fff;
 }
 .bae-city-pill.active {
   background: #C9952A;
@@ -322,77 +325,161 @@ textarea:focus-visible {
   color: #fff;
   font-weight: 600;
 }
-.bae-current-conditions {
+
+/* Main card */
+.bae-weather-card {
   display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 16px;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+}
+
+/* Current conditions panel */
+.bae-weather-now {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  padding: 24px 28px;
+  min-width: 140px;
+  text-align: center;
+  flex-shrink: 0;
 }
 .bae-current-emoji {
-  font-size: 2.5rem;
+  font-size: 3.2rem;
   line-height: 1;
+  margin-bottom: 8px;
 }
 .bae-current-temp {
-  font-size: 1.8rem;
-  font-weight: 700;
+  font-size: 2.4rem;
+  font-weight: 800;
   line-height: 1;
+  letter-spacing: -.02em;
 }
 .bae-current-cond {
-  font-size: 0.85rem;
-  color: rgba(255,255,255,.75);
+  font-size: 0.78rem;
+  color: rgba(255,255,255,.6);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
 }
+
+/* Vertical divider */
+.bae-weather-vdivider {
+  width: 1px;
+  background: rgba(255,255,255,.1);
+  flex-shrink: 0;
+  margin: 12px 0;
+}
+
+/* 5-day forecast strip */
 .bae-forecast-strip {
   display: flex;
-  flex-wrap: nowrap;
-  gap: 8px;
+  flex: 1;
+  align-items: stretch;
+  padding: 12px 12px 12px 8px;
+  gap: 6px;
 }
 .bae-forecast-day {
   flex: 1 1 0;
   min-width: 0;
-  background: rgba(255,255,255,.07);
-  border-radius: 10px;
-  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 12px;
+  padding: 12px 6px;
   text-align: center;
+  transition: background .18s, border-color .18s;
+}
+.bae-forecast-day:hover {
+  background: rgba(255,255,255,.1);
 }
 .bae-forecast-day.bae-today {
-  background: rgba(201,149,42,.25);
-  border: 1px solid rgba(201,149,42,.4);
+  background: rgba(201,149,42,.18);
+  border-color: rgba(201,149,42,.5);
 }
 .bae-day-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(255,255,255,.8);
-  margin-bottom: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: rgba(255,255,255,.7);
+  margin-bottom: 1px;
+}
+.bae-forecast-day.bae-today .bae-day-label {
+  color: #F5C97A;
 }
 .bae-day-date {
-  font-size: 10px;
-  color: rgba(255,255,255,.5);
-  margin-bottom: 4px;
+  font-size: 9.5px;
+  color: rgba(255,255,255,.35);
+  margin-bottom: 6px;
 }
-.bae-day-emoji { font-size: 1.5rem; margin-bottom: 4px; }
-.bae-day-high  { font-size: 14px; font-weight: 700; }
-.bae-day-low   { font-size: 12px; color: rgba(255,255,255,.6); }
-.bae-rain-pct  { font-size: 10px; color: #93c5fd; margin-top: 2px; }
-.bae-weather-attribution {
+.bae-day-emoji {
+  font-size: 1.6rem;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.bae-day-high {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+}
+.bae-day-low {
   font-size: 11px;
-  color: rgba(255,255,255,.4);
+  color: rgba(255,255,255,.45);
+  margin-top: 1px;
+}
+.bae-rain-pct {
+  font-size: 9.5px;
+  color: #93c5fd;
+  margin-top: 4px;
+}
+
+/* Attribution */
+.bae-weather-attribution {
+  font-size: 10.5px;
+  color: rgba(255,255,255,.3);
   text-align: right;
   margin-top: 10px;
 }
 .bae-weather-attribution a {
-  color: rgba(255,255,255,.5);
+  color: rgba(255,255,255,.35);
+  text-decoration: none;
 }
+.bae-weather-attribution a:hover {
+  color: rgba(255,255,255,.6);
+}
+
+/* Skeleton loading */
 .bae-skeleton {
   background: linear-gradient(90deg,
-    rgba(255,255,255,.07) 25%,
-    rgba(255,255,255,.14) 50%,
-    rgba(255,255,255,.07) 75%);
+    rgba(255,255,255,.05) 25%,
+    rgba(255,255,255,.12) 50%,
+    rgba(255,255,255,.05) 75%);
   background-size: 200% 100%;
   animation: bae-shimmer 1.4s infinite;
-  height: 108px;
+  border-color: transparent !important;
 }
 @keyframes bae-shimmer {
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+/* Responsive: stack on small screens */
+@media (max-width: 575px) {
+  .bae-weather-now   { padding: 16px 20px; min-width: 110px; }
+  .bae-current-emoji { font-size: 2.4rem; }
+  .bae-current-temp  { font-size: 1.8rem; }
+  .bae-forecast-strip { padding: 8px 8px 8px 6px; gap: 4px; }
+  .bae-forecast-day  { padding: 8px 4px; border-radius: 8px; }
+  .bae-day-emoji     { font-size: 1.3rem; }
 }
 
 /* ── Weather — Booking Confirmation ────────────────────────────────────── */
