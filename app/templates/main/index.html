@@ -119,7 +119,7 @@ function initWeather() {
 }
 
 async function fetchWeather(cityName, lat, lng) {
-  let url = '/weather/forecast';
+  let url = '{{ url_for("weather.forecast") }}';
   if (cityName) {
     url += '?city=' + encodeURIComponent(cityName);
   } else if (lat && lng) {
