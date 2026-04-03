@@ -138,14 +138,25 @@ def admin_itinerary_detail(itinerary_id):
 @admin_required
 def admin_regen_itinerary(booking_id):
     from app.models import Booking
-    import os
+    import os, anthropic as _anthropic
     booking = Booking.query.get_or_404(booking_id)
     key = os.environ.get('ANTHROPIC_API_KEY', '')
     if not key:
         flash('ANTHROPIC_API_KEY is not set on this server.', 'danger')
         return redirect(request.referrer or url_for('admin.dashboard'))
 
-    # Run generation in a background thread — avoids HTTP timeout on long Claude calls
+    # Pre-flight: quick ping to Claude before queuing background job.
+    # Catches bad keys, quota errors, and model issues before the admin walks away.
+    try:
+        _anthropic.Anthropic(api_key=key).messages.create(
+            model='claude-haiku-4-5-20251001',
+            max_tokens=1,
+            messages=[{'role': 'user', 'content': '1'}],
+        )
+    except Exception as e:
+        flash(f'Claude API check failed — regeneration not started: {e}', 'danger')
+        return redirect(request.referrer or url_for('admin.dashboard'))
+
     try:
         from app.itinerary.tasks import queue_itinerary_generation
         queue_itinerary_generation(booking_id, trigger='admin')

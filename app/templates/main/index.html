@@ -72,8 +72,10 @@
     <h2 class="text-center fw-bold mb-2">Our Experiences</h2>
     <p class="text-center text-muted mb-5">Choose your Bay Area adventure</p>
 
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-      {% for exp in experiences %}
+    {% for category, exps in grouped_experiences.items() %}
+    <h3 class="fw-semibold mb-3 mt-2">{{ category }}</h3>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-5 justify-content-center">
+      {% for exp in exps %}
       <div class="col">
         <div class="card h-100 shadow-sm border-0 experience-card">
           <img src="{{ url_for('main.image', filename=(exp.photo_url or 'sun_rise_set.jpg')) }}"
@@ -81,7 +83,6 @@
                alt="{{ exp.name }}"
                onerror="this.onerror=null;this.src='{{ url_for('main.image', filename='sun_rise_set.jpg') }}'">
           <div class="card-body d-flex flex-column">
-            <span class="badge bg-warning text-dark mb-2 align-self-start">{{ exp.category }}</span>
             <h5 class="card-title fw-bold">{{ exp.name }}</h5>
             <p class="card-text text-muted flex-grow-1">
               {{ exp.description[:140] ~ '...' if exp.description and exp.description|length > 140 else exp.description }}
@@ -106,6 +107,7 @@
       </div>
       {% endfor %}
     </div>
+    {% endfor %}
   </div>
 </section>
 

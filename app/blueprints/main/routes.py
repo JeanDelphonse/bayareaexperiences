@@ -18,13 +18,20 @@ def audio(filename):
     return send_from_directory(audio_dir, filename)
 
 
+def _group_by_category(experiences):
+    grouped = {}
+    for exp in experiences:
+        grouped.setdefault(exp.category or 'Other', []).append(exp)
+    return grouped
+
+
 @main_bp.route('/')
 def index():
     experiences = (Experience.query
                    .filter_by(is_active=True)
                    .order_by(Experience.sort_order)
                    .all())
-    return render_template('main/index.html', experiences=experiences)
+    return render_template('main/index.html', grouped_experiences=_group_by_category(experiences))
 
 
 @main_bp.route('/experiences')
@@ -33,12 +40,13 @@ def experiences():
                    .filter_by(is_active=True)
                    .order_by(Experience.sort_order)
                    .all())
+    grouped = _group_by_category(experiences)
     try:
         from app.tracking.events import track_event
         track_event('experience_list_viewed', category='navigation')
     except Exception:
         pass
-    return render_template('main/experiences.html', experiences=experiences)
+    return render_template('main/experiences.html', grouped_experiences=grouped)
 
 
 @main_bp.route('/ride')
