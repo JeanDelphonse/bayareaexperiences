@@ -93,9 +93,28 @@ def staff_briefing(booking_id):
         (start_dt - timedelta(minutes=pre_min)) <= now_utc <= (end_dt + timedelta(minutes=post_min))
     )
 
+    from flask import current_app
+    from app.weather.client import fetch_forecast
+    from app.weather.cities import CITY_BY_NAME, DEFAULT_CITY
+    tour_day_weather = None
+    pickup_city_display = ''
+    if current_app.config.get('WEATHER_ENABLED', True):
+        pickup_city_name = (booking.pickup_city or '').replace(', CA', '').strip()
+        city = CITY_BY_NAME.get(pickup_city_name, DEFAULT_CITY)
+        pickup_city_display = city['display']
+        full_forecast = fetch_forecast(city['lat'], city['lng'], days=7)
+        if full_forecast:
+            tour_date_str = str(booking.timeslot.slot_date)
+            for day in full_forecast.get('daily', []):
+                if day['date'] == tour_date_str:
+                    tour_day_weather = day
+                    break
+
     return render_template('itinerary/staff_briefing.html',
                            booking=booking, itinerary=itinerary,
-                           in_tracking_window=in_tracking_window)
+                           in_tracking_window=in_tracking_window,
+                           tour_day_weather=tour_day_weather,
+                           pickup_city_display=pickup_city_display)
 
 
 # ── Admin: list all itineraries ───────────────────────────────────────────────

@@ -69,6 +69,36 @@
         {% endif %}
       </div>
 
+      {# ── Weather Forecast ─────────────────────────────────────────────────── #}
+      {% if tour_day_weather %}
+      <div class="bae-confirm-weather mt-4">
+        <div class="bae-confirm-weather-header">
+          <span>{{ pickup_city_display }} weather on your tour day</span>
+        </div>
+        {% if forecast and forecast.daily %}
+        <div class="bae-confirm-forecast-strip">
+          {% for day in forecast.daily[:5] %}
+          {% set is_tour = (day.date == tour_date) %}
+          <div class="bae-confirm-forecast-day{% if is_tour %} bae-confirm-tour-day{% endif %}">
+            <div class="bae-confirm-day-label">{% if is_tour %}Your Tour{% else %}{{ day.day_name }}{% endif %}</div>
+            <div class="bae-confirm-day-date">{{ day.day_short }}</div>
+            <div class="bae-confirm-day-emoji">{{ day.emoji }}</div>
+            <div class="bae-confirm-day-high">{{ day.high_f }}°</div>
+            <div class="bae-confirm-day-low">{{ day.low_f }}°</div>
+            {% if day.rain_pct > 0 %}<div class="bae-confirm-rain">💧 {{ day.rain_pct }}%</div>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if weather_tip %}
+        <div class="bae-confirm-weather-tip">{{ weather_tip }}</div>
+        {% endif %}
+        <div class="bae-confirm-weather-attr">
+          Forecast by <a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer">Open-Meteo</a>
+        </div>
+      </div>
+      {% endif %}
+
       {# ── Itinerary Section ────────────────────────────────────────────────── #}
       <div class="mt-5" id="itinerary-section">
         <div class="d-flex align-items-center gap-3 mb-4">

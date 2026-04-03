@@ -438,7 +438,44 @@ def confirm_booking():
 @booking_bp.route('/booking/confirm/<booking_id>')
 def booking_confirm(booking_id):
     booking = Booking.query.get_or_404(booking_id)
-    return render_template('booking/confirm.html', booking=booking)
+
+    from flask import current_app
+    from app.weather.client import fetch_forecast_for_city, fetch_forecast_for_date
+    from app.weather.cities import CITY_BY_NAME, DEFAULT_CITY
+    forecast = tour_day_weather = weather_tip = None
+    pickup_city_display = ''
+    if current_app.config.get('WEATHER_ENABLED', True):
+        pickup_city_name = (booking.pickup_city or '').replace(', CA', '').strip()
+        city = CITY_BY_NAME.get(pickup_city_name, DEFAULT_CITY)
+        pickup_city_display = city['display']
+        tour_date_str = str(booking.timeslot.slot_date)
+        forecast = fetch_forecast_for_city(city, days=7)
+        tour_day_weather = fetch_forecast_for_date(city['lat'], city['lng'], tour_date_str)
+        weather_tip = _weather_tip(tour_day_weather)
+
+    return render_template('booking/confirm.html', booking=booking,
+                           forecast=forecast, tour_date=str(booking.timeslot.slot_date),
+                           tour_day_weather=tour_day_weather, weather_tip=weather_tip,
+                           pickup_city_display=pickup_city_display)
+
+
+def _weather_tip(day: dict) -> str:
+    if not day:
+        return ''
+    rain = day.get('rain_pct', 0)
+    high = day.get('high_f', 70)
+    cond = day.get('condition', '')
+    if rain >= 50:
+        return 'Rain expected on your tour day — bring a light rain jacket.'
+    if rain >= 20:
+        return 'Chance of showers — a layer and a compact umbrella are a good idea.'
+    if 'fog' in cond.lower():
+        return 'Morning fog is common in the Bay Area — it usually clears by midday.'
+    if high >= 80:
+        return 'Warm day ahead — sunscreen, sunglasses, and a water bottle recommended.'
+    if high <= 58:
+        return 'Cool day expected — a warm layer will keep you comfortable on the coast.'
+    return 'Looks like a great day for your tour — light layers recommended.'
 
 
 @booking_bp.route('/booking/ics/<booking_id>')

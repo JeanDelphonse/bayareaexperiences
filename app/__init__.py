@@ -45,6 +45,7 @@ def create_app(config_name='default'):
     from app.blueprints.itinerary import itinerary_bp
     from app.blueprints.staff import staff_bp
     from app.blueprints.loyalty import loyalty_bp
+    from app.blueprints.weather import weather_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
@@ -62,6 +63,7 @@ def create_app(config_name='default'):
     app.register_blueprint(itinerary_bp)
     app.register_blueprint(staff_bp)
     app.register_blueprint(loyalty_bp)
+    app.register_blueprint(weather_bp)
 
     # Tracking middleware (analytics)
     from app.tracking.middleware import init_tracking

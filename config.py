@@ -49,6 +49,9 @@ class Config:
     GPS_DATA_PURGE_HOURS             = int(os.environ.get('TRACKING_DATA_PURGE_HOURS', 2))
     GPS_UPDATE_INTERVAL_SECONDS      = int(os.environ.get('TRACKING_UPDATE_INTERVAL_SECONDS', 10))
 
+    # Weather
+    WEATHER_ENABLED = os.environ.get('WEATHER_ENABLED', 'True') == 'True'
+
     # Marketplace / Provider tiers
     STRIPE_PRO_MONTHLY_PRICE_ID = os.environ.get('STRIPE_PRO_MONTHLY_PRICE_ID', '')
     STRIPE_PRO_ANNUAL_PRICE_ID  = os.environ.get('STRIPE_PRO_ANNUAL_PRICE_ID', '')

@@ -63,6 +63,25 @@
 
 <div class="brief-body">
 
+  {# ── Weather Chip ──────────────────────────────────────────────────── #}
+  {% if tour_day_weather %}
+  <div class="brief-weather-chip">
+    <div class="brief-weather-left">
+      <span class="brief-weather-emoji">{{ tour_day_weather.emoji }}</span>
+      <div>
+        <div class="brief-weather-cond">{{ tour_day_weather.condition }}</div>
+        <div class="brief-weather-city">{{ pickup_city_display }}</div>
+      </div>
+    </div>
+    <div class="brief-weather-right">
+      <div class="brief-weather-temps">{{ tour_day_weather.high_f }}° / {{ tour_day_weather.low_f }}°F</div>
+      {% if tour_day_weather.rain_pct > 0 %}
+      <div class="brief-weather-rain">💧 {{ tour_day_weather.rain_pct }}% rain</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
   {# ── Traveler Profile ─────────────────────────────────────────────── #}
   {% if booking.preferences and not booking.preferences.was_skipped %}
   <div style="background:#FDF6EC;border-left:4px solid #C9952A;

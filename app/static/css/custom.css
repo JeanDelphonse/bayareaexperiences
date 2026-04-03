@@ -275,3 +275,208 @@ textarea:focus-visible {
   display: block;
   margin-top: 2px;
 }
+
+/* ── Weather Widget (homepage) ──────────────────────────────────────────── */
+.bae-weather-widget {
+  background: #1A3557;
+  color: #fff;
+  padding: 20px 0;
+}
+.bae-weather-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.bae-weather-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #C9952A;
+  margin-bottom: 8px;
+}
+.bae-city-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.bae-city-pill {
+  background: rgba(255,255,255,.1);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 9999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.bae-city-pill:hover {
+  background: rgba(201,149,42,.25);
+  border-color: #C9952A;
+}
+.bae-city-pill.active {
+  background: #C9952A;
+  border-color: #C9952A;
+  color: #fff;
+  font-weight: 600;
+}
+.bae-current-conditions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.bae-current-emoji {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+.bae-current-temp {
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.bae-current-cond {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,.75);
+}
+.bae-forecast-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.bae-forecast-day {
+  flex: 0 0 80px;
+  background: rgba(255,255,255,.07);
+  border-radius: 10px;
+  padding: 10px 8px;
+  text-align: center;
+  min-width: 72px;
+}
+.bae-forecast-day.bae-today {
+  background: rgba(201,149,42,.25);
+  border: 1px solid rgba(201,149,42,.4);
+}
+.bae-day-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,.8);
+  margin-bottom: 2px;
+}
+.bae-day-date {
+  font-size: 10px;
+  color: rgba(255,255,255,.5);
+  margin-bottom: 4px;
+}
+.bae-day-emoji { font-size: 1.5rem; margin-bottom: 4px; }
+.bae-day-high  { font-size: 14px; font-weight: 700; }
+.bae-day-low   { font-size: 12px; color: rgba(255,255,255,.6); }
+.bae-rain-pct  { font-size: 10px; color: #93c5fd; margin-top: 2px; }
+.bae-weather-attribution {
+  font-size: 11px;
+  color: rgba(255,255,255,.4);
+  text-align: right;
+  margin-top: 10px;
+}
+.bae-weather-attribution a {
+  color: rgba(255,255,255,.5);
+}
+.bae-skeleton {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,.07) 25%,
+    rgba(255,255,255,.14) 50%,
+    rgba(255,255,255,.07) 75%);
+  background-size: 200% 100%;
+  animation: bae-shimmer 1.4s infinite;
+  height: 108px;
+}
+@keyframes bae-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Weather — Booking Confirmation ────────────────────────────────────── */
+.bae-confirm-weather {
+  background: #F2F5F8;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: left;
+}
+.bae-confirm-weather-header {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #5A6A7A;
+  margin-bottom: 12px;
+}
+.bae-confirm-forecast-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 12px;
+}
+.bae-confirm-forecast-day {
+  flex: 0 0 72px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px 6px;
+  text-align: center;
+  border: 1px solid #E5EAF0;
+}
+.bae-confirm-tour-day {
+  background: #FDF6EC;
+  border-color: #C9952A;
+}
+.bae-confirm-day-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #1A3557;
+  margin-bottom: 2px;
+}
+.bae-confirm-tour-day .bae-confirm-day-label {
+  color: #C9952A;
+}
+.bae-confirm-day-date  { font-size: 9px; color: #888; margin-bottom: 4px; }
+.bae-confirm-day-emoji { font-size: 1.3rem; margin-bottom: 4px; }
+.bae-confirm-day-high  { font-size: 13px; font-weight: 700; color: #1C1C1E; }
+.bae-confirm-day-low   { font-size: 11px; color: #888; }
+.bae-confirm-rain      { font-size: 9px; color: #1558A7; margin-top: 2px; }
+.bae-confirm-weather-tip {
+  background: #fff;
+  border-left: 3px solid #C9952A;
+  border-radius: 0 8px 8px 0;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #1C1C1E;
+  margin-bottom: 8px;
+}
+.bae-confirm-weather-attr {
+  font-size: 11px;
+  color: #aaa;
+  text-align: right;
+}
+.bae-confirm-weather-attr a { color: #aaa; }
+
+/* ── Weather — Staff Briefing Chip ─────────────────────────────────────── */
+.brief-weather-chip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #EFF4F9;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.brief-weather-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.brief-weather-emoji  { font-size: 2rem; line-height: 1; }
+.brief-weather-cond   { font-size: 14px; font-weight: 600; color: #1A3557; }
+.brief-weather-city   { font-size: 11px; color: #888; margin-top: 2px; }
+.brief-weather-right  { text-align: right; }
+.brief-weather-temps  { font-size: 18px; font-weight: 700; color: #1A3557; }
+.brief-weather-rain   { font-size: 12px; color: #1558A7; margin-top: 2px; }

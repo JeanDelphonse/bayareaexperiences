@@ -31,7 +31,11 @@ def index():
                    .filter_by(is_active=True)
                    .order_by(Experience.sort_order)
                    .all())
-    return render_template('main/index.html', grouped_experiences=_group_by_category(experiences))
+    from app.weather.cities import SERVING_CITIES
+    serving_cities = SERVING_CITIES if current_app.config.get('WEATHER_ENABLED', True) else []
+    return render_template('main/index.html',
+                           grouped_experiences=_group_by_category(experiences),
+                           serving_cities=serving_cities)
 
 
 @main_bp.route('/experiences')

@@ -66,6 +66,114 @@
   </div>
 </section>
 
+<!-- ── Weather Widget ──────────────────────────────────────────────────────── -->
+{% if serving_cities %}
+<section class="bae-weather-widget" id="weatherWidget">
+  <div class="container">
+
+    <div class="bae-weather-header">
+      <div>
+        <div class="bae-weather-label">&#128205; Weather for your pickup city</div>
+        <div class="bae-city-pills" id="cityPills">
+          {% for city in serving_cities %}
+          <button class="bae-city-pill{% if city.is_default %} active{% endif %}"
+                  data-city="{{ city.name }}"
+                  onclick="selectCity('{{ city.name }}')">{{ city.display }}</button>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="bae-current-conditions" id="currentConditions">
+        <div class="bae-current-emoji" id="currentEmoji">☀️</div>
+        <div>
+          <div class="bae-current-temp" id="currentTemp">—°F</div>
+          <div class="bae-current-cond" id="currentCond">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bae-forecast-strip" id="forecastStrip">
+      {% for _ in range(5) %}<div class="bae-forecast-day bae-skeleton"></div>{% endfor %}
+    </div>
+
+    <div class="bae-weather-attribution">
+      Forecast by <a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer">Open-Meteo</a>
+    </div>
+
+  </div>
+</section>
+
+<script>
+const CITIES = {{ serving_cities | tojson }};
+let selectedCity = 'San Francisco';
+
+function initWeather() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => fetchWeather(null, pos.coords.latitude, pos.coords.longitude),
+      ()    => fetchWeather('San Francisco'),
+      { timeout: 5000, maximumAge: 300000 }
+    );
+  } else {
+    fetchWeather('San Francisco');
+  }
+}
+
+async function fetchWeather(cityName, lat, lng) {
+  let url = '/weather/forecast';
+  if (cityName) {
+    url += '?city=' + encodeURIComponent(cityName);
+  } else if (lat && lng) {
+    url += '?lat=' + lat + '&lng=' + lng;
+  }
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('Weather API error');
+    const data = await resp.json();
+    renderWeather(data);
+    highlightCity(data.city);
+  } catch (e) {
+    document.getElementById('currentCond').textContent = 'Unavailable';
+    document.getElementById('forecastStrip').innerHTML = '';
+  }
+}
+
+function selectCity(cityName) {
+  selectedCity = cityName;
+  fetchWeather(cityName);
+}
+
+function highlightCity(cityName) {
+  document.querySelectorAll('.bae-city-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.city === cityName);
+  });
+}
+
+function renderWeather(data) {
+  document.getElementById('currentEmoji').textContent = data.current.emoji || '🌡️';
+  document.getElementById('currentTemp').textContent  = data.current.temp_f + '°F';
+  document.getElementById('currentCond').textContent  = data.current.condition;
+
+  const strip = document.getElementById('forecastStrip');
+  strip.innerHTML = '';
+  (data.daily || []).slice(0, 5).forEach((day, i) => {
+    const rainBadge = day.rain_pct > 0
+      ? `<div class='bae-rain-pct'>💧 ${day.rain_pct}%</div>` : '';
+    strip.innerHTML += `
+      <div class='bae-forecast-day ${i === 0 ? "bae-today" : ""}'>
+        <div class='bae-day-label'>${i === 0 ? 'Today' : day.day_name}</div>
+        <div class='bae-day-date'>${day.day_short}</div>
+        <div class='bae-day-emoji'>${day.emoji}</div>
+        <div class='bae-day-high'>${day.high_f}°</div>
+        <div class='bae-day-low'>${day.low_f}°</div>
+        ${rainBadge}
+      </div>`;
+  });
+}
+
+document.addEventListener('DOMContentLoaded', initWeather);
+</script>
+{% endif %}
+
 <!-- ── Experience Grid ─────────────────────────────────────────────────────── -->
 <section class="py-5">
   <div class="container">
