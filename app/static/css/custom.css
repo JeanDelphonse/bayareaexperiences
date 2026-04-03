@@ -379,7 +379,10 @@ textarea:focus-visible {
 /* 5-day forecast strip */
 .bae-forecast-strip {
   display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
   flex: 1;
+  min-width: 0;
   align-items: stretch;
   padding: 12px 12px 12px 8px;
   gap: 6px;
