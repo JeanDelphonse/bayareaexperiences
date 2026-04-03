@@ -57,7 +57,7 @@ def save_itinerary(booking_id: str, itinerary: dict, trigger: str = 'booking_con
         return record
 
     except Exception as e:
-        log.error(f'Failed to save itinerary for {booking_id}: {e}')
+        log.error(f'Failed to save itinerary for {booking_id}: {e}', exc_info=True)
         db.session.rollback()
         return None
 

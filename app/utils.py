@@ -61,6 +61,11 @@ def paginate(query):
     return PaginationResult(items, page, per_page, total)
 
 
+def normalize_city(city: str) -> str:
+    """Strip ', CA' suffix and whitespace from a pickup city name."""
+    return (city or '').replace(', CA', '').strip()
+
+
 def generate_pk(length: int = 9) -> str:
     """Generate a cryptographically random 9-char uppercase alphanumeric PK."""
     return ''.join(secrets.choice(ALPHABET) for _ in range(length))

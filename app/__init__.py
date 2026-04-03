@@ -73,6 +73,13 @@ def create_app(config_name='default'):
     if socketio is not None:
         from app.blueprints.tracking import socketio_handlers  # noqa: F401
 
+    # CSS cache-busting: expose mtime of custom.css as a Jinja global
+    _css_path = os.path.join(app.static_folder, 'css', 'custom.css')
+    try:
+        app.jinja_env.globals['css_v'] = int(os.path.getmtime(_css_path))
+    except OSError:
+        app.jinja_env.globals['css_v'] = 1
+
     # Template filters
     @app.template_filter('format_number')
     def format_number_filter(value):

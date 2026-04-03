@@ -116,6 +116,9 @@ def fetch_eventbrite_events(city: str, state_code: str, tour_date: str) -> list:
 
     try:
         resp = requests.get(EB_BASE, headers=headers, params=params, timeout=8)
+        if resp.status_code == 404:
+            log.debug('Eventbrite search endpoint returned 404 (API deprecated) — skipping')
+            return []
         resp.raise_for_status()
         data = resp.json()
     except Exception as e:

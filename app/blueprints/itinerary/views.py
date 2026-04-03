@@ -99,8 +99,8 @@ def staff_briefing(booking_id):
     tour_day_weather = None
     pickup_city_display = ''
     if current_app.config.get('WEATHER_ENABLED', True):
-        pickup_city_name = (booking.pickup_city or '').replace(', CA', '').strip()
-        city = CITY_BY_NAME.get(pickup_city_name, DEFAULT_CITY)
+        from app.utils import normalize_city
+        city = CITY_BY_NAME.get(normalize_city(booking.pickup_city), DEFAULT_CITY)
         pickup_city_display = city['display']
         full_forecast = fetch_forecast(city['lat'], city['lng'], days=7)
         if full_forecast:

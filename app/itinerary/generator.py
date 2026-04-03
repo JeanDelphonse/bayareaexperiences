@@ -124,7 +124,8 @@ def generate_itinerary(booking) -> dict:
         timeslot    = booking.timeslot
         tour_date   = str(timeslot.slot_date)
         start_time  = timeslot.start_time.strftime('%I:%M %p') if timeslot.start_time else '9:00 AM'
-        pickup_city = booking.pickup_city or 'San Francisco'
+        from app.utils import normalize_city
+        pickup_city = normalize_city(booking.pickup_city) or 'San Francisco'
         state_code  = CITY_STATE.get(pickup_city, 'CA')
 
         # Fetch booking preferences (if any)
@@ -209,7 +210,7 @@ def generate_itinerary(booking) -> dict:
         return itinerary
 
     except Exception as e:
-        log.error(f'Itinerary generation failed for {booking.booking_id}: {e}')
+        log.error(f'Itinerary generation failed for {booking.booking_id}: {e}', exc_info=True)
         return _fallback_itinerary(booking)
 
 

@@ -516,3 +516,139 @@ textarea:focus-visible {
 .brief-weather-right  { text-align: right; }
 .brief-weather-temps  { font-size: 18px; font-weight: 700; color: #1A3557; }
 .brief-weather-rain   { font-size: 12px; color: #1558A7; margin-top: 2px; }
+
+/* ── Weather Widget — Index Page ───────────────────────────────────────── */
+#weatherWidget {
+  background: #1A3557;
+  padding: 20px 0;
+}
+.w-wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+.w-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #C9952A;
+  margin-bottom: 10px;
+}
+.w-label svg { flex-shrink: 0; }
+
+/* City pills */
+.w-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.w-pill {
+  background: rgba(255,255,255,.12);
+  color: #d0dce8;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.w-pill:hover {
+  background: rgba(255,255,255,.22);
+  color: #fff;
+}
+.w-pill.active {
+  background: #C9952A;
+  color: #fff;
+  border-color: #C9952A;
+}
+
+/* Main card */
+.w-card {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: rgba(255,255,255,.08);
+  border-radius: 14px;
+  padding: 16px 20px;
+}
+
+/* Current conditions (left) */
+.w-now {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 90px;
+  flex-shrink: 0;
+}
+.w-emoji { font-size: 2.4rem; line-height: 1; }
+.w-temp  { font-size: 1.6rem; font-weight: 700; color: #fff; margin-top: 4px; }
+.w-cond  { font-size: 12px; color: #a8bfd4; text-align: center; margin-top: 2px; }
+
+/* Vertical divider */
+.w-vdiv {
+  width: 1px;
+  align-self: stretch;
+  background: rgba(255,255,255,.18);
+  margin: 0 20px;
+  flex-shrink: 0;
+}
+
+/* Forecast strip (right) */
+.w-strip {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  flex: 1;
+  gap: 6px;
+  overflow-x: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.w-strip::-webkit-scrollbar { display: none; }
+
+.w-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 52px;
+  background: rgba(255,255,255,.06);
+  border-radius: 10px;
+  padding: 8px 6px;
+  gap: 3px;
+}
+.w-day.today {
+  background: rgba(201,149,42,.25);
+  border: 1px solid rgba(201,149,42,.4);
+}
+.w-dname  { font-size: 10px; font-weight: 600; color: #a8bfd4; text-transform: uppercase; letter-spacing: .05em; }
+.w-ddate  { font-size: 10px; color: #7a96b0; }
+.w-demoji { font-size: 1.4rem; line-height: 1; margin: 2px 0; }
+.w-dhigh  { font-size: 13px; font-weight: 700; color: #fff; }
+.w-dlow   { font-size: 11px; color: #7a96b0; }
+.w-drain  { font-size: 10px; color: #7ab8e8; margin-top: 2px; }
+
+/* Skeleton loading state */
+.w-skeleton {
+  min-height: 90px;
+  background: linear-gradient(90deg, rgba(255,255,255,.06) 25%, rgba(255,255,255,.12) 50%, rgba(255,255,255,.06) 75%);
+  background-size: 200% 100%;
+  animation: w-shimmer 1.4s infinite;
+}
+@keyframes w-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (max-width: 575px) {
+  .w-card { flex-direction: column; gap: 14px; }
+  .w-vdiv { width: 100%; height: 1px; margin: 0; align-self: auto; }
+  .w-now  { flex-direction: row; gap: 14px; min-width: unset; width: 100%; justify-content: center; }
+}

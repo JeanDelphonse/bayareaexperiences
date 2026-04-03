@@ -68,34 +68,34 @@
 
 <!-- ── Weather Widget ──────────────────────────────────────────────────────── -->
 {% if serving_cities %}
-<section class="bae-weather-widget" id="weatherWidget">
-  <div class="container">
+<section id="weatherWidget">
+  <div class="w-wrap">
 
-    <div class="bae-weather-label">
+    <div class="w-label">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-        <circle cx="12" cy="9" r="2.5"/>
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"></path>
+        <circle cx="12" cy="9" r="2.5"></circle>
       </svg>
       Pickup city forecast
     </div>
 
-    <div class="bae-city-pills" id="cityPills">
+    <div class="w-pills" id="cityPills">
       {% for city in serving_cities %}
-      <button class="bae-city-pill{% if city.is_default %} active{% endif %}"
+      <button class="w-pill{% if city.is_default %} active{% endif %}"
               data-city="{{ city.name }}"
               onclick="selectCity('{{ city.name }}')">{{ city.display }}</button>
       {% endfor %}
     </div>
 
-    <div class="bae-weather-card">
-      <div class="bae-weather-now" id="currentConditions">
-        <div class="bae-current-emoji" id="currentEmoji">☀️</div>
-        <div class="bae-current-temp" id="currentTemp">—°F</div>
-        <div class="bae-current-cond" id="currentCond">Loading…</div>
+    <div class="w-card">
+      <div class="w-now" id="currentConditions">
+        <div class="w-emoji" id="currentEmoji">☀️</div>
+        <div class="w-temp" id="currentTemp">—°F</div>
+        <div class="w-cond" id="currentCond">Loading…</div>
       </div>
-      <div class="bae-weather-vdivider"></div>
-      <div class="bae-forecast-strip" id="forecastStrip">
-        {% for _ in range(5) %}<div class="bae-forecast-day bae-skeleton"></div>{% endfor %}
+      <div class="w-vdiv"></div>
+      <div class="w-strip" id="forecastStrip">
+        {% for _ in range(5) %}<div class="w-day w-skeleton"></div>{% endfor %}
       </div>
     </div>
   </div>
@@ -142,7 +142,7 @@ function selectCity(cityName) {
 }
 
 function highlightCity(cityName) {
-  document.querySelectorAll('.bae-city-pill').forEach(p => {
+  document.querySelectorAll('.w-pill').forEach(p => {
     p.classList.toggle('active', p.dataset.city === cityName);
   });
 }
@@ -156,14 +156,14 @@ function renderWeather(data) {
   strip.innerHTML = '';
   (data.daily || []).slice(0, 5).forEach((day, i) => {
     const rainBadge = day.rain_pct > 0
-      ? `<div class='bae-rain-pct'>💧 ${day.rain_pct}%</div>` : '';
+      ? `<div class='w-drain'>💧 ${day.rain_pct}%</div>` : '';
     strip.innerHTML += `
-      <div class='bae-forecast-day ${i === 0 ? "bae-today" : ""}'>
-        <div class='bae-day-label'>${i === 0 ? 'Today' : day.day_name}</div>
-        <div class='bae-day-date'>${day.day_short}</div>
-        <div class='bae-day-emoji'>${day.emoji}</div>
-        <div class='bae-day-high'>${day.high_f}°</div>
-        <div class='bae-day-low'>${day.low_f}°</div>
+      <div class='w-day${i === 0 ? " today" : ""}'>
+        <div class='w-dname'>${i === 0 ? 'Today' : day.day_name}</div>
+        <div class='w-ddate'>${day.day_short}</div>
+        <div class='w-demoji'>${day.emoji}</div>
+        <div class='w-dhigh'>${day.high_f}°</div>
+        <div class='w-dlow'>${day.low_f}°</div>
         ${rainBadge}
       </div>`;
   });

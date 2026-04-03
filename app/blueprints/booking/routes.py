@@ -445,8 +445,8 @@ def booking_confirm(booking_id):
     forecast = tour_day_weather = weather_tip = None
     pickup_city_display = ''
     if current_app.config.get('WEATHER_ENABLED', True):
-        pickup_city_name = (booking.pickup_city or '').replace(', CA', '').strip()
-        city = CITY_BY_NAME.get(pickup_city_name, DEFAULT_CITY)
+        from app.utils import normalize_city
+        city = CITY_BY_NAME.get(normalize_city(booking.pickup_city), DEFAULT_CITY)
         pickup_city_display = city['display']
         tour_date_str = str(booking.timeslot.slot_date)
         forecast = fetch_forecast_for_city(city, days=7)
