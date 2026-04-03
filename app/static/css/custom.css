@@ -342,17 +342,16 @@ textarea:focus-visible {
 }
 .bae-forecast-strip {
   display: flex;
+  flex-wrap: nowrap;
   gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
 }
 .bae-forecast-day {
-  flex: 0 0 80px;
+  flex: 1 1 0;
+  min-width: 0;
   background: rgba(255,255,255,.07);
   border-radius: 10px;
   padding: 10px 8px;
   text-align: center;
-  min-width: 72px;
 }
 .bae-forecast-day.bae-today {
   background: rgba(201,149,42,.25);
