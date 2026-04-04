@@ -4,7 +4,7 @@ import re
 import stripe
 from datetime import datetime, timezone
 from flask import (render_template, redirect, url_for, flash, request,
-                   current_app, abort)
+                   current_app, abort, session)
 from flask_login import login_required, current_user
 from app.blueprints.providers import providers_bp
 from app.blueprints.providers.forms import ProviderApplicationForm, ProviderDocUploadForm
@@ -30,6 +30,17 @@ def _unique_slug(base):
     while Provider.query.filter_by(business_slug=f'{slug}-{i}').first():
         i += 1
     return f'{slug}-{i}'
+
+
+# ── Join via referral link ────────────────────────────────────────────────────
+
+@providers_bp.route('/join/provider')
+def join_provider():
+    """Landing route for provider referral links — stores ref code and redirects to apply."""
+    ref_code = request.args.get('ref', '').strip()
+    if ref_code:
+        session['provider_ref'] = ref_code
+    return redirect(url_for('providers.apply'))
 
 
 # ── Apply ─────────────────────────────────────────────────────────────────────
@@ -69,6 +80,9 @@ def apply():
         db.session.add(provider)
         db.session.commit()
 
+        # Referral attribution — link this new provider to whoever referred them
+        _record_referral_attribution(provider)
+
         # Email admin
         try:
             from app.extensions import mail as _mail
@@ -93,7 +107,31 @@ def apply():
         flash('Application submitted! We will review it and be in touch within 2–3 business days.', 'success')
         return redirect(url_for('providers.onboarding_tier'))
 
-    return render_template('providers/apply.html', form=form)
+    ref_code = session.get('provider_ref', '')
+    return render_template('providers/apply.html', form=form, ref_code=ref_code)
+
+
+def _record_referral_attribution(new_provider):
+    """If a referral code is in the session, create a ProviderReferralCode record."""
+    ref_code = session.pop('provider_ref', None)
+    if not ref_code:
+        return
+    from app.models import Provider, ProviderReferralCode
+    from datetime import datetime, timezone
+    referrer = Provider.query.filter_by(referral_code=ref_code).first()
+    if not referrer or referrer.provider_id == new_provider.provider_id:
+        return
+    record = ProviderReferralCode(
+        referral_id            = generate_pk(),
+        referrer_provider_id   = referrer.provider_id,
+        referral_code          = ref_code,
+        referred_provider_id   = new_provider.provider_id,
+        referred_business_name = new_provider.business_name,
+        status                 = 'pending',
+        referred_signup_at     = datetime.now(timezone.utc),
+    )
+    db.session.add(record)
+    db.session.commit()
 
 
 # ── Onboarding ────────────────────────────────────────────────────────────────

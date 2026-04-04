@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"></head>
+<body style="font-family: Arial, sans-serif; color: #212529; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: #1A3557; color: #fff; padding: 24px; border-radius: 8px 8px 0 0;">
+    <h2 style="margin: 0; font-size: 1.4rem;">$100 credit added to your account!</h2>
+  </div>
+  <div style="background: #fff; padding: 24px; border: 1px solid #dee2e6; border-top: none; border-radius: 0 0 8px 8px;">
+    <p>Hi {{ referrer.user.first_name }},</p>
+    <p>Great news! <strong>{{ referred_provider.business_name }}</strong> &mdash; a provider you referred to Bay Area Experiences &mdash; just completed their 5th confirmed booking.</p>
+
+    <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 6px; padding: 16px; margin: 20px 0; text-align: center;">
+      <div style="font-size: 2rem; font-weight: bold; color: #155724;">+${{ "%.0f"|format(credit) }}</div>
+      <div style="color: #155724; font-weight: 600;">Platform credit added to your account</div>
+      <div style="color: #6c757d; margin-top: 4px; font-size: .9rem;">New balance: ${{ "%.2f"|format(new_balance) }}</div>
+    </div>
+
+    <p>This credit will be <strong>applied automatically</strong> against your next commission charge &mdash; no action needed on your part.</p>
+    <p>Know more providers who'd be a great fit for the BAE platform? Keep sharing your referral link from your dashboard to earn more credits.</p>
+
+    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #dee2e6; color: #6c757d; font-size: .85rem;">
+      Bay Area Experiences &mdash; <a href="https://bayareaexperiences.com" style="color: #C9952A;">bayareaexperiences.com</a>
+    </div>
+  </div>
+</body>
+</html>

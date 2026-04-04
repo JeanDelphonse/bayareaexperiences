@@ -78,6 +78,17 @@ def _handle_checkout_completed(session):
 
     db.session.commit()
 
+    # Track provider referral booking milestone
+    if provider_id and provider_id != 'BAE':
+        try:
+            from app.models import Provider
+            from app.marketplace.commission import track_provider_referral_booking
+            prov = Provider.query.get(provider_id)
+            if prov:
+                track_provider_referral_booking(prov)
+        except Exception:
+            pass
+
     # Generate GPS tracking token for the customer
     try:
         from app.models import BookingTrackingToken

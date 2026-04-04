@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% from 'macros/price.html' import price_block %}
 
+{% block body_class %}page-index{% endblock %}
+
 {% block title %}Bay Area Experiences — San Francisco Tours & Private Transport{% endblock %}
 
 {% block meta_description %}
@@ -14,11 +16,7 @@
   background-image: url('{{ url_for("main.image", filename="tourist_sf.webp") }}');
   background-size: cover;
   background-position: center;
-  background-repeat: no-repeat;
-  min-height: 80vh;
-  display: flex;
-  align-items: center;
-  position: relative;">
+  background-repeat: no-repeat;">
   <div class="hero-overlay position-absolute top-0 start-0 w-100 h-100"
        style="background: rgba(0,0,0,0.55);"></div>
   <div class="container position-relative text-white text-center py-5">

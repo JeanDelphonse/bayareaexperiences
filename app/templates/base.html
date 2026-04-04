@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}?v={{ css_v }}">
   {% block head_extra %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
 
 <!-- ── Navigation ─────────────────────────────────────────────────────────── -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">

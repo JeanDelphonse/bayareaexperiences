@@ -583,6 +583,16 @@ class Provider(db.Model):
     is_active               = db.Column(db.Boolean,       nullable=False, default=True)
     rejection_reason        = db.Column(db.Text,          nullable=True)
 
+    # Performance commission reduction
+    performance_commission_rate    = db.Column(db.Numeric(5, 2),  nullable=True,  default=None)
+    performance_months_consecutive = db.Column(db.SmallInteger,   nullable=False, default=0)
+    performance_locked_in          = db.Column(db.Boolean,        nullable=False, default=False)
+    performance_last_evaluated     = db.Column(db.Date,           nullable=True)
+
+    # Referral program
+    referral_code            = db.Column(db.String(40),   nullable=True,  unique=True)
+    referral_credit_balance  = db.Column(db.Numeric(10, 2), nullable=False, default=0.00)
+
     # Timestamps
     applied_at              = db.Column(db.DateTime,      nullable=False, default=lambda: datetime.now(timezone.utc))
     approved_at             = db.Column(db.DateTime,      nullable=True)
@@ -602,6 +612,8 @@ class Provider(db.Model):
     def effective_commission_rate(self):
         if self.tier == 'pro':
             return float(self.processing_fee_rate)
+        if self.performance_commission_rate is not None:
+            return float(self.performance_commission_rate)
         return float(self.commission_rate)
 
     @property
@@ -1085,3 +1097,37 @@ class ReferralRedemption(db.Model):
     referred = db.relationship('User', backref='referred_by',             foreign_keys=[referred_user_id])
     booking  = db.relationship('Booking', backref='referral_redemption',  uselist=False,
                                 foreign_keys=[booking_id])
+
+
+# ── Marketplace: Provider Referral Codes ─────────────────────────────────────
+
+class ProviderReferralCode(db.Model):
+    __tablename__ = 'provider_referral_codes'
+
+    referral_id              = db.Column(db.String(9),    primary_key=True, default=generate_pk)
+    referrer_provider_id     = db.Column(db.String(9),    db.ForeignKey('providers.provider_id'), nullable=False)
+    referral_code            = db.Column(db.String(40),   nullable=False, unique=True)
+    referred_provider_id     = db.Column(db.String(9),    db.ForeignKey('providers.provider_id'), nullable=True)
+    referred_business_name   = db.Column(db.String(200),  nullable=True)
+    status                   = db.Column(db.Enum('pending', 'qualified', 'credited', 'expired'),
+                                         nullable=False, default='pending')
+    referred_signup_at       = db.Column(db.DateTime,    nullable=True)
+    bookings_completed       = db.Column(db.SmallInteger, nullable=False, default=0)
+    credit_amount            = db.Column(db.Numeric(8, 2), nullable=False, default=100.00)
+    credited_at              = db.Column(db.DateTime,    nullable=True)
+    referrer_notified_at     = db.Column(db.DateTime,    nullable=True)
+    created_at               = db.Column(db.DateTime,    nullable=False,
+                                         default=lambda: datetime.now(timezone.utc))
+
+    referrer_provider = db.relationship(
+        'Provider', foreign_keys=[referrer_provider_id],
+        backref=db.backref('referrals_sent', lazy='dynamic'))
+    referred_provider = db.relationship(
+        'Provider', foreign_keys=[referred_provider_id],
+        backref=db.backref('referral_attribution', uselist=False))
+
+    __table_args__ = (
+        db.Index('ix_prov_ref_referrer',  'referrer_provider_id'),
+        db.Index('ix_prov_ref_referred',  'referred_provider_id'),
+        db.Index('ix_prov_ref_status',    'status'),
+    )

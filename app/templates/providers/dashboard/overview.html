@@ -77,7 +77,18 @@
         {% if provider.current_period_end %}Renews {{ provider.current_period_end.strftime('%b %d, %Y') }}{% endif %}
       </span>
       {% else %}
-      <span class="fw-semibold">Free plan — 20% commission</span>
+      <span class="fw-semibold">Free plan —
+        {% if provider.performance_commission_rate is not none %}
+          <span class="text-success">{{ provider.performance_commission_rate | int }}% commission</span>
+          {% if provider.performance_locked_in %}
+            <span class="badge bg-success ms-1" style="font-size:.7rem;">Locked in</span>
+          {% else %}
+            <span class="badge bg-warning text-dark ms-1" style="font-size:.7rem;">Earned this month</span>
+          {% endif %}
+        {% else %}
+          20% commission
+        {% endif %}
+      </span>
       <span class="text-muted ms-2 small">{{ total_experiences }}/{{ provider.experience_limit }} listings used</span>
       {% endif %}
     </div>
@@ -86,6 +97,84 @@
     {% endif %}
   </div>
 </div>
+
+{% if provider.tier == 'free' %}
+<!-- Incentive widgets row -->
+<div class="row g-3 mb-4">
+
+  <!-- Commission rate widget -->
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div class="small text-muted fw-semibold">Commission Rate</div>
+          <div class="small text-muted">{{ bookings_this_month }}/10 bookings this month</div>
+        </div>
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="fw-bold" style="font-size:2rem; color:#1A3557;">
+            {{ provider.effective_commission_rate | int }}%
+          </span>
+          {% if provider.performance_locked_in %}
+            <span class="badge bg-success">Locked in permanently</span>
+          {% elif provider.performance_commission_rate is not none %}
+            <span class="badge bg-warning text-dark">Earned this month</span>
+          {% endif %}
+        </div>
+        {% set pct = [[(bookings_this_month / 10 * 100) | int, 0] | max, 100] | min %}
+        <div class="progress mb-2" style="height:6px;">
+          <div class="progress-bar {% if pct >= 100 %}bg-success{% else %}bg-warning{% endif %}"
+               style="width:{{ pct }}%;"></div>
+        </div>
+        <div class="small text-muted">
+          {% if provider.performance_locked_in %}
+            Rate locked in permanently &#x2713;
+          {% elif provider.performance_commission_rate is not none %}
+            Rate reduced to 12% this month &bull;
+            {% if provider.performance_months_consecutive is not none and provider.performance_months_consecutive >= 0 %}
+              {{ 3 - provider.performance_months_consecutive }} more month(s) to lock in
+            {% endif %}
+          {% elif bookings_this_month >= 10 %}
+            Threshold reached — rate reduction applying this month
+          {% else %}
+            {{ [10 - bookings_this_month, 0] | max }} more booking(s) to earn 12% rate this month
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Referral widget -->
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="small text-muted fw-semibold mb-2">Refer a Provider — Earn $100</div>
+        {% if referral_code %}
+        <div class="input-group input-group-sm mb-2">
+          <input type="text" class="form-control form-control-sm font-monospace"
+                 id="provRefInput"
+                 value="{{ request.host_url.rstrip('/') }}{{ url_for('providers.join_provider') }}?ref={{ referral_code }}"
+                 readonly>
+          <button class="btn btn-outline-secondary btn-sm" type="button" onclick="copyProvRef()">
+            <i class="bi bi-clipboard"></i> Copy
+          </button>
+        </div>
+        {% endif %}
+        {% if provider.referral_credit_balance and provider.referral_credit_balance > 0 %}
+        <div class="small text-success mb-2">
+          <i class="bi bi-check-circle-fill me-1"></i>
+          ${{ "%.2f"|format(provider.referral_credit_balance) }} credit available — applied automatically at next payout
+        </div>
+        {% endif %}
+        <div class="small text-muted">
+          {{ referrals_sent }} provider(s) referred &bull; {{ credits_earned }} credit(s) earned
+          &bull; <a href="{{ url_for('providers.dashboard_referrals') }}" class="text-decoration-none">View history</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endif %}
 
 <!-- Recent bookings -->
 {% if recent_bookings %}
@@ -136,4 +225,18 @@
   {% endif %}
 </div>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyProvRef() {
+  var inp = document.getElementById('provRefInput');
+  if (!inp) return;
+  navigator.clipboard.writeText(inp.value).then(function() {
+    var btn = inp.nextElementSibling;
+    btn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+    setTimeout(function(){ btn.innerHTML = '<i class="bi bi-clipboard"></i> Copy'; }, 2000);
+  });
+}
+</script>
 {% endblock %}

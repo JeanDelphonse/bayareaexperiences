@@ -1,7 +1,7 @@
 """Provider dashboard routes — /provider/dashboard/*"""
 import re
 from decimal import Decimal
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from flask import (render_template, redirect, url_for, flash, request,
                    current_app, abort)
 from flask_login import login_required, current_user
@@ -53,6 +53,7 @@ def _get_pickup_cities(exp):
 @provider_required
 def dashboard():
     from app.models import Experience, Booking, ProviderPayout
+    from app.blueprints.providers.referral import get_or_create_referral_code
     p = current_provider()
 
     total_experiences = Experience.query.filter_by(provider_id=p.provider_id, is_active=True).count()
@@ -76,13 +77,55 @@ def dashboard():
                        .order_by(Booking.created_at.desc())
                        .limit(5).all())
 
+    # Commission widget — bookings this calendar month
+    today = date.today()
+    month_start = today.replace(day=1)
+    bookings_this_month = (
+        Booking.query
+        .join(Experience, Booking.experience_id == Experience.experience_id)
+        .filter(
+            Experience.provider_id == p.provider_id,
+            Booking.booking_status == 'confirmed',
+            Booking.created_at     >= month_start,
+        ).count()
+    ) if p.tier == 'free' else 0
+
+    # Referral widget
+    referral_code = get_or_create_referral_code(p) if p.is_active else None
+    from app.models import ProviderReferralCode
+    referrals_sent   = p.referrals_sent.filter_by().count()
+    credits_earned   = p.referrals_sent.filter_by(status='credited').count()
+
     return render_template('providers/dashboard/overview.html',
                            provider=p,
                            total_experiences=total_experiences,
                            total_bookings=total_bookings,
                            total_earned=float(total_earned),
                            pending_payout=float(pending_payout),
-                           recent_bookings=recent_bookings)
+                           recent_bookings=recent_bookings,
+                           bookings_this_month=bookings_this_month,
+                           referral_code=referral_code,
+                           referrals_sent=referrals_sent,
+                           credits_earned=credits_earned)
+
+
+# ── Referrals ─────────────────────────────────────────────────────────────────
+
+@providers_bp.route('/provider/dashboard/referrals')
+@login_required
+@provider_required
+def dashboard_referrals():
+    from app.models import ProviderReferralCode
+    p = current_provider()
+    referrals = (p.referrals_sent
+                 .order_by(ProviderReferralCode.created_at.desc())
+                 .all())
+    total_credits = sum(
+        float(r.credit_amount) for r in referrals if r.status == 'credited')
+    return render_template('providers/dashboard/referrals.html',
+                           provider=p,
+                           referrals=referrals,
+                           total_credits=total_credits)
 
 
 # ── Experiences ───────────────────────────────────────────────────────────────

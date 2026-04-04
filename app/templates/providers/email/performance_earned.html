@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"></head>
+<body style="font-family: Arial, sans-serif; color: #212529; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: #1A3557; color: #fff; padding: 24px; border-radius: 8px 8px 0 0;">
+    <h2 style="margin: 0; font-size: 1.4rem;">Your commission rate just dropped to 12%!</h2>
+  </div>
+  <div style="background: #fff; padding: 24px; border: 1px solid #dee2e6; border-top: none; border-radius: 0 0 8px 8px;">
+    <p>Hi {{ provider.user.first_name }},</p>
+    <p>Great month — you confirmed <strong>{{ booking_count }} bookings</strong> in the last calendar month, hitting the 10-booking performance threshold.</p>
+    <p>Your commission rate has been reduced to <strong style="color: #C9952A;">12%</strong> for all bookings this month, retroactively.</p>
+
+    <div style="background: #f8f9fa; border-radius: 6px; padding: 16px; margin: 20px 0;">
+      <strong>Your savings this month:</strong>
+      <div style="font-size: 1.5rem; color: #1A3557; font-weight: bold; margin-top: 4px;">
+        ~${{ "%.0f"|format(savings) }}
+      </div>
+      <div style="color: #6c757d; font-size: .9rem;">compared to standard 20% rate</div>
+    </div>
+
+    <p><strong>Keep it going for 3 consecutive months and your 12% rate locks in permanently.</strong></p>
+    <p>You're {{ 3 - (provider.performance_months_consecutive or 1) }} more month(s) away from the lock-in.</p>
+
+    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #dee2e6; color: #6c757d; font-size: .85rem;">
+      Bay Area Experiences &mdash; <a href="https://bayareaexperiences.com" style="color: #C9952A;">bayareaexperiences.com</a>
+    </div>
+  </div>
+</body>
+</html>

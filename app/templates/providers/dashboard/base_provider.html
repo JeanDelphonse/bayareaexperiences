@@ -45,6 +45,8 @@
         <i class="bi bi-file-earmark-text me-2"></i>Documents</a></li>
       <li><a href="{{ url_for('providers.dashboard_subscription') }}" class="nav-link px-2 py-1 {% if 'subscription' in request.endpoint %}active{% endif %}">
         <i class="bi bi-star me-2"></i>Subscription</a></li>
+      <li><a href="{{ url_for('providers.dashboard_referrals') }}" class="nav-link px-2 py-1 {% if 'referral' in request.endpoint %}active{% endif %}">
+        <i class="bi bi-person-plus me-2"></i>Referrals</a></li>
     </ul>
     <div class="mt-auto">
       <hr style="border-color:#2d3561;">

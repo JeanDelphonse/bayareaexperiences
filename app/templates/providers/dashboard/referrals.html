@@ -1,0 +1,133 @@
+{% extends 'providers/dashboard/base_provider.html' %}
+{% block title %}Referrals{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="fw-bold mb-0">Provider Referrals</h2>
+    <p class="text-muted mb-0">Earn $100 credit for every provider you refer who completes 5 bookings.</p>
+  </div>
+</div>
+
+<!-- Referral link card -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <h6 class="fw-semibold mb-2">Your Referral Link</h6>
+    <div class="input-group mb-2">
+      <input type="text" class="form-control font-monospace" id="provRefInputFull"
+             value="{{ request.host_url.rstrip('/') }}{{ url_for('providers.join_provider') }}?ref={{ provider.referral_code }}"
+             readonly>
+      <button class="btn btn-warning" type="button" onclick="copyProvRefFull()">
+        <i class="bi bi-clipboard me-1"></i>Copy Link
+      </button>
+    </div>
+    {% if provider.referral_credit_balance and provider.referral_credit_balance > 0 %}
+    <div class="text-success small">
+      <i class="bi bi-check-circle-fill me-1"></i>
+      ${{ "%.2f"|format(provider.referral_credit_balance) }} credit balance — applied automatically at next commission charge
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Summary stats -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-4">
+    <div class="card border-0 shadow-sm text-center">
+      <div class="card-body">
+        <div class="fs-3 fw-bold">{{ referrals | length }}</div>
+        <div class="small text-muted">Providers Referred</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="card border-0 shadow-sm text-center">
+      <div class="card-body">
+        <div class="fs-3 fw-bold text-success">${{ "%.2f"|format(total_credits) }}</div>
+        <div class="small text-muted">Total Credits Earned</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="card border-0 shadow-sm text-center">
+      <div class="card-body">
+        <div class="fs-3 fw-bold text-warning">${{ "%.2f"|format(provider.referral_credit_balance) }}</div>
+        <div class="small text-muted">Available Balance</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Referral history table -->
+{% if referrals %}
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Business</th>
+          <th>Joined</th>
+          <th>Bookings</th>
+          <th>Status</th>
+          <th>Credit</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in referrals %}
+        <tr>
+          <td>{{ r.referred_business_name or '—' }}</td>
+          <td>{{ r.referred_signup_at.strftime('%b %d, %Y') if r.referred_signup_at else '—' }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <span>{{ r.bookings_completed }}/5</span>
+              <div class="progress flex-grow-1" style="height:4px; max-width:60px;">
+                <div class="progress-bar bg-warning"
+                     style="width:{{ [(r.bookings_completed / 5 * 100) | int, 100] | min }}%;"></div>
+              </div>
+            </div>
+          </td>
+          <td>
+            {% if r.status == 'credited' %}
+              <span class="badge bg-success">Credited</span>
+            {% elif r.status == 'qualified' %}
+              <span class="badge bg-info text-dark">Qualified</span>
+            {% elif r.status == 'expired' %}
+              <span class="badge bg-secondary">Expired</span>
+            {% else %}
+              <span class="badge bg-warning text-dark">In Progress</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if r.status == 'credited' %}
+              <span class="text-success fw-semibold">+${{ "%.0f"|format(r.credit_amount) }}</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="text-center py-5 text-muted">
+  <i class="bi bi-person-plus display-4 mb-3 d-block"></i>
+  <p>No referrals yet. Share your link with other tour guides and operators to start earning.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyProvRefFull() {
+  var inp = document.getElementById('provRefInputFull');
+  if (!inp) return;
+  navigator.clipboard.writeText(inp.value).then(function() {
+    var btn = inp.nextElementSibling;
+    btn.innerHTML = '<i class="bi bi-check me-1"></i>Copied!';
+    setTimeout(function(){ btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy Link'; }, 2000);
+  });
+}
+</script>
+{% endblock %}

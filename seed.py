@@ -16,7 +16,7 @@ from app.extensions import db, bcrypt
 from app.models import StaffMember, Experience, ExperiencePickupLocation, Timeslot, User
 from app.utils import generate_pk
 
-app = create_app('production')
+app = create_app('development')
 
 PICKUP_CITIES = [
     'Cupertino, CA', 'Fremont, CA', 'Los Gatos, CA', 'Menlo Park, CA',
