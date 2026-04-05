@@ -88,6 +88,20 @@ def create_app(config_name='default'):
         except (TypeError, ValueError):
             return value
 
+    import json as _json
+    @app.template_filter('from_json')
+    def from_json_filter(value):
+        try:
+            return _json.loads(value) if value else {}
+        except (ValueError, TypeError):
+            return {}
+
+    # Inject today's date for templates
+    @app.context_processor
+    def inject_today():
+        from datetime import date
+        return dict(today=date.today())
+
     # Cart count context processor
     @app.context_processor
     def inject_cart_count():
@@ -166,6 +180,36 @@ def create_app(config_name='default'):
                     _conn.execute(text('ALTER TABLE experiences ADD COLUMN discount_start DATETIME NULL'))
                 if 'discount_end' not in _ecols:
                     _conn.execute(text('ALTER TABLE experiences ADD COLUMN discount_end DATETIME NULL'))
+                _conn.commit()
+        except Exception:
+            pass
+
+        # Agents migration: is_mystery on experiences, mystery fields on bookings
+        try:
+            from sqlalchemy import text, inspect as sa_inspect
+            _insp = sa_inspect(db.engine)
+            _dialect = db.engine.dialect.name
+            _ecols = [c['name'] for c in _insp.get_columns('experiences')]
+            _bcols = [c['name'] for c in _insp.get_columns('bookings')]
+            with db.engine.connect() as _conn:
+                if 'is_mystery' not in _ecols:
+                    _conn.execute(text(
+                        'ALTER TABLE experiences ADD COLUMN is_mystery BOOLEAN NOT NULL DEFAULT 0'
+                    ))
+                if 'mystery_vibe' not in _bcols:
+                    if _dialect == 'mysql':
+                        _conn.execute(text(
+                            "ALTER TABLE bookings ADD COLUMN mystery_vibe "
+                            "ENUM('adventure','foodie','culture','relax','celebrate') NULL"
+                        ))
+                    else:
+                        _conn.execute(text(
+                            "ALTER TABLE bookings ADD COLUMN mystery_vibe VARCHAR(20) NULL"
+                        ))
+                if 'mystery_reveal_sent_at' not in _bcols:
+                    _conn.execute(text(
+                        'ALTER TABLE bookings ADD COLUMN mystery_reveal_sent_at DATETIME NULL'
+                    ))
                 _conn.commit()
         except Exception:
             pass

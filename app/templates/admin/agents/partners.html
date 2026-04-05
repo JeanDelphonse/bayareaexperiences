@@ -1,0 +1,120 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Partner CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="fw-bold mb-0"><i class="bi bi-building me-2" style="color:#198754;"></i>Partner CRM</h2>
+    <p class="text-muted mb-0">Hotels, corporate accounts, OTAs, and relocation companies</p>
+  </div>
+  <a href="{{ url_for('admin.agents_partner_new') }}" class="btn btn-success fw-semibold">
+    <i class="bi bi-plus-lg me-1"></i>Add Partner
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="d-flex gap-2 mb-3 flex-wrap">
+  <select class="form-select form-select-sm" style="width:auto;"
+          onchange="window.location='?status='+this.value+'&type={{ type_filter }}'">
+    <option value="" {% if not status_filter %}selected{% endif %}>All statuses</option>
+    {% for s in ['prospect','contacted','active','paused','declined'] %}
+    <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s | title }}</option>
+    {% endfor %}
+  </select>
+  <select class="form-select form-select-sm" style="width:auto;"
+          onchange="window.location='?status={{ status_filter }}&type='+this.value">
+    <option value="" {% if not type_filter %}selected{% endif %}>All types</option>
+    {% for t in ['hotel','corporate','ota','relocation'] %}
+    <option value="{{ t }}" {% if type_filter == t %}selected{% endif %}>{{ t | title }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+{% if partners %}
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Business</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Contact</th>
+          <th>City</th>
+          <th>Referrals</th>
+          <th>Next Follow-up</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in partners %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ p.business_name }}</div>
+            {% if p.notes %}
+            <div class="small text-muted text-truncate" style="max-width:200px;">{{ p.notes }}</div>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge bg-light text-dark border">{{ p.partner_type | title }}</span>
+          </td>
+          <td>
+            <span class="badge
+              {% if p.status == 'active' %}bg-success
+              {% elif p.status == 'prospect' %}bg-light text-dark border
+              {% elif p.status == 'contacted' %}bg-info text-dark
+              {% elif p.status == 'paused' %}bg-warning text-dark
+              {% else %}bg-secondary{% endif %}">
+              {{ p.status | title }}
+            </span>
+          </td>
+          <td class="small">
+            {% if p.contact_name %}<div>{{ p.contact_name }}</div>{% endif %}
+            {% if p.contact_email %}<div class="text-muted">{{ p.contact_email }}</div>{% endif %}
+            {% if p.contact_phone %}<div class="text-muted">{{ p.contact_phone }}</div>{% endif %}
+          </td>
+          <td class="small text-muted">{{ p.location_city or '—' }}</td>
+          <td class="text-center">
+            <span class="badge bg-light text-dark border">{{ p.total_referrals }}</span>
+          </td>
+          <td class="small">
+            {% if p.next_followup_at %}
+              {% set days_left = (p.next_followup_at.date() - today).days %}
+              <span class="{% if days_left < 0 %}text-danger fw-semibold{% elif days_left <= 7 %}text-warning fw-semibold{% else %}text-muted{% endif %}">
+                {{ p.next_followup_at.strftime('%b %d, %Y') }}
+              </span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('admin.agents_partner_edit', partner_id=p.partner_id) }}"
+                 class="btn btn-xs btn-outline-secondary btn-sm">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <form method="POST"
+                    action="{{ url_for('admin.agents_run_now', code='BAE-AGENT-PARTNER') }}"
+                    onsubmit="return confirm('Run outreach agent for {{ p.business_name }}?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-xs btn-outline-success btn-sm"
+                        title="Trigger outreach for this partner">
+                  <i class="bi bi-send"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="text-center py-5 text-muted">
+  <i class="bi bi-building display-4 mb-3 d-block" style="color:#198754;"></i>
+  <p>No partners found{% if status_filter or type_filter %} matching these filters{% endif %}.</p>
+  <a href="{{ url_for('admin.agents_partner_new') }}" class="btn btn-outline-success">
+    <i class="bi bi-plus-lg me-1"></i>Add your first partner
+  </a>
+</div>
+{% endif %}
+{% endblock %}

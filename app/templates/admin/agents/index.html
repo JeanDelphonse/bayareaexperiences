@@ -1,0 +1,80 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Agent Control Panel{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="fw-bold mb-0">Agent Control Panel</h2>
+    <p class="text-muted mb-0">5 AI advertising agents — manage, trigger, and review</p>
+  </div>
+  {% if total_pending %}
+  <a href="{{ url_for('admin.agents_queue') }}" class="btn btn-warning fw-semibold">
+    <i class="bi bi-inbox me-1"></i>{{ total_pending }} item{{ 's' if total_pending != 1 }} pending approval
+  </a>
+  {% endif %}
+</div>
+
+<div class="row g-3">
+{% for card in cards %}
+{% set meta = card.meta %}
+<div class="col-md-6 col-xl-4">
+  <div class="card border-0 shadow-sm h-100">
+    <div class="card-body">
+      <div class="d-flex align-items-center gap-3 mb-3">
+        <div class="rounded-circle d-flex align-items-center justify-content-center"
+             style="width:44px;height:44px;background:{{ meta.color }}20;">
+          <i class="bi {{ meta.icon }} fs-5" style="color:{{ meta.color }};"></i>
+        </div>
+        <div>
+          <div class="fw-bold">{{ meta.label }}</div>
+          <div class="small text-muted font-monospace">{{ card.code }}</div>
+        </div>
+        <div class="ms-auto">
+          {% if card.pending %}
+          <span class="badge bg-warning text-dark">{{ card.pending }} pending</span>
+          {% elif card.last_run %}
+            {% if card.last_failed %}
+            <span class="badge bg-danger">Failed</span>
+            {% elif card.last_run.status == 'published' %}
+            <span class="badge bg-success">Published</span>
+            {% else %}
+            <span class="badge bg-secondary">{{ card.last_run.status | title }}</span>
+            {% endif %}
+          {% else %}
+          <span class="badge bg-light text-muted">No runs</span>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if card.last_run %}
+      <div class="small text-muted mb-3">
+        Last run: {{ card.last_run.created_at.strftime('%b %d %H:%M UTC') }}
+        ({{ card.last_run.trigger_type }})
+      </div>
+      {% else %}
+      <div class="small text-muted mb-3">Never run</div>
+      {% endif %}
+
+      <div class="d-flex gap-2 flex-wrap">
+        <form method="POST" action="{{ url_for('admin.agents_run_now', code=card.code) }}"
+              onsubmit="return confirm('Trigger {{ meta.label }} now?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-play-fill me-1"></i>Run Now
+          </button>
+        </form>
+        <a href="{{ url_for('admin.agents_history', code=card.code) }}"
+           class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-clock-history me-1"></i>History
+        </a>
+        <a href="{{ url_for('admin.agents_settings', code=card.code) }}"
+           class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-gear me-1"></i>Settings
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+</div>
+{% endblock %}

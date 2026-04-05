@@ -59,6 +59,20 @@
         <i class="bi bi-people me-2"></i>Referrals</a></li>
       <li><a href="{{ url_for('admin.loyalty_discounts') }}" class="nav-link px-2 py-1 {% if request.endpoint == 'admin.loyalty_discounts' %}active{% endif %}">
         <i class="bi bi-tag me-2"></i>Discount Codes</a></li>
+      <li class="mt-2"><span class="px-2 py-1 text-secondary small">AGENTS</span></li>
+      <li><a href="{{ url_for('admin.agents_dashboard') }}" class="nav-link px-2 py-1 {% if 'agents' in request.endpoint %}active{% endif %}">
+        <i class="bi bi-robot me-2"></i>Agent Control
+        {%- set _pending = namespace(n=0) %}
+        {%- if request.endpoint and 'agents' not in request.endpoint %}
+          {# badge only rendered on non-agent pages to avoid stale count #}
+        {%- endif %}
+      </a></li>
+      <li><a href="{{ url_for('admin.agents_queue') }}" class="nav-link px-2 py-1 {% if request.endpoint == 'admin.agents_queue' %}active{% endif %}">
+        <i class="bi bi-inbox me-2"></i>Approval Queue</a></li>
+      <li><a href="{{ url_for('admin.agents_partners') }}" class="nav-link px-2 py-1 {% if 'partner' in request.endpoint %}active{% endif %}">
+        <i class="bi bi-building me-2"></i>Partner CRM</a></li>
+      <li><a href="{{ url_for('admin.agents_mystery') }}" class="nav-link px-2 py-1 {% if request.endpoint == 'admin.agents_mystery' %}active{% endif %}">
+        <i class="bi bi-question-diamond me-2"></i>Mystery Tours</a></li>
       <li class="mt-2"><span class="px-2 py-1 text-secondary small">REVIEWS</span></li>
       <li><a href="{{ url_for('admin.reviews') }}" class="nav-link px-2 py-1 {% if 'review' in request.endpoint and 'marketplace' not in request.endpoint %}active{% endif %}">
         <i class="bi bi-star me-2"></i>All Reviews</a></li>

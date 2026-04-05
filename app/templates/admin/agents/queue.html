@@ -1,0 +1,143 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Approval Queue{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="fw-bold mb-0">Approval Queue</h2>
+    <p class="text-muted mb-0">{{ runs | length }} item{{ 's' if runs | length != 1 }} pending</p>
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    <select class="form-select form-select-sm" style="width:auto;"
+            onchange="window.location='?agent='+this.value">
+      <option value="">All agents</option>
+      {% for code, meta in agent_meta.items() %}
+      <option value="{{ code }}" {% if agent_filter == code %}selected{% endif %}>
+        {{ meta.label }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+
+{% if not runs %}
+<div class="text-center py-5 text-muted">
+  <i class="bi bi-inbox display-4 mb-3 d-block"></i>
+  <p>No items pending approval{% if agent_filter %} for this agent{% endif %}.</p>
+</div>
+{% else %}
+
+{% for run in runs %}
+{% set meta = agent_meta.get(run.agent_code, {'label': run.agent_code, 'icon': 'bi-robot', 'color': '#6c757d'}) %}
+{% set draft = run.output_draft | from_json if run.output_draft else {} %}
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-header bg-white d-flex align-items-center gap-2 py-2">
+    <i class="bi {{ meta.icon }}" style="color:{{ meta.color }};"></i>
+    <span class="fw-semibold small">{{ meta.label }}</span>
+    <span class="text-muted small ms-1">— {{ run.trigger_type }}
+      {% if run.trigger_detail %} · {{ run.trigger_detail }}{% endif %}
+    </span>
+    <span class="ms-auto text-muted small">{{ run.created_at.strftime('%b %d %H:%M UTC') }}</span>
+  </div>
+  <div class="card-body">
+    <!-- Draft content preview -->
+    <div class="mb-3">
+      {% if run.agent_code == 'BAE-AGENT-SOCIAL' %}
+        <div class="mb-2">
+          <span class="badge bg-light text-dark border me-1">{{ draft.get('platform', '') | title }}</span>
+          <span class="badge bg-light text-dark border">{{ draft.get('angle', '') }}</span>
+        </div>
+        <p class="mb-1">{{ draft.get('caption', '') | truncate(300) }}</p>
+        {% if draft.get('hashtags') %}
+        <div class="small text-primary">
+          {% for tag in draft.get('hashtags', [])[:8] %}#{{ tag }} {% endfor %}
+        </div>
+        {% endif %}
+
+      {% elif run.agent_code == 'BAE-AGENT-ADS' %}
+        <p class="mb-1 fw-semibold small">Ad Group: {{ draft.get('ad_group', '') }}</p>
+        {% for v in draft.get('variants', [])[:2] %}
+        <div class="p-2 border rounded mb-2 small">
+          <div class="text-primary fw-semibold">{{ v.get('headlines', []) | join(' | ') }}</div>
+          <div class="text-muted">{{ v.get('descriptions', []) | join(' — ') }}</div>
+        </div>
+        {% endfor %}
+
+      {% elif run.agent_code == 'BAE-AGENT-EMAIL' %}
+        <div class="fw-semibold mb-1">{{ draft.get('subject_line', '') }}</div>
+        <div class="small text-muted">Segment: {{ draft.get('recipient_segment', 'all') }}</div>
+
+      {% elif run.agent_code == 'BAE-AGENT-PARTNER' %}
+        <div class="fw-semibold mb-1">{{ draft.get('partner_name', '') }}</div>
+        <div class="small mb-1">{{ draft.get('subject', '') }}</div>
+        <p class="small text-muted">{{ draft.get('body', '') | truncate(200) }}</p>
+
+      {% elif run.agent_code == 'BAE-AGENT-MYSTERY' %}
+        <div class="fw-semibold mb-1">{{ draft.get('itinerary_title', 'Mystery itinerary') }}</div>
+        <p class="small text-muted">{{ draft.get('reveal_email_subject', '') }}</p>
+
+      {% else %}
+        <pre class="small text-muted" style="max-height:120px;overflow-y:auto;">{{ run.output_draft | truncate(400) }}</pre>
+      {% endif %}
+
+      {% if draft.get('notes_for_admin') %}
+      <div class="alert alert-light border-start border-warning border-3 py-1 px-2 mt-2 small mb-0">
+        <strong>Note:</strong> {{ draft.get('notes_for_admin') }}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Actions -->
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+      <form method="POST" action="{{ url_for('admin.agents_approve', run_id=run.run_id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-sm btn-success fw-semibold">
+          <i class="bi bi-check-lg me-1"></i>Approve
+        </button>
+      </form>
+      <button class="btn btn-sm btn-outline-secondary"
+              data-bs-toggle="collapse"
+              data-bs-target="#edit-{{ run.run_id }}">
+        <i class="bi bi-pencil me-1"></i>Edit Draft
+      </button>
+      <button class="btn btn-sm btn-outline-danger"
+              data-bs-toggle="collapse"
+              data-bs-target="#reject-{{ run.run_id }}">
+        <i class="bi bi-x-lg me-1"></i>Reject
+      </button>
+    </div>
+
+    <!-- Edit panel -->
+    <div class="collapse mt-3" id="edit-{{ run.run_id }}">
+      <div class="border rounded p-3 bg-light">
+        <label class="form-label small fw-semibold">Edit JSON draft (then Approve):</label>
+        <textarea class="form-control font-monospace small"
+                  rows="8" id="draft-json-{{ run.run_id }}">{{ run.output_draft }}</textarea>
+        <form method="POST" action="{{ url_for('admin.agents_approve', run_id=run.run_id) }}"
+              class="mt-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="output_draft" id="edited-draft-{{ run.run_id }}">
+          <button type="submit" class="btn btn-sm btn-success"
+                  onclick="document.getElementById('edited-draft-{{ run.run_id }}').value=document.getElementById('draft-json-{{ run.run_id }}').value">
+            Approve Edited Version
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Reject panel -->
+    <div class="collapse mt-3" id="reject-{{ run.run_id }}">
+      <form method="POST" action="{{ url_for('admin.agents_reject', run_id=run.run_id) }}"
+            class="border rounded p-3 bg-light">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="form-label small fw-semibold">Rejection notes (optional):</label>
+        <input type="text" name="notes" class="form-control form-control-sm mb-2"
+               placeholder="Why is this being rejected?">
+        <button class="btn btn-sm btn-danger">Confirm Reject</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

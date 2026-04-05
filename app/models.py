@@ -105,6 +105,9 @@ class Experience(db.Model):
     # AI itinerary generation
     core_stops       = db.Column(db.Text,        nullable=True)
 
+    # Mystery Tour
+    is_mystery       = db.Column(db.Boolean,     nullable=False, default=False)
+
     # Promotional discount (BAE-PRD-DISCOUNT-v1.0)
     discount_percent  = db.Column(db.Enum('10', '15', '20'), nullable=True)
     discounted_price  = db.Column(db.Numeric(10, 2), nullable=True)
@@ -230,6 +233,11 @@ class Booking(db.Model):
     discount_code_id        = db.Column(db.String(9),    db.ForeignKey('discount_codes.code_id'), nullable=True)
     discount_amount         = db.Column(db.Numeric(10, 2), nullable=False, default=0.00)
     referral_credit_applied = db.Column(db.Numeric(8, 2),  nullable=False, default=0.00)
+
+    # Mystery Tour
+    mystery_vibe           = db.Column(db.Enum('adventure', 'foodie', 'culture',
+                                                'relax', 'celebrate'), nullable=True)
+    mystery_reveal_sent_at = db.Column(db.DateTime, nullable=True)
 
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc),
@@ -1130,4 +1138,181 @@ class ProviderReferralCode(db.Model):
         db.Index('ix_prov_ref_referrer',  'referrer_provider_id'),
         db.Index('ix_prov_ref_referred',  'referred_provider_id'),
         db.Index('ix_prov_ref_status',    'status'),
+    )
+
+
+# ── Agent Suite ───────────────────────────────────────────────────────────────
+
+class AgentRun(db.Model):
+    __tablename__ = 'agent_runs'
+
+    run_id         = db.Column(db.String(9),   primary_key=True, default=generate_pk)
+    agent_code     = db.Column(db.String(40),  nullable=False)
+    trigger_type   = db.Column(db.Enum('scheduled', 'event', 'manual'), nullable=False)
+    trigger_detail = db.Column(db.String(200), nullable=True)
+    status         = db.Column(db.Enum('running', 'pending_approval', 'approved',
+                                       'rejected', 'published', 'failed'),
+                               nullable=False, default='running')
+    input_context  = db.Column(db.Text, nullable=True)   # JSON
+    output_draft   = db.Column(db.Text, nullable=True)   # JSON
+    admin_user_id  = db.Column(db.String(9), db.ForeignKey('users.user_id'), nullable=True)
+    admin_notes    = db.Column(db.Text, nullable=True)
+    approved_at    = db.Column(db.DateTime, nullable=True)
+    published_at   = db.Column(db.DateTime, nullable=True)
+    created_at     = db.Column(db.DateTime, nullable=False,
+                               default=lambda: datetime.now(timezone.utc))
+    completed_at   = db.Column(db.DateTime, nullable=True)
+
+    admin_user = db.relationship('User', foreign_keys=[admin_user_id],
+                                 backref='agent_approvals')
+
+    __table_args__ = (
+        db.Index('ix_agent_runs_agent_code', 'agent_code'),
+        db.Index('ix_agent_runs_status',     'status'),
+        db.Index('ix_agent_runs_created_at', 'created_at'),
+    )
+
+
+class AgentSetting(db.Model):
+    """Per-agent key/value configuration store (admin-editable)."""
+    __tablename__ = 'agent_settings'
+
+    setting_id  = db.Column(db.String(9),   primary_key=True, default=generate_pk)
+    agent_code  = db.Column(db.String(40),  nullable=False)
+    key         = db.Column(db.String(100), nullable=False)
+    value       = db.Column(db.Text,        nullable=True)
+
+    __table_args__ = (
+        db.UniqueConstraint('agent_code', 'key', name='uq_agent_setting'),
+    )
+
+
+class AgentSocialPost(db.Model):
+    __tablename__ = 'agent_social_posts'
+
+    post_id          = db.Column(db.String(9),    primary_key=True, default=generate_pk)
+    run_id           = db.Column(db.String(9),    db.ForeignKey('agent_runs.run_id'), nullable=False)
+    platform         = db.Column(db.Enum('instagram', 'tiktok', 'linkedin'), nullable=False)
+    angle            = db.Column(db.String(100),  nullable=True)
+    caption          = db.Column(db.Text,         nullable=False)
+    hashtags         = db.Column(db.Text,         nullable=True)   # JSON array
+    call_to_action   = db.Column(db.String(300),  nullable=True)
+    scheduled_time   = db.Column(db.DateTime,     nullable=True)
+    platform_post_id = db.Column(db.String(200),  nullable=True)
+    status           = db.Column(db.Enum('draft', 'approved', 'rejected', 'published', 'archived'),
+                                 nullable=False, default='draft')
+    performance_likes  = db.Column(db.Integer, nullable=False, default=0)
+    performance_reach  = db.Column(db.Integer, nullable=False, default=0)
+    performance_clicks = db.Column(db.Integer, nullable=False, default=0)
+
+    run = db.relationship('AgentRun', backref='social_posts')
+
+    __table_args__ = (
+        db.Index('ix_social_posts_run_id', 'run_id'),
+        db.Index('ix_social_posts_status', 'status'),
+    )
+
+
+class AgentAdCopy(db.Model):
+    __tablename__ = 'agent_ad_copies'
+
+    copy_id       = db.Column(db.String(9),    primary_key=True, default=generate_pk)
+    run_id        = db.Column(db.String(9),    db.ForeignKey('agent_runs.run_id'), nullable=False)
+    ad_group      = db.Column(db.String(200),  nullable=False)
+    variant_index = db.Column(db.SmallInteger, nullable=False)
+    headlines     = db.Column(db.Text,         nullable=False)   # JSON array of 3
+    descriptions  = db.Column(db.Text,         nullable=False)   # JSON array of 2
+    angle         = db.Column(db.String(200),  nullable=True)
+    google_ad_id  = db.Column(db.String(200),  nullable=True)
+    status        = db.Column(db.Enum('draft', 'approved', 'rejected', 'live', 'paused'),
+                              nullable=False, default='draft')
+    impressions   = db.Column(db.Integer,      nullable=False, default=0)
+    clicks        = db.Column(db.Integer,      nullable=False, default=0)
+    conversions   = db.Column(db.Integer,      nullable=False, default=0)
+    cost_usd      = db.Column(db.Numeric(10, 2), nullable=False, default=0.00)
+
+    run = db.relationship('AgentRun', backref='ad_copies')
+
+    __table_args__ = (
+        db.Index('ix_ad_copies_run_id', 'run_id'),
+        db.Index('ix_ad_copies_status', 'status'),
+    )
+
+
+class AgentEmailCampaign(db.Model):
+    __tablename__ = 'agent_email_campaigns'
+
+    campaign_id       = db.Column(db.String(9),    primary_key=True, default=generate_pk)
+    run_id            = db.Column(db.String(9),    db.ForeignKey('agent_runs.run_id'), nullable=False)
+    campaign_type     = db.Column(db.Enum('share_request', 'vip', 'referral', 'weekly',
+                                          'reengagement', 'flash_discount', 'seasonal'),
+                                  nullable=False)
+    subject_line      = db.Column(db.String(200),  nullable=False)
+    body_html         = db.Column(db.Text,         nullable=False)
+    body_text         = db.Column(db.Text,         nullable=False)
+    recipient_segment = db.Column(db.String(200),  nullable=True)
+    recipient_count   = db.Column(db.Integer,      nullable=False, default=0)
+    scheduled_send_at = db.Column(db.DateTime,     nullable=True)
+    sent_at           = db.Column(db.DateTime,     nullable=True)
+    opens             = db.Column(db.Integer,      nullable=False, default=0)
+    clicks            = db.Column(db.Integer,      nullable=False, default=0)
+    bookings_attributed = db.Column(db.Integer,    nullable=False, default=0)
+    status            = db.Column(db.Enum('draft', 'approved', 'rejected', 'sent', 'cancelled'),
+                                  nullable=False, default='draft')
+
+    run = db.relationship('AgentRun', backref='email_campaigns')
+
+    __table_args__ = (
+        db.Index('ix_email_campaigns_run_id', 'run_id'),
+        db.Index('ix_email_campaigns_status', 'status'),
+    )
+
+
+class Partner(db.Model):
+    __tablename__ = 'partners'
+
+    partner_id      = db.Column(db.String(9),    primary_key=True, default=generate_pk)
+    partner_type    = db.Column(db.Enum('hotel', 'corporate', 'ota', 'relocation'), nullable=False)
+    business_name   = db.Column(db.String(200),  nullable=False)
+    contact_name    = db.Column(db.String(150),  nullable=True)
+    contact_email   = db.Column(db.String(150),  nullable=True)
+    contact_phone   = db.Column(db.String(30),   nullable=True)
+    location_city   = db.Column(db.String(100),  nullable=True)
+    status          = db.Column(db.Enum('prospect', 'contacted', 'active', 'paused', 'declined'),
+                                nullable=False, default='prospect')
+    commission_rate = db.Column(db.Numeric(5, 2), nullable=True)
+    notes           = db.Column(db.Text,          nullable=True)
+    last_contact_at = db.Column(db.DateTime,      nullable=True)
+    next_followup_at= db.Column(db.DateTime,      nullable=True)
+    total_referrals = db.Column(db.Integer,       nullable=False, default=0)
+    created_at      = db.Column(db.DateTime,      nullable=False,
+                                default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        db.Index('ix_partners_type',   'partner_type'),
+        db.Index('ix_partners_status', 'status'),
+    )
+
+
+class PartnerOutreach(db.Model):
+    __tablename__ = 'partner_outreach'
+
+    outreach_id   = db.Column(db.String(9),   primary_key=True, default=generate_pk)
+    partner_id    = db.Column(db.String(9),   db.ForeignKey('partners.partner_id'), nullable=False)
+    run_id        = db.Column(db.String(9),   db.ForeignKey('agent_runs.run_id'),   nullable=False)
+    outreach_type = db.Column(db.Enum('email', 'linkedin', 'phone', 'in_person'), nullable=False)
+    subject       = db.Column(db.String(200), nullable=True)
+    body          = db.Column(db.Text,        nullable=False)
+    status        = db.Column(db.Enum('draft', 'approved', 'sent', 'opened', 'replied', 'rejected'),
+                              nullable=False, default='draft')
+    sent_at       = db.Column(db.DateTime,    nullable=True)
+    opened_at     = db.Column(db.DateTime,    nullable=True)
+    replied_at    = db.Column(db.DateTime,    nullable=True)
+
+    partner = db.relationship('Partner', backref='outreach_history')
+    run     = db.relationship('AgentRun', backref='partner_outreach')
+
+    __table_args__ = (
+        db.Index('ix_partner_outreach_partner_id', 'partner_id'),
+        db.Index('ix_partner_outreach_status',     'status'),
     )

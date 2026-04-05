@@ -1,0 +1,79 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}{{ meta.label }} — Settings{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <i class="bi {{ meta.icon }} fs-3" style="color:{{ meta.color }};"></i>
+  <div>
+    <h2 class="fw-bold mb-0">{{ meta.label }} — Settings</h2>
+    <p class="text-muted mb-0 font-monospace small">{{ code }}</p>
+  </div>
+  <a href="{{ url_for('admin.agents_dashboard') }}" class="btn btn-sm btn-outline-secondary ms-auto">← Back</a>
+</div>
+
+<form method="POST">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white fw-semibold">General</div>
+    <div class="card-body">
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">Test Mode</label>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" name="test_mode"
+                 value="true" id="testMode"
+                 {% if settings.get('test_mode') in ('true', True, '"true"') %}checked{% endif %}>
+          <label class="form-check-label small text-muted" for="testMode">
+            When enabled, agent generates drafts but never publishes or sends
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if code == 'BAE-AGENT-SOCIAL' %}
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white fw-semibold">Platform Toggles</div>
+    <div class="card-body">
+      {% for platform in ['instagram', 'tiktok', 'linkedin'] %}
+      <div class="form-check form-switch mb-2">
+        <input class="form-check-input" type="checkbox"
+               name="{{ platform }}_enabled" value="true"
+               id="{{ platform }}_toggle"
+               {% if settings.get(platform + '_enabled', 'true') not in ('false', False, '"false"') %}checked{% endif %}>
+        <label class="form-check-label" for="{{ platform }}_toggle">
+          {{ platform | title }}
+        </label>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if code == 'BAE-AGENT-PARTNER' %}
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white fw-semibold">Follow-up Settings</div>
+    <div class="card-body">
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">Follow-up interval (days)</label>
+        <input type="number" name="followup_days" class="form-control" style="max-width:120px;"
+               value="{{ settings.get('followup_days', '30') | replace('\"','') }}">
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white fw-semibold">System Prompt Override</div>
+    <div class="card-body">
+      <label class="form-label small text-muted">
+        Leave blank to use the built-in prompt. Enter custom text to override for the next run.
+      </label>
+      <textarea name="system_prompt_override" class="form-control font-monospace small"
+                rows="6" placeholder="Optional — override the default Claude system prompt">{{ settings.get('system_prompt_override', '') | replace('"','') }}</textarea>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-warning fw-semibold px-4">Save Settings</button>
+</form>
+{% endblock %}
