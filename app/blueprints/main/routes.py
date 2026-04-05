@@ -1,5 +1,6 @@
 import os
-from flask import render_template, redirect, url_for, send_from_directory, current_app, request, jsonify
+from datetime import datetime, timezone
+from flask import render_template, redirect, url_for, send_from_directory, current_app, request, jsonify, make_response
 from sqlalchemy import func
 from app.blueprints.main import main_bp
 from app.models import Experience, ExperienceReview
@@ -99,6 +100,63 @@ def experience_detail(slug):
                            star_counts=star_counts,
                            has_more_reviews=has_more_reviews,
                            min_reviews=min_reviews)
+
+
+@main_bp.route('/sitemap.xml')
+def sitemap():
+    from app.models import Provider
+    base = request.host_url.rstrip('/')
+
+    # Static pages: (path, changefreq, priority)
+    static_urls = [
+        ('/',             'weekly',  '1.0'),
+        ('/experiences',  'weekly',  '0.9'),
+        ('/contact',      'monthly', '0.6'),
+        ('/login',        'monthly', '0.4'),
+        ('/register',     'monthly', '0.5'),
+        ('/join/provider','monthly', '0.5'),
+    ]
+
+    # Dynamic: active experiences
+    experiences = (Experience.query
+                   .filter_by(is_active=True)
+                   .with_entities(Experience.slug, Experience.updated_at)
+                   .all())
+
+    # Dynamic: active provider public profiles (no updated_at on Provider model)
+    providers = (Provider.query
+                 .filter_by(is_active=True)
+                 .with_entities(Provider.business_slug)
+                 .all())
+
+    xml = render_template('main/sitemap.xml',
+                          base=base,
+                          static_urls=static_urls,
+                          experiences=experiences,
+                          providers=providers,
+                          now=datetime.now(timezone.utc).strftime('%Y-%m-%d'))
+    resp = make_response(xml)
+    resp.headers['Content-Type'] = 'application/xml; charset=utf-8'
+    return resp
+
+
+@main_bp.route('/robots.txt')
+def robots():
+    base = request.host_url.rstrip('/')
+    txt = (
+        'User-agent: *\n'
+        'Disallow: /admin/\n'
+        'Disallow: /account/\n'
+        'Disallow: /checkout/\n'
+        'Disallow: /cart/\n'
+        'Disallow: /book/\n'
+        'Disallow: /provider/dashboard/\n'
+        'Disallow: /providers/onboarding/\n'
+        f'Sitemap: {base}/sitemap.xml\n'
+    )
+    resp = make_response(txt)
+    resp.headers['Content-Type'] = 'text/plain'
+    return resp
 
 
 @main_bp.route('/experience/<slug>/reviews')

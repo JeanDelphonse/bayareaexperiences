@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  {# Static pages #}
+  {% for path, changefreq, priority in static_urls %}
+  <url>
+    <loc>{{ base }}{{ path }}</loc>
+    <changefreq>{{ changefreq }}</changefreq>
+    <priority>{{ priority }}</priority>
+    <lastmod>{{ now }}</lastmod>
+  </url>
+  {% endfor %}
+
+  {# Experience detail pages #}
+  {% for exp in experiences %}
+  <url>
+    <loc>{{ base }}/experience/{{ exp.slug }}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    {% if exp.updated_at %}
+    <lastmod>{{ exp.updated_at.strftime('%Y-%m-%d') }}</lastmod>
+    {% else %}
+    <lastmod>{{ now }}</lastmod>
+    {% endif %}
+  </url>
+  {% endfor %}
+
+  {# Provider public profile pages #}
+  {% for prov in providers %}
+  <url>
+    <loc>{{ base }}/providers/{{ prov.business_slug }}</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <lastmod>{{ now }}</lastmod>
+  </url>
+  {% endfor %}
+
+</urlset>
