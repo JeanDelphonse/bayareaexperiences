@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+import re
 from datetime import datetime, timezone
 
 log = logging.getLogger('agents')
@@ -112,7 +113,12 @@ class BaseAgent:
             system     = system,
             messages   = [{'role': 'user', 'content': user}],
         )
-        return msg.content[0].text.strip()
+        raw = msg.content[0].text.strip()
+        # Strip markdown code fences Claude sometimes wraps around JSON
+        if raw.startswith('`'):
+            raw = re.sub(r'^```(?:json|JSON)?\s*\n?', '', raw)
+            raw = re.sub(r'\n?```\s*$', '', raw)
+        return raw.strip()
 
     def _notify_admin(self, run):
         try:
