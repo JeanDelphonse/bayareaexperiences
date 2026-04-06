@@ -45,9 +45,6 @@ def run_partner_search(
     Use Claude with web_search tool to discover potential partners.
     Returns: (results_list, imported_count, duplicate_count)
     """
-    import anthropic
-    client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY', ''))
-
     user_prompt = f"""
 Search the web for potential Bay Area Experiences referral partners.
 
@@ -83,6 +80,8 @@ Return a JSON array of up to {max_results} businesses:
 """
 
     try:
+        import anthropic
+        client  = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY', ''))
         messages = [{'role': 'user', 'content': user_prompt}]
         raw_text = ''
 
