@@ -1276,17 +1276,22 @@ class Partner(db.Model):
     business_name   = db.Column(db.String(200),  nullable=False)
     contact_name    = db.Column(db.String(150),  nullable=True)
     contact_email   = db.Column(db.String(150),  nullable=True)
-    contact_phone   = db.Column(db.String(30),   nullable=True)
-    location_city   = db.Column(db.String(100),  nullable=True)
-    status          = db.Column(db.Enum('prospect', 'contacted', 'active', 'paused', 'declined'),
-                                nullable=False, default='prospect')
-    commission_rate = db.Column(db.Numeric(5, 2), nullable=True)
-    notes           = db.Column(db.Text,          nullable=True)
-    last_contact_at = db.Column(db.DateTime,      nullable=True)
-    next_followup_at= db.Column(db.DateTime,      nullable=True)
-    total_referrals = db.Column(db.Integer,       nullable=False, default=0)
-    created_at      = db.Column(db.DateTime,      nullable=False,
-                                default=lambda: datetime.now(timezone.utc))
+    contact_phone          = db.Column(db.String(30),   nullable=True)
+    website                = db.Column(db.String(500),  nullable=True)
+    location_city          = db.Column(db.String(100),  nullable=True)
+    location_address       = db.Column(db.String(300),  nullable=True)
+    status                 = db.Column(db.Enum('prospect', 'contacted', 'active', 'paused', 'declined'),
+                                       nullable=False, default='prospect')
+    discovery_source       = db.Column(db.Enum('web_search', 'manual', 'referral'),
+                                       nullable=False, default='manual')
+    discovery_search_query = db.Column(db.Text,         nullable=True)
+    commission_rate        = db.Column(db.Numeric(5, 2), nullable=True)
+    notes                  = db.Column(db.Text,          nullable=True)
+    last_contact_at        = db.Column(db.DateTime,      nullable=True)
+    next_followup_at       = db.Column(db.DateTime,      nullable=True)
+    total_referrals        = db.Column(db.Integer,       nullable=False, default=0)
+    created_at             = db.Column(db.DateTime,      nullable=False,
+                                       default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
         db.Index('ix_partners_type',   'partner_type'),
@@ -1299,7 +1304,7 @@ class PartnerOutreach(db.Model):
 
     outreach_id   = db.Column(db.String(9),   primary_key=True, default=generate_pk)
     partner_id    = db.Column(db.String(9),   db.ForeignKey('partners.partner_id'), nullable=False)
-    run_id        = db.Column(db.String(9),   db.ForeignKey('agent_runs.run_id'),   nullable=False)
+    run_id        = db.Column(db.String(9),   db.ForeignKey('agent_runs.run_id'),   nullable=True)
     outreach_type = db.Column(db.Enum('email', 'linkedin', 'phone', 'in_person'), nullable=False)
     subject       = db.Column(db.String(200), nullable=True)
     body          = db.Column(db.Text,        nullable=False)

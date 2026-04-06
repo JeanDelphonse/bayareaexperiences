@@ -1,0 +1,100 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}{{ partner.business_name }} — Outreach History{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <i class="bi bi-envelope fs-3" style="color:#198754;"></i>
+  <div>
+    <h2 class="fw-bold mb-0">{{ partner.business_name }}</h2>
+    <p class="text-muted mb-0">Outreach history · {{ partner.partner_type | title }}</p>
+  </div>
+  <div class="ms-auto d-flex gap-2">
+    <a href="{{ url_for('admin.agents_partner_edit', partner_id=partner.partner_id) }}"
+       class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-pencil me-1"></i>Edit Record
+    </a>
+    <a href="{{ url_for('admin.agents_partners') }}" class="btn btn-sm btn-outline-secondary">← CRM</a>
+  </div>
+</div>
+
+<!-- Partner summary strip -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-2 px-4">
+    <div class="d-flex gap-4 flex-wrap small">
+      <div><span class="text-muted">Status</span>
+        <span class="ms-2 badge {% if partner.status == 'active' %}bg-success{% elif partner.status == 'contacted' %}bg-info text-dark{% elif partner.status == 'prospect' %}bg-light text-dark border{% else %}bg-secondary{% endif %}">
+          {{ partner.status | title }}
+        </span>
+      </div>
+      {% if partner.contact_name %}
+      <div><span class="text-muted">Contact</span> <span class="ms-2">{{ partner.contact_name }}</span></div>
+      {% endif %}
+      {% if partner.contact_email %}
+      <div><span class="text-muted">Email</span> <a href="mailto:{{ partner.contact_email }}" class="ms-2">{{ partner.contact_email }}</a></div>
+      {% endif %}
+      {% if partner.location_city %}
+      <div><span class="text-muted">City</span> <span class="ms-2">{{ partner.location_city }}</span></div>
+      {% endif %}
+      <div><span class="text-muted">Referrals</span> <strong class="ms-2">{{ partner.total_referrals }}</strong></div>
+    </div>
+  </div>
+</div>
+
+{% if outreach %}
+<div class="d-flex flex-column gap-3">
+  {% for o in outreach %}
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white d-flex align-items-center gap-2 py-2">
+      <span class="badge bg-light text-dark border">{{ o.outreach_type | title }}</span>
+      <span class="fw-semibold small">{{ o.subject or '(no subject)' }}</span>
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <span class="badge
+          {% if o.status == 'sent' %}bg-success
+          {% elif o.status == 'opened' %}bg-info text-dark
+          {% elif o.status == 'replied' %}bg-primary
+          {% elif o.status == 'rejected' %}bg-secondary
+          {% elif o.status == 'approved' %}bg-warning text-dark
+          {% else %}bg-light text-dark border{% endif %}">
+          {{ o.status | title }}
+        </span>
+        <span class="text-muted small">
+          {% if o.sent_at %}Sent {{ o.sent_at.strftime('%b %d, %Y') }}
+          {% elif o.run and o.run.created_at %}Draft {{ o.run.created_at.strftime('%b %d, %Y') }}
+          {% endif %}
+        </span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="p-3 bg-light rounded" style="white-space:pre-wrap;font-size:13px;line-height:1.7;max-height:300px;overflow-y:auto;">{{ o.body }}</div>
+      {% if o.status in ('draft', 'approved') and not o.sent_at %}
+      <div class="mt-2 d-flex gap-2">
+        <form method="POST" action="{{ url_for('admin.agents_approve', run_id=o.run_id) }}" class="d-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm btn-success"><i class="bi bi-check-lg me-1"></i>Approve & Send</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+    {% if o.opened_at or o.replied_at %}
+    <div class="card-footer bg-white border-0 py-1 small text-muted">
+      {% if o.opened_at %}<i class="bi bi-eye me-1"></i>Opened {{ o.opened_at.strftime('%b %d') }}{% endif %}
+      {% if o.replied_at %}<i class="bi bi-reply ms-3 me-1"></i>Replied {{ o.replied_at.strftime('%b %d') }}{% endif %}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5 text-muted">
+  <i class="bi bi-envelope display-4 mb-3 d-block opacity-25"></i>
+  <p>No outreach history yet for {{ partner.business_name }}.</p>
+  <form method="POST" action="{{ url_for('admin.agents_run_now', code='BAE-AGENT-PARTNER') }}"
+        class="d-inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-outline-success">
+      <i class="bi bi-send me-1"></i>Draft First Outreach
+    </button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

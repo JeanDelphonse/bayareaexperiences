@@ -299,6 +299,46 @@ def agents_partners():
                            status_filter=status_filter, type_filter=type_filter)
 
 
+@admin_bp.route('/agents/partners/search', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def agents_partner_search():
+    from app.weather.cities import SERVING_CITIES
+    BAY_AREA_CITIES = [c['name'] + ', CA' for c in SERVING_CITIES] + [
+        'Oakland, CA', 'Berkeley, CA', 'Walnut Creek, CA', 'San Rafael, CA',
+        'Sonoma, CA', 'Napa, CA', 'Half Moon Bay, CA',
+    ]
+    results     = None
+    imported    = 0
+    duplicates  = 0
+    search_meta = {}
+
+    if request.method == 'POST':
+        city         = request.form.get('search_city', '').strip()
+        partner_type = request.form.get('partner_type', 'hotel')
+        channel_desc = request.form.get('channel_description', '').strip()
+        max_results  = int(request.form.get('max_results', 20))
+
+        if not city or not channel_desc:
+            flash('City and channel description are required.', 'warning')
+        else:
+            search_meta = {'city': city, 'partner_type': partner_type,
+                           'channel_description': channel_desc}
+            from app.agents.partner.search import run_partner_search
+            results, imported, duplicates = run_partner_search(
+                city=city, partner_type=partner_type,
+                channel_description=channel_desc, max_results=max_results,
+            )
+            if results is not None:
+                flash(f'{imported} new partner(s) added to CRM; {duplicates} already existed.', 'success')
+
+    return render_template('admin/agents/partner_search.html',
+                           bay_area_cities=BAY_AREA_CITIES,
+                           results=results, imported=imported,
+                           duplicates=duplicates, search_meta=search_meta,
+                           agent_meta=AGENT_META)
+
+
 @admin_bp.route('/agents/partners/new', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -306,15 +346,18 @@ def agents_partner_new():
     from app.models import Partner
     if request.method == 'POST':
         partner = Partner(
-            partner_id    = generate_pk(),
-            partner_type  = request.form['partner_type'],
-            business_name = request.form['business_name'],
-            contact_name  = request.form.get('contact_name') or None,
-            contact_email = request.form.get('contact_email') or None,
-            contact_phone = request.form.get('contact_phone') or None,
-            location_city = request.form.get('location_city') or None,
-            notes         = request.form.get('notes') or None,
-            status        = 'prospect',
+            partner_id       = generate_pk(),
+            partner_type     = request.form['partner_type'],
+            business_name    = request.form['business_name'],
+            contact_name     = request.form.get('contact_name') or None,
+            contact_email    = request.form.get('contact_email') or None,
+            contact_phone    = request.form.get('contact_phone') or None,
+            website          = request.form.get('website') or None,
+            location_city    = request.form.get('location_city') or None,
+            location_address = request.form.get('location_address') or None,
+            notes            = request.form.get('notes') or None,
+            status           = 'prospect',
+            discovery_source = 'manual',
         )
         db.session.add(partner)
         db.session.commit()
@@ -330,15 +373,48 @@ def agents_partner_edit(partner_id):
     from app.models import Partner
     partner = Partner.query.get_or_404(partner_id)
     if request.method == 'POST':
-        partner.business_name = request.form['business_name']
-        partner.contact_name  = request.form.get('contact_name') or None
-        partner.contact_email = request.form.get('contact_email') or None
-        partner.contact_phone = request.form.get('contact_phone') or None
-        partner.location_city = request.form.get('location_city') or None
-        partner.status        = request.form.get('status', partner.status)
-        partner.notes         = request.form.get('notes') or None
+        partner.business_name    = request.form['business_name']
+        partner.contact_name     = request.form.get('contact_name') or None
+        partner.contact_email    = request.form.get('contact_email') or None
+        partner.contact_phone    = request.form.get('contact_phone') or None
+        partner.website          = request.form.get('website') or None
+        partner.location_city    = request.form.get('location_city') or None
+        partner.location_address = request.form.get('location_address') or None
+        partner.status           = request.form.get('status', partner.status)
+        partner.notes            = request.form.get('notes') or None
         db.session.commit()
         flash('Partner updated.', 'success')
         return redirect(url_for('admin.agents_partners'))
     return render_template('admin/agents/partner_form.html',
                            agent_meta=AGENT_META, partner=partner)
+
+
+@admin_bp.route('/agents/partners/<partner_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def agents_partner_delete(partner_id):
+    from app.models import Partner
+    partner = Partner.query.get_or_404(partner_id)
+    if partner.status != 'prospect':
+        flash('Only prospect records can be deleted.', 'warning')
+        return redirect(url_for('admin.agents_partners'))
+    name = partner.business_name
+    db.session.delete(partner)
+    db.session.commit()
+    flash(f'"{name}" removed from CRM.', 'info')
+    return redirect(request.referrer or url_for('admin.agents_partners'))
+
+
+@admin_bp.route('/agents/partners/<partner_id>/outreach')
+@login_required
+@admin_required
+def agents_partner_outreach(partner_id):
+    from app.models import Partner, PartnerOutreach
+    partner  = Partner.query.get_or_404(partner_id)
+    outreach = (PartnerOutreach.query
+                .filter_by(partner_id=partner_id)
+                .order_by(PartnerOutreach.sent_at.desc().nullslast())
+                .all())
+    return render_template('admin/agents/partner_outreach.html',
+                           partner=partner, outreach=outreach,
+                           agent_meta=AGENT_META)

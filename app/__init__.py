@@ -184,6 +184,46 @@ def create_app(config_name='default'):
         except Exception:
             pass
 
+        # Partner v1.1 migration: website, location_address, discovery columns
+        try:
+            from sqlalchemy import text, inspect as sa_inspect
+            _insp  = sa_inspect(db.engine)
+            _dialect = db.engine.dialect.name
+            if 'partners' in _insp.get_table_names():
+                _pcols = [c['name'] for c in _insp.get_columns('partners')]
+                with db.engine.connect() as _conn:
+                    if 'website' not in _pcols:
+                        _conn.execute(text('ALTER TABLE partners ADD COLUMN website VARCHAR(500) NULL'))
+                    if 'location_address' not in _pcols:
+                        _conn.execute(text('ALTER TABLE partners ADD COLUMN location_address VARCHAR(300) NULL'))
+                    if 'discovery_source' not in _pcols:
+                        if _dialect == 'mysql':
+                            _conn.execute(text(
+                                "ALTER TABLE partners ADD COLUMN discovery_source "
+                                "ENUM('web_search','manual','referral') NOT NULL DEFAULT 'manual'"
+                            ))
+                        else:
+                            _conn.execute(text(
+                                "ALTER TABLE partners ADD COLUMN discovery_source VARCHAR(20) NOT NULL DEFAULT 'manual'"
+                            ))
+                    if 'discovery_search_query' not in _pcols:
+                        _conn.execute(text('ALTER TABLE partners ADD COLUMN discovery_search_query TEXT NULL'))
+                    _conn.commit()
+            if 'partner_outreach' in _insp.get_table_names():
+                _ocols = [c['name'] for c in _insp.get_columns('partner_outreach')]
+                # Make run_id nullable if not already (MySQL only — SQLite ignores NOT NULL on FK)
+                if _dialect == 'mysql':
+                    with db.engine.connect() as _conn:
+                        try:
+                            _conn.execute(text(
+                                'ALTER TABLE partner_outreach MODIFY COLUMN run_id CHAR(9) NULL'
+                            ))
+                            _conn.commit()
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+
         # Agents migration: is_mystery on experiences, mystery fields on bookings
         try:
             from sqlalchemy import text, inspect as sa_inspect

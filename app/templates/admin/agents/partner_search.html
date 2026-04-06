@@ -1,0 +1,164 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Partner Discovery — Web Search{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <i class="bi bi-search fs-3" style="color:#198754;"></i>
+  <div>
+    <h2 class="fw-bold mb-0">Discover New Partners</h2>
+    <p class="text-muted mb-0">Claude searches the web and auto-imports matching businesses as prospects</p>
+  </div>
+  <a href="{{ url_for('admin.agents_partners') }}" class="btn btn-sm btn-outline-secondary ms-auto">
+    ← Partner CRM
+  </a>
+</div>
+
+<!-- Search form -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body p-4">
+    <form method="POST" id="partnerSearchForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold small">Bay Area City</label>
+          <select name="search_city" class="form-select" required>
+            <option value="">— Select a city —</option>
+            {% for city in bay_area_cities %}
+            <option value="{{ city }}"
+              {% if search_meta.get('city') == city %}selected{% endif %}>
+              {{ city }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold small">Partner Type</label>
+          <select name="partner_type" class="form-select">
+            {% for val, label in [('hotel','Hotel Concierge'),('corporate','Corporate / HR'),('ota','OTA / Tour Platform'),('relocation','Relocation Firm')] %}
+            <option value="{{ val }}"
+              {% if search_meta.get('partner_type') == val %}selected{% endif %}>
+              {{ label }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold small">Max Results</label>
+          <select name="max_results" class="form-select">
+            {% for n in [10, 20, 30, 50] %}
+            <option value="{{ n }}" {% if n == 20 %}selected{% endif %}>{{ n }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">
+          Channel Description
+          <span class="text-muted fw-normal">— describe exactly what kind of business to find</span>
+        </label>
+        <textarea name="channel_description" class="form-control" rows="3"
+                  maxlength="500" required
+                  placeholder="Examples:
+  Boutique hotels with a concierge desk that recommend local tours to guests
+  Tech companies with 50–200 employees that organise team offsites and events
+  Corporate event planning companies serving Silicon Valley clients">{{ search_meta.get('channel_description', '') }}</textarea>
+        <div class="form-text">Be specific. More detail = more targeted results.</div>
+      </div>
+
+      <button type="submit" class="btn btn-success fw-semibold px-4" id="searchBtn">
+        <i class="bi bi-search me-2"></i>Search for Partners
+      </button>
+      <span class="text-muted small ms-3">Claude searches the web and imports results automatically</span>
+    </form>
+  </div>
+</div>
+
+<!-- Results -->
+{% if results is not none %}
+<div class="mb-3 d-flex gap-2 align-items-center flex-wrap">
+  <span class="fw-semibold">{{ results | length }} business{{ 'es' if results | length != 1 }} found</span>
+  <span class="badge bg-success px-3">{{ imported }} added to CRM</span>
+  {% if duplicates %}<span class="badge bg-warning text-dark px-3">{{ duplicates }} already in CRM</span>{% endif %}
+  {% if search_meta %}
+  <span class="text-muted small">
+    {{ search_meta.city }} · {{ search_meta.partner_type | title }} ·
+    "{{ search_meta.channel_description[:60] }}{% if search_meta.channel_description | length > 60 %}…{% endif %}"
+  </span>
+  {% endif %}
+</div>
+
+{% if results %}
+<div class="d-flex flex-column gap-2">
+  {% for biz in results %}
+  <div class="card border-0 shadow-sm">
+    <div class="card-body py-3">
+      <div class="d-flex justify-content-between align-items-start gap-3">
+        <div class="flex-grow-1">
+          <div class="fw-semibold mb-1">{{ biz.business_name }}</div>
+          <div class="small text-muted mb-1">
+            {% if biz.get('address') %}{{ biz.address }} · {% endif %}
+            {{ biz.get('city', '') }}
+            {% if biz.get('phone') %} · {{ biz.phone }}{% endif %}
+            {% if biz.get('website') %}
+            · <a href="{{ biz.website }}" target="_blank" class="text-decoration-none">
+                {{ biz.website[:50] }}{% if biz.website | length > 50 %}…{% endif %}
+              </a>
+            {% endif %}
+          </div>
+          {% if biz.get('contact_name') %}
+          <div class="small mb-1">
+            <i class="bi bi-person me-1"></i>
+            {{ biz.contact_name }}
+            {% if biz.get('_contact_title') %} — {{ biz._contact_title }}{% endif %}
+            {% if biz.get('contact_email') %}
+            · <a href="mailto:{{ biz.contact_email }}" class="text-decoration-none">{{ biz.contact_email }}</a>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% if biz.get('why_good_fit') %}
+          <div class="small text-muted fst-italic">{{ biz.why_good_fit }}</div>
+          {% endif %}
+        </div>
+        <div class="d-flex flex-column align-items-end gap-1 flex-shrink-0">
+          {% if biz._status == 'imported' %}
+          <span class="badge bg-success">Added to CRM</span>
+          <a href="{{ url_for('admin.agents_partner_edit', partner_id=biz._partner_id) }}"
+             class="small text-decoration-none">Edit record →</a>
+          <form method="POST"
+                action="{{ url_for('admin.agents_partner_delete', partner_id=biz._partner_id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit"
+                    onclick="return confirm('Remove {{ biz.business_name }} from CRM?')"
+                    class="btn btn-link btn-sm text-danger p-0">Remove</button>
+          </form>
+          {% else %}
+          <span class="badge bg-warning text-dark">Already in CRM</span>
+          <a href="{{ url_for('admin.agents_partner_edit', partner_id=biz._partner_id) }}"
+             class="small text-decoration-none">View record →</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5 text-muted bg-light rounded">
+  <i class="bi bi-search display-4 mb-3 d-block opacity-25"></i>
+  <p>No matching businesses found. Try broadening the channel description or selecting a different city.</p>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('partnerSearchForm').addEventListener('submit', function() {
+  const btn = document.getElementById('searchBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Searching… this may take 30–60 seconds';
+});
+</script>
+{% endblock %}
