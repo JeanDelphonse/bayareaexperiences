@@ -27,10 +27,12 @@
           <th>Started</th>
           <th>Duration</th>
           <th>Admin</th>
+          {% if code == 'BAE-AGENT-SOCIAL' %}<th></th>{% endif %}
         </tr>
       </thead>
       <tbody>
         {% for run in runs.items %}
+        {% set draft = run.output_draft | from_json %}
         <tr>
           <td class="font-monospace small">{{ run.run_id }}</td>
           <td>
@@ -58,10 +60,20 @@
           <td class="small text-muted">
             {% if run.admin_user %}{{ run.admin_user.first_name }}{% else %}—{% endif %}
           </td>
+          {% if code == 'BAE-AGENT-SOCIAL' %}
+          <td>
+            {% if draft and draft.caption %}
+            <button class="btn btn-xs btn-outline-secondary btn-sm"
+                    onclick="showSocialPreview({{ run.output_draft | tojson }})">
+              <i class="bi bi-eye me-1"></i>Preview
+            </button>
+            {% endif %}
+          </td>
+          {% endif %}
         </tr>
         {% if run.admin_notes %}
         <tr class="table-light">
-          <td colspan="6" class="small text-muted ps-4">
+          <td colspan="{% if code == 'BAE-AGENT-SOCIAL' %}7{% else %}6{% endif %}" class="small text-muted ps-4">
             <i class="bi bi-chat-left-text me-1"></i>{{ run.admin_notes }}
           </td>
         </tr>
@@ -95,4 +107,189 @@
   <p>No runs yet for this agent.</p>
 </div>
 {% endif %}
+
+
+<!-- ── Social Media Preview Modal ──────────────────────────────────────── -->
+{% if code == 'BAE-AGENT-SOCIAL' %}
+<div class="modal fade" id="socialPreviewModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
+    <div class="modal-content border-0 shadow-lg" id="previewModalContent">
+
+      <!-- Platform tab switcher -->
+      <div class="modal-header border-0 pb-0" id="previewHeader">
+        <div class="d-flex gap-2 align-items-center">
+          <span id="previewPlatformBadge" class="badge fs-6 px-3 py-2"></span>
+          <span id="previewAngle" class="text-muted small"></span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body p-0">
+
+        <!-- ── Instagram mockup ────────────────────────────────────── -->
+        <div id="igPreview" class="d-none">
+          <div style="background:#fff;border-radius:0 0 12px 12px;overflow:hidden;">
+            <!-- Header -->
+            <div class="d-flex align-items-center gap-2 px-3 py-2 border-bottom">
+              <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);display:flex;align-items:center;justify-content:center;">
+                <i class="bi bi-geo-alt-fill text-white" style="font-size:14px;"></i>
+              </div>
+              <div>
+                <div class="fw-bold" style="font-size:13px;line-height:1.2;">bayareaexperiences</div>
+                <div class="text-muted" style="font-size:11px;" id="igLocation">San Francisco Bay Area</div>
+              </div>
+              <div class="ms-auto text-muted">•••</div>
+            </div>
+            <!-- Image placeholder -->
+            <div style="background:linear-gradient(135deg,#667eea,#764ba2);height:380px;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;gap:8px;">
+              <i class="bi bi-image" style="font-size:48px;opacity:0.6;"></i>
+              <span style="opacity:0.7;font-size:13px;">Photo / Reel</span>
+            </div>
+            <!-- Actions -->
+            <div class="d-flex align-items-center px-3 py-2" style="font-size:22px;">
+              <div class="d-flex gap-3">
+                <i class="bi bi-heart"></i>
+                <i class="bi bi-chat"></i>
+                <i class="bi bi-send"></i>
+              </div>
+              <div class="ms-auto"><i class="bi bi-bookmark"></i></div>
+            </div>
+            <!-- Caption -->
+            <div class="px-3 pb-3" style="font-size:13px;line-height:1.5;">
+              <span class="fw-bold">bayareaexperiences</span>
+              <span id="igCaption"></span>
+              <div id="igHashtags" class="mt-1" style="color:#00376b;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── LinkedIn mockup ─────────────────────────────────────── -->
+        <div id="liPreview" class="d-none">
+          <div style="background:#fff;border-radius:0 0 12px 12px;font-family:'Segoe UI',sans-serif;">
+            <!-- Header -->
+            <div class="d-flex gap-2 px-3 pt-3 pb-2">
+              <div style="width:48px;height:48px;border-radius:50%;background:#0077b5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="bi bi-geo-alt-fill text-white" style="font-size:20px;"></i>
+              </div>
+              <div>
+                <div class="fw-bold" style="font-size:14px;">Bay Area Experiences</div>
+                <div class="text-muted" style="font-size:12px;">Tour Operator · San Francisco Bay Area</div>
+                <div class="text-muted" style="font-size:12px;">
+                  <i class="bi bi-clock me-1"></i>Just now ·
+                  <i class="bi bi-globe2 ms-1"></i>
+                </div>
+              </div>
+              <div class="ms-auto"><button class="btn btn-sm btn-outline-primary" style="font-size:12px;"><i class="bi bi-plus me-1"></i>Follow</button></div>
+            </div>
+            <!-- Body -->
+            <div class="px-3 pb-2" style="font-size:14px;line-height:1.6;" id="liCaption"></div>
+            <div class="px-3 pb-2" style="font-size:13px;color:#0077b5;" id="liHashtags"></div>
+            <!-- Image placeholder -->
+            <div style="background:linear-gradient(135deg,#0077b5,#00a0dc);height:200px;display:flex;align-items:center;justify-content:center;color:#fff;gap:8px;">
+              <i class="bi bi-image" style="font-size:36px;opacity:0.6;"></i>
+            </div>
+            <!-- Reactions -->
+            <div class="px-3 py-2 border-top border-bottom" style="font-size:12px;color:#666;">
+              <span>👍 ❤️ 💡 <span class="ms-1">24 reactions</span></span>
+              <span class="ms-3">3 comments</span>
+            </div>
+            <div class="d-flex justify-content-around px-1 py-1">
+              {% for icon, label in [('bi-hand-thumbs-up','Like'),('bi-chat','Comment'),('bi-share','Repost'),('bi-send','Send')] %}
+              <button class="btn btn-sm text-muted" style="font-size:12px;"><i class="bi {{ icon }} me-1"></i>{{ label }}</button>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TikTok mockup ───────────────────────────────────────── -->
+        <div id="ttPreview" class="d-none">
+          <div style="background:#000;border-radius:0 0 12px 12px;color:#fff;position:relative;min-height:480px;display:flex;flex-direction:column;justify-content:flex-end;">
+            <!-- BG gradient -->
+            <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.1) 60%,rgba(0,0,0,.3) 100%);border-radius:0 0 12px 12px;"></div>
+            <!-- Side actions -->
+            <div style="position:absolute;right:12px;bottom:80px;display:flex;flex-direction:column;align-items:center;gap:16px;font-size:22px;z-index:2;">
+              <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(45deg,#f09433,#dc2743,#bc1888);display:flex;align-items:center;justify-content:center;font-size:14px;"><i class="bi bi-geo-alt-fill"></i></div>
+              <div class="text-center"><i class="bi bi-heart-fill" style="color:#fe2c55;"></i><div style="font-size:10px;">48.2K</div></div>
+              <div class="text-center"><i class="bi bi-chat-fill"></i><div style="font-size:10px;">312</div></div>
+              <div class="text-center"><i class="bi bi-bookmark-fill"></i><div style="font-size:10px;">8.4K</div></div>
+              <div class="text-center"><i class="bi bi-share-fill"></i><div style="font-size:10px;">Share</div></div>
+            </div>
+            <!-- Caption -->
+            <div style="position:relative;z-index:2;padding:16px 56px 16px 16px;">
+              <div class="fw-bold mb-1" style="font-size:14px;">@bayareaexperiences</div>
+              <div style="font-size:13px;line-height:1.5;" id="ttCaption"></div>
+              <div style="font-size:13px;margin-top:6px;" id="ttHashtags"></div>
+              <div class="mt-2 d-flex align-items-center gap-2" style="font-size:12px;">
+                <i class="bi bi-music-note-beamed"></i>
+                <span>Original sound — bayareaexperiences</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer: post time + CTA -->
+      <div class="modal-footer border-0 pt-0 d-flex justify-content-between align-items-center">
+        <div class="small text-muted">
+          <i class="bi bi-clock me-1"></i>Best time: <span id="previewPostTime" class="fw-semibold"></span>
+        </div>
+        <div class="small text-muted fst-italic" id="previewCTA"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
+
+
+{% if code == 'BAE-AGENT-SOCIAL' %}
+{% block scripts %}
+<script>
+function showSocialPreview(rawDraft) {
+  const d = (typeof rawDraft === 'string') ? JSON.parse(rawDraft) : rawDraft;
+  const platform = (d.platform || 'instagram').toLowerCase();
+
+  // Badge
+  const badges = {
+    instagram: ['#E1306C', 'bi-instagram', 'Instagram'],
+    tiktok:    ['#000000', 'bi-tiktok',    'TikTok'],
+    linkedin:  ['#0077B5', 'bi-linkedin',  'LinkedIn'],
+  };
+  const [color, icon, label] = badges[platform] || badges.instagram;
+  document.getElementById('previewPlatformBadge').style.background = color;
+  document.getElementById('previewPlatformBadge').innerHTML =
+    `<i class="bi ${icon} me-1"></i>${label}`;
+  document.getElementById('previewAngle').textContent = d.angle || '';
+  document.getElementById('previewPostTime').textContent = d.best_post_time || '—';
+  document.getElementById('previewCTA').textContent = d.call_to_action || '';
+
+  // Build hashtag string
+  const tags = (d.hashtags || []).map(t => '#' + t).join(' ');
+
+  // Hide all platform previews
+  ['igPreview','liPreview','ttPreview'].forEach(id =>
+    document.getElementById(id).classList.add('d-none'));
+
+  const caption = d.caption || '';
+
+  if (platform === 'instagram') {
+    document.getElementById('igCaption').textContent = ' ' + caption;
+    document.getElementById('igHashtags').textContent = tags;
+    document.getElementById('igPreview').classList.remove('d-none');
+  } else if (platform === 'linkedin') {
+    document.getElementById('liCaption').textContent = caption;
+    document.getElementById('liHashtags').textContent = tags;
+    document.getElementById('liPreview').classList.remove('d-none');
+  } else if (platform === 'tiktok') {
+    document.getElementById('ttCaption').textContent = caption;
+    document.getElementById('ttHashtags').textContent = tags;
+    document.getElementById('ttPreview').classList.remove('d-none');
+  }
+
+  new bootstrap.Modal(document.getElementById('socialPreviewModal')).show();
+}
+</script>
+{% endblock %}
+{% endif %}
