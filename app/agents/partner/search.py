@@ -45,6 +45,13 @@ def run_partner_search(
     Use Claude with web_search tool to discover potential partners.
     Returns: (results_list, imported_count, duplicate_count)
     """
+    # Release the DB connection back to the pool before the long-running API call.
+    # Claude search takes 30-60s; MySQL closes idle connections in that window.
+    # pool_pre_ping only helps on fresh pool acquisitions, so we close here and
+    # let _import_to_crm reacquire a live connection after the API call returns.
+    from app.extensions import db as _db
+    _db.session.close()
+
     user_prompt = f"""
 Search the web for potential Bay Area Experiences referral partners.
 
