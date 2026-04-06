@@ -140,6 +140,83 @@ def sitemap():
     return resp
 
 
+@main_bp.route('/llms.txt')
+def llms_txt():
+    content = """\
+# Bay Area Experiences
+
+> Bay Area Experiences is a premium private-tour and transportation company serving the San Francisco Bay Area, California. Every experience is fully private (your group only), door-to-door, and conducted in a signature Jeep Wrangler. Maximum 4 guests per booking. Pickup available from 13 cities across the Bay Area.
+
+## About
+
+Bay Area Experiences offers curated small-group guided tours, scenic drives, hiking adventures, wine country trips, tech campus tours, and private on-demand transport. All bookings are flat-rate (not per-person) and include complimentary refreshments on board. Expert local guides lead every tour. Online booking with secure Stripe checkout; full payment collected at time of booking.
+
+## Core Experiences
+
+- [SF City Icons & Hidden Gems](https://www.bayareaexperiences.com/experience/sf-city-icons): 5-hour private tour — Painted Ladies, Fisherman's Wharf, Mission murals, hidden staircases locals love. $465 flat, up to 4 guests.
+- [Coastal Charm & Scenic Drive](https://www.bayareaexperiences.com/experience/coastal-charm): 10-hour California coastal road trip — Big Sur cliffs, Carmel-by-the-Sea, wild Pacific coast. $825 flat.
+- [Wine Country & Redwood Giants](https://www.bayareaexperiences.com/experience/wine-country-redwoods): 8-hour journey — Napa/Sonoma wine tasting combined with ancient coastal redwood groves. $705 flat.
+- [Hiking Adventures & Bay Views](https://www.bayareaexperiences.com/experience/hiking-bay-views): 6-hour guided hike tailored to fitness level — Marin Headlands, Mt. Tamalpais, or Point Reyes. $585 flat.
+- [Silicon Valley Innovation Trail](https://www.bayareaexperiences.com/experience/silicon-valley-trail): 6-hour tech campus tour — Apple Park, Googleplex, Meta HQ, Stanford University. $525 flat.
+- [East Bay Vibe — Arts, Views & Eats](https://www.bayareaexperiences.com/experience/east-bay-vibe): 7-hour East Bay tour — Oakland arts scene, Rockridge dining, Berkeley, Grizzly Peak views. $625 flat.
+- [Private Transport — Up to 3 Hours](https://www.bayareaexperiences.com/experience/transport-3hr): Door-to-door Jeep transport anywhere within a 3-hour round trip — airports, events, day trips. $195 flat.
+- [Private Transport — Up to 6 Hours](https://www.bayareaexperiences.com/experience/transport-6hr): Extended private transport, up to 6-hour round trip. Up to 4 guests. $375 flat.
+
+## Pricing Model
+
+All prices are flat-rate per booking, not per person. A group of 1 and a group of 4 pay the same price. Complimentary power snacks and water are included on all tours. No hidden fees.
+
+## Pickup Cities (13 Bay Area locations)
+
+Cupertino, Fremont, Los Gatos, Menlo Park, Monterey, Mountain View, Palo Alto, Redwood City, San Francisco, San Jose, Santa Clara, Santa Cruz, Sunnyvale.
+
+Guests select their pickup city at checkout. The guide arrives at the guest's specified door.
+
+## Booking
+
+- [Browse experiences](https://www.bayareaexperiences.com/experiences): Full catalog of tours and transport options.
+- [Book an experience](https://www.bayareaexperiences.com/book): Select experience → pick a date → choose pickup city → guest count → Stripe checkout.
+- Advance notice: 1 day minimum for most tours; 2 days for full-day trips (Yosemite, Monterey).
+- Group size: 1–4 guests. Each booking is always private — no strangers added to your group.
+- Payment: Stripe (all major credit and debit cards). Full amount charged at booking.
+
+## Provider Marketplace
+
+Third-party local guides ("providers") can apply to list their own experiences on Bay Area Experiences.
+
+- [Become a provider](https://www.bayareaexperiences.com/join/provider): Landing page with incentive details.
+- [Provider application](https://www.bayareaexperiences.com/providers/apply): Submit an application (account required).
+- Free tier: up to 3 active experience listings. Pro tier (paid): unlimited listings.
+- Providers earn 80% of booking revenue (20% platform commission). High-volume providers (10+ bookings/month for 3 consecutive months) earn a reduced 12% commission rate.
+- Referral program: providers earn $100 credit for each new provider they refer who reaches 5 confirmed bookings.
+
+## Customer Reviews
+
+Verified reviews are collected after each completed booking and displayed on individual experience pages. Reviews go through a moderation workflow before publication.
+
+## Key Pages
+
+- [Home](https://www.bayareaexperiences.com/): Overview of all experience categories.
+- [All Experiences](https://www.bayareaexperiences.com/experiences): Full tour and transport catalog.
+- [Contact](https://www.bayareaexperiences.com/contact): Contact form for inquiries.
+- [Register](https://www.bayareaexperiences.com/register): Create a customer account.
+- [Login](https://www.bayareaexperiences.com/login): Sign in to manage bookings and account.
+
+## Business Details
+
+- Service area: San Francisco Bay Area, California, USA
+- Vehicle: Signature Jeep Wrangler (all experiences)
+- Group privacy: Every booking is fully private — only your party
+- Maximum guests: 4 per booking
+- Included on all tours: complimentary power snacks and water
+- Payment processor: Stripe
+- Languages: English
+"""
+    resp = make_response(content)
+    resp.headers['Content-Type'] = 'text/plain; charset=utf-8'
+    return resp
+
+
 @main_bp.route('/robots.txt')
 def robots():
     base = request.host_url.rstrip('/')
