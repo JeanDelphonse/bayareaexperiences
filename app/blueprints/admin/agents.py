@@ -329,7 +329,9 @@ def agents_partner_search():
                 city=city, partner_type=partner_type,
                 channel_description=channel_desc, max_results=max_results,
             )
-            if results is not None:
+            if results is None:
+                flash('Search failed — check server logs for details.', 'danger')
+            else:
                 flash(f'{imported} new partner(s) added to CRM; {duplicates} already existed.', 'success')
 
     return render_template('admin/agents/partner_search.html',

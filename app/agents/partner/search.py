@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 
 log = logging.getLogger('agents')
 
+_FENCE_RE = re.compile(r'```(?:json|JSON)?')
+
 SEARCH_SYSTEM = """
 You are a business research agent for Bay Area Experiences,
 a private tour company in the San Francisco Bay Area.
@@ -81,22 +83,55 @@ Return a JSON array of up to {max_results} businesses:
 """
 
     try:
-        response = client.messages.create(
-            model      = 'claude-sonnet-4-6',
-            max_tokens = 4096,
-            system     = SEARCH_SYSTEM,
-            tools      = [{'type': 'web_search_20250305', 'name': 'web_search'}],
-            messages   = [{'role': 'user', 'content': user_prompt}],
-        )
-
-        # Collect all text blocks from the response
+        messages = [{'role': 'user', 'content': user_prompt}]
         raw_text = ''
-        for block in response.content:
-            if hasattr(block, 'text'):
-                raw_text += block.text
 
-        # Strip markdown fences if present
-        clean = re.sub(r'```(?:json|JSON)?', '', raw_text).strip()
+        # Agentic loop — web_search_20250305 may require multiple turns
+        for _turn in range(8):
+            response = client.beta.messages.create(
+                betas      = ['web-search-2025-03-05'],
+                model      = 'claude-sonnet-4-6',
+                max_tokens = 4096,
+                system     = SEARCH_SYSTEM,
+                tools      = [{'type': 'web_search_20250305', 'name': 'web_search'}],
+                messages   = messages,
+            )
+            log.info(
+                '[PARTNER-SEARCH] turn=%d stop_reason=%s blocks=%s',
+                _turn, response.stop_reason,
+                [b.type for b in response.content],
+            )
+
+            if response.stop_reason == 'end_turn':
+                # Only collect text on the final turn — intermediate turns may contain
+                # stray '[' characters that would corrupt the JSON array extraction
+                raw_text = ''.join(
+                    b.text for b in response.content if b.type == 'text'
+                )
+                break
+
+            if response.stop_reason == 'tool_use':
+                # Continue conversation: append assistant turn + stub tool results
+                messages.append({'role': 'assistant', 'content': response.content})
+                tool_results = [
+                    {'type': 'tool_result', 'tool_use_id': b.id, 'content': ''}
+                    for b in response.content if b.type == 'tool_use'
+                ]
+                if not tool_results:
+                    break
+                messages.append({'role': 'user', 'content': tool_results})
+                continue
+
+            # max_tokens or other stop — attempt to use whatever text is present
+            log.warning('[PARTNER-SEARCH] unexpected stop_reason=%s on turn=%d',
+                        response.stop_reason, _turn)
+            raw_text = ''.join(
+                b.text for b in response.content if b.type == 'text'
+            )
+            break
+
+        clean = _FENCE_RE.sub('', raw_text).strip()
+        log.info('[PARTNER-SEARCH] raw_text length=%d', len(raw_text))
 
         # Extract the JSON array
         start = clean.find('[')
@@ -104,11 +139,12 @@ Return a JSON array of up to {max_results} businesses:
         if start >= 0 and end > start:
             businesses = json.loads(clean[start:end])
         else:
+            log.warning('[PARTNER-SEARCH] No JSON array found in response. raw_text=%r', raw_text[:500])
             businesses = []
 
     except Exception as e:
         log.error(f'[PARTNER-SEARCH] Claude call failed: {e}', exc_info=True)
-        return [], 0, 0
+        return None, 0, 0
 
     return _import_to_crm(businesses, partner_type, channel_description)
 
