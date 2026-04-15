@@ -31,7 +31,7 @@ def _get_featured_experiences():
         row[0] for row in
         db.session.query(Timeslot.experience_id)
         .filter(
-            Timeslot.slot_date >= today,
+            Timeslot.slot_date > today,
             Timeslot.slot_date <= week_end,
             Timeslot.is_available == True,
             Timeslot.booked_count < Timeslot.capacity,
@@ -61,7 +61,7 @@ def _get_featured_experiences():
             Timeslot.query
             .filter(
                 Timeslot.experience_id == exp.experience_id,
-                Timeslot.slot_date >= today,
+                Timeslot.slot_date > today,
                 Timeslot.slot_date <= week_end,
                 Timeslot.is_available == True,
                 Timeslot.booked_count < Timeslot.capacity,
@@ -75,7 +75,7 @@ def _get_featured_experiences():
             Timeslot.query
             .filter(
                 Timeslot.experience_id == exp.experience_id,
-                Timeslot.slot_date >= today,
+                Timeslot.slot_date > today,
                 Timeslot.slot_date <= week_end,
                 Timeslot.is_available == True,
                 Timeslot.booked_count < Timeslot.capacity,
