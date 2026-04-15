@@ -1,9 +1,10 @@
 import os
-from datetime import datetime, timezone
+import random
+from datetime import datetime, timezone, date, timedelta
 from flask import render_template, redirect, url_for, send_from_directory, current_app, request, jsonify, make_response
 from sqlalchemy import func
 from app.blueprints.main import main_bp
-from app.models import Experience, ExperienceReview
+from app.models import Experience, ExperienceReview, Timeslot
 from app.extensions import db
 
 
@@ -17,6 +18,86 @@ def image(filename):
 def audio(filename):
     audio_dir = os.path.join(current_app.root_path, 'templates', 'audio')
     return send_from_directory(audio_dir, filename)
+
+
+def _get_featured_experiences():
+    """Return up to 3 randomly selected active experiences that have at least
+    one available timeslot within the next 7 days, with badge + slot data."""
+    today    = date.today()
+    week_end = today + timedelta(days=7)
+
+    # IDs of experiences with ≥1 open slot this week
+    available_ids = [
+        row[0] for row in
+        db.session.query(Timeslot.experience_id)
+        .filter(
+            Timeslot.slot_date >= today,
+            Timeslot.slot_date <= week_end,
+            Timeslot.is_available == True,
+            Timeslot.booked_count < Timeslot.capacity,
+        )
+        .distinct()
+        .all()
+    ]
+
+    if not available_ids:
+        return []
+
+    candidates = (
+        Experience.query
+        .filter(
+            Experience.experience_id.in_(available_ids),
+            Experience.is_active == True,
+            Experience.is_mystery == False,
+        )
+        .all()
+    )
+
+    selected = random.sample(candidates, min(3, len(candidates)))
+
+    result = []
+    for exp in selected:
+        slots = (
+            Timeslot.query
+            .filter(
+                Timeslot.experience_id == exp.experience_id,
+                Timeslot.slot_date >= today,
+                Timeslot.slot_date <= week_end,
+                Timeslot.is_available == True,
+                Timeslot.booked_count < Timeslot.capacity,
+            )
+            .order_by(Timeslot.slot_date, Timeslot.start_time)
+            .limit(3)
+            .all()
+        )
+
+        slot_count = (
+            Timeslot.query
+            .filter(
+                Timeslot.experience_id == exp.experience_id,
+                Timeslot.slot_date >= today,
+                Timeslot.slot_date <= week_end,
+                Timeslot.is_available == True,
+                Timeslot.booked_count < Timeslot.capacity,
+            )
+            .count()
+        )
+
+        if slot_count == 1:
+            badge_class, badge_text = 'slots-low', 'Filling fast'
+        elif slot_count <= 3:
+            badge_class, badge_text = 'slots-medium', 'A few spots left'
+        else:
+            badge_class, badge_text = 'slots-good', 'Spots available'
+
+        result.append({
+            'experience': exp,
+            'slots':      slots,
+            'badge_class': badge_class,
+            'badge_text':  badge_text,
+        })
+
+    return result
 
 
 def _group_by_category(experiences):
@@ -36,7 +117,46 @@ def index():
     serving_cities = SERVING_CITIES if current_app.config.get('WEATHER_ENABLED', True) else []
     return render_template('main/index.html',
                            grouped_experiences=_group_by_category(experiences),
-                           serving_cities=serving_cities)
+                           serving_cities=serving_cities,
+                           featured=_get_featured_experiences())
+
+
+@main_bp.route('/experiences/featured')
+def featured_experiences():
+    featured = _get_featured_experiences()
+    fmt = request.args.get('format', 'json')
+
+    if fmt == 'html':
+        return render_template('partials/_featured_experiences.html', featured=featured)
+
+    data = []
+    for item in featured:
+        exp = item['experience']
+        data.append({
+            'experience_id':   exp.experience_id,
+            'name':            exp.name,
+            'slug':            exp.slug,
+            'category':        exp.category,
+            'description':     exp.description,
+            'duration_hours':  float(exp.duration_hours),
+            'price':           float(exp.price),
+            'effective_price': float(exp.effective_price),
+            'is_discount_live': exp.is_discount_live,
+            'discount_percent': exp.discount_percent,
+            'discount_label':  exp.discount_label,
+            'photo_url':       exp.photo_url or '',
+            'badge_class':     item['badge_class'],
+            'badge_text':      item['badge_text'],
+            'slots': [
+                {
+                    'timeslot_id': s.timeslot_id,
+                    'slot_date':   s.slot_date.strftime('%Y-%m-%d'),
+                    'start_time':  s.start_time.strftime('%H:%M'),
+                }
+                for s in item['slots']
+            ],
+        })
+    return jsonify(data)
 
 
 @main_bp.route('/experiences')

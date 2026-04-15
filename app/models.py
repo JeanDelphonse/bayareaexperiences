@@ -190,6 +190,10 @@ class Timeslot(db.Model):
     def is_fully_booked(self):
         return self.booked_count >= self.capacity
 
+    @property
+    def slots_remaining(self) -> int:
+        return max(0, self.capacity - self.booked_count)
+
 
 # ── Bookings ──────────────────────────────────────────────────────────────────
 

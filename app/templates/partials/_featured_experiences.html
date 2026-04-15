@@ -1,0 +1,78 @@
+{% from 'macros/price.html' import price_block %}
+
+{% if featured %}
+<section id="featuredSection" class="bae-featured-section">
+  <div class="container">
+
+    <div class="bae-featured-header">
+      <div class="bae-feat-eyebrow">Available Now</div>
+      <h2 class="bae-feat-title">Experiences with <em>open slots this week</em></h2>
+      <a href="{{ url_for('main.experiences') }}" class="bae-feat-view-all">View all experiences →</a>
+    </div>
+
+    <div class="bae-featured-grid" id="featuredGrid">
+      {% for item in featured %}
+      {% set exp = item.experience %}
+      {% set slots = item.slots %}
+      <div class="bae-feat-card">
+
+        <div class="bae-feat-img-wrap">
+          <img src="{{ url_for('main.image', filename=(exp.photo_url or 'jeepWrangler.webp')) }}"
+               class="bae-feat-img"
+               alt="{{ exp.name }}"
+               onerror="this.onerror=null;this.src='{{ url_for('main.image', filename='jeepWrangler.webp') }}'">
+          <div class="bae-feat-img-overlay"></div>
+          <div class="bae-feat-duration">
+            <i class="bi bi-clock"></i>
+            {{ exp.duration_hours|int }}{% if exp.duration_hours % 1 %}.{{ ((exp.duration_hours % 1) * 10)|int }}{% endif %}h
+          </div>
+          <div class="bae-feat-badge {{ item.badge_class }}">{{ item.badge_text }}</div>
+        </div>
+
+        <div class="bae-feat-body">
+          <div class="bae-feat-category">{{ exp.category or 'Experience' }}</div>
+          <h3 class="bae-feat-name">{{ exp.name }}</h3>
+          <p class="bae-feat-desc">
+            {{ (exp.description or '')[:110] }}{% if exp.description and exp.description|length > 110 %}…{% endif %}
+          </p>
+
+          {% if slots %}
+          <div class="bae-feat-pills" data-exp-slug="{{ exp.slug }}">
+            {% for slot in slots %}
+            <button class="bae-feat-pill{% if loop.first %} selected{% endif %}"
+                    data-timeslot-id="{{ slot.timeslot_id }}"
+                    onclick="selectFeaturedSlot(this)">
+              {{ slot.slot_date.strftime('%b') }} {{ slot.slot_date.day }}
+            </button>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <div class="bae-feat-footer">
+            <div class="bae-feat-price">{{ price_block(exp) }}</div>
+            <a href="{{ url_for('main.experience_detail', slug=exp.slug) }}{% if slots %}?timeslot={{ slots[0].timeslot_id }}{% endif %}"
+               class="bae-feat-cta">Book Now →</a>
+          </div>
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="bae-feat-shuffle-wrap">
+      <button class="bae-feat-shuffle-btn" id="shuffleBtn" onclick="shuffleFeatured()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 3 21 3 21 8"></polyline>
+          <line x1="4" y1="20" x2="21" y2="3"></line>
+          <polyline points="21 16 21 21 16 21"></polyline>
+          <line x1="15" y1="15" x2="21" y2="21"></line>
+        </svg>
+        Show different experiences
+      </button>
+      <span class="bae-feat-shuffle-note">Refreshed from live availability</span>
+    </div>
+
+  </div>
+</section>
+{% endif %}

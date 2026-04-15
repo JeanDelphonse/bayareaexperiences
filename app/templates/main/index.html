@@ -3,6 +3,12 @@
 
 {% block body_class %}page-index{% endblock %}
 
+{% block head_extra %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+{% endblock %}
+
 {% block title %}Bay Area Experiences — San Francisco Tours & Private Transport{% endblock %}
 
 {% block meta_description %}
@@ -171,6 +177,9 @@ document.addEventListener('DOMContentLoaded', initWeather);
 </script>
 {% endif %}
 
+{# 3. Featured Experiences — randomly selected with live availability #}
+{% include 'partials/_featured_experiences.html' %}
+
 <!-- ── Experience Grid ─────────────────────────────────────────────────────── -->
 <section class="py-5">
   <div class="container">
@@ -215,5 +224,117 @@ document.addEventListener('DOMContentLoaded', initWeather);
     {% endfor %}
   </div>
 </section>
+
+<script>
+(function () {
+  var IMAGES_BASE  = '{{ url_for("main.image", filename="") }}';
+  var FALLBACK_IMG = '{{ url_for("main.image", filename="jeepWrangler.webp") }}';
+  var FEATURED_URL = '{{ url_for("main.featured_experiences") }}';
+
+  window.shuffleFeatured = function () {
+    var btn  = document.getElementById('shuffleBtn');
+    var grid = document.getElementById('featuredGrid');
+    if (!btn || !grid || btn.disabled) return;
+
+    btn.disabled          = true;
+    grid.style.transition = 'none';
+    grid.style.opacity    = '0';
+    grid.style.transform  = 'translateY(8px)';
+
+    fetch(FEATURED_URL + '?format=json')
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (data) {
+        grid.innerHTML = data.map(renderFeaturedCard).join('');
+        requestAnimationFrame(function () {
+          grid.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+          grid.style.opacity    = '1';
+          grid.style.transform  = 'translateY(0)';
+          btn.disabled = false;
+        });
+      })
+      .catch(function () {
+        grid.style.opacity   = '1';
+        grid.style.transform = 'translateY(0)';
+        btn.disabled = false;
+      });
+  };
+
+  window.selectFeaturedSlot = function (pill) {
+    var wrap = pill.closest('.bae-feat-pills');
+    wrap.querySelectorAll('.bae-feat-pill').forEach(function (p) {
+      p.classList.remove('selected');
+    });
+    pill.classList.add('selected');
+    var cta = pill.closest('.bae-feat-card').querySelector('.bae-feat-cta');
+    if (cta) {
+      cta.href = '/experience/' + wrap.dataset.expSlug + '?timeslot=' + pill.dataset.timeslotId;
+    }
+  };
+
+  function renderFeaturedCard(exp) {
+    var imgSrc = exp.photo_url ? IMAGES_BASE + exp.photo_url : FALLBACK_IMG;
+    var dur    = exp.duration_hours;
+    var durStr = (dur % 1 > 0)
+      ? (Math.floor(dur) + '.' + Math.round((dur % 1) * 10))
+      : String(Math.floor(dur));
+
+    var priceHtml;
+    if (exp.is_discount_live) {
+      priceHtml =
+        '<div>' +
+          '<div style="font-size:13px;line-height:1.3;margin-bottom:2px;">' +
+            '<span style="color:#9AABBF;text-decoration:line-through;text-decoration-thickness:1.5px;">' +
+              '$' + parseFloat(exp.price).toFixed(0) +
+            '</span>' +
+            '<span style="font-size:11px;color:#8B6419;font-weight:500;margin-left:4px;">' +
+              exp.discount_percent + '% off' +
+            '</span>' +
+          '</div>' +
+          '<div style="font-size:22px;font-weight:700;color:#1558A7;line-height:1.1;">' +
+            '$' + parseFloat(exp.effective_price).toFixed(2) +
+          '</div>' +
+        '</div>';
+    } else {
+      priceHtml = '<span class="fs-5 fw-bold">$' + parseFloat(exp.price).toFixed(0) + '</span>';
+    }
+
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var pillsHtml = exp.slots.map(function (s, i) {
+      var d     = new Date(s.slot_date + 'T00:00:00');
+      var label = months[d.getMonth()] + ' ' + d.getDate();
+      return '<button class="bae-feat-pill' + (i === 0 ? ' selected' : '') + '"' +
+             ' data-timeslot-id="' + s.timeslot_id + '"' +
+             ' onclick="selectFeaturedSlot(this)">' + label + '</button>';
+    }).join('');
+
+    var firstSlot = exp.slots.length ? exp.slots[0].timeslot_id : '';
+    var ctaHref   = '/experience/' + exp.slug + (firstSlot ? '?timeslot=' + firstSlot : '');
+    var desc      = (exp.description || '').substring(0, 110) +
+                    (exp.description && exp.description.length > 110 ? '\u2026' : '');
+
+    return '<div class="bae-feat-card">' +
+      '<div class="bae-feat-img-wrap">' +
+        '<img src="' + imgSrc + '" class="bae-feat-img" alt="' + exp.name.replace(/"/g, '&quot;') + '"' +
+             ' onerror="this.onerror=null;this.src=\'' + FALLBACK_IMG + '\'">' +
+        '<div class="bae-feat-img-overlay"></div>' +
+        '<div class="bae-feat-duration"><i class="bi bi-clock"></i> ' + durStr + 'h</div>' +
+        '<div class="bae-feat-badge ' + exp.badge_class + '">' + exp.badge_text + '</div>' +
+      '</div>' +
+      '<div class="bae-feat-body">' +
+        '<div class="bae-feat-category">' + (exp.category || 'Experience') + '</div>' +
+        '<h3 class="bae-feat-name">' + exp.name + '</h3>' +
+        '<p class="bae-feat-desc">' + desc + '</p>' +
+        (exp.slots.length
+          ? '<div class="bae-feat-pills" data-exp-slug="' + exp.slug + '">' + pillsHtml + '</div>'
+          : '') +
+        '<div class="bae-feat-footer">' +
+          '<div class="bae-feat-price">' + priceHtml + '</div>' +
+          '<a href="' + ctaHref + '" class="bae-feat-cta">Book Now \u2192</a>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+}());
+</script>
 
 {% endblock %}

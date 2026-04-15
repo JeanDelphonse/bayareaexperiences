@@ -71,6 +71,7 @@
         <i class="bi bi-search me-2"></i>Search for Partners
       </button>
       <span class="text-muted small ms-3">Claude searches the web and imports results automatically</span>
+      <div id="searchStatus" class="d-none text-muted small mt-2">Contacting Claude…</div>
     </form>
   </div>
 </div>
@@ -155,10 +156,60 @@
 
 {% block scripts %}
 <script>
-document.getElementById('partnerSearchForm').addEventListener('submit', function() {
-  const btn = document.getElementById('searchBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Searching… this may take 30–60 seconds';
-});
+(function () {
+  const form    = document.getElementById('partnerSearchForm');
+  const btn     = document.getElementById('searchBtn');
+  const statusEl = document.getElementById('searchStatus');
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Starting search…';
+    statusEl.classList.remove('d-none');
+
+    const data = new FormData(form);
+    let res;
+    try {
+      res = await fetch(form.action || window.location.pathname, {
+        method: 'POST',
+        body: data,
+      });
+    } catch (err) {
+      statusEl.textContent = 'Network error — please try again.';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-search me-2"></i>Search for Partners';
+      return;
+    }
+
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      statusEl.textContent = json.error || 'Request failed — please try again.';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-search me-2"></i>Search for Partners';
+      return;
+    }
+
+    const { job_id } = await res.json();
+    let elapsed = 0;
+    const interval = setInterval(async function () {
+      elapsed += 3;
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Searching… ${elapsed}s`;
+
+      let poll;
+      try {
+        poll = await fetch(`{{ url_for('admin.agents_partner_search_status', job_id='__JID__') }}`.replace('__JID__', job_id));
+      } catch (_) { return; }
+
+      if (!poll.ok) { return; }
+      const { status } = await poll.json();
+
+      if (status === 'done') {
+        clearInterval(interval);
+        window.location.href = `{{ url_for('admin.agents_partner_search_results', job_id='__JID__') }}`.replace('__JID__', job_id);
+      }
+    }, 3000);
+  });
+})();
 </script>
 {% endblock %}

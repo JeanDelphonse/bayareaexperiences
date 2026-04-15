@@ -1,14 +1,51 @@
 """Admin agent control panel — /admin/agents/*"""
 import json
+import logging
 import threading
+import uuid
 from datetime import datetime, timezone
 
-from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask import render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_required, current_user
 
 from app.blueprints.admin import admin_bp
 from app.extensions import db
 from app.utils import admin_required, generate_pk
+
+log = logging.getLogger(__name__)
+
+# In-memory job store for background partner searches.
+# Keyed by job_id (uuid str) → {status, results, imported, duplicates, search_meta, error}
+_partner_jobs: dict = {}
+_partner_jobs_lock = threading.Lock()
+
+
+def _partner_search_worker(app, job_id: str, city: str, partner_type: str,
+                            channel_description: str, max_results: int,
+                            search_meta: dict):
+    with app.app_context():
+        try:
+            from app.agents.partner.search import run_partner_search
+            results, imported, duplicates = run_partner_search(
+                city=city, partner_type=partner_type,
+                channel_description=channel_description, max_results=max_results,
+            )
+            with _partner_jobs_lock:
+                _partner_jobs[job_id] = {
+                    'status': 'done',
+                    'results': results,
+                    'imported': imported,
+                    'duplicates': duplicates,
+                    'search_meta': search_meta,
+                    'error': results is None,
+                }
+        except Exception as e:
+            log.error('[PARTNER-SEARCH-BG] job=%s %s', job_id, e, exc_info=True)
+            with _partner_jobs_lock:
+                _partner_jobs[job_id] = {
+                    'status': 'done', 'results': None, 'error': True,
+                    'imported': 0, 'duplicates': 0, 'search_meta': search_meta,
+                }
 
 AGENT_META = {
     'BAE-AGENT-SOCIAL':  {'label': 'Social Media',    'icon': 'bi-instagram',       'color': '#E1306C'},
@@ -299,20 +336,18 @@ def agents_partners():
                            status_filter=status_filter, type_filter=type_filter)
 
 
+def _partner_search_cities():
+    from app.weather.cities import SERVING_CITIES
+    return [c['name'] + ', CA' for c in SERVING_CITIES] + [
+        'Oakland, CA', 'Berkeley, CA', 'Walnut Creek, CA', 'San Rafael, CA',
+        'Sonoma, CA', 'Napa, CA', 'Half Moon Bay, CA',
+    ]
+
+
 @admin_bp.route('/agents/partners/search', methods=['GET', 'POST'])
 @login_required
 @admin_required
 def agents_partner_search():
-    from app.weather.cities import SERVING_CITIES
-    BAY_AREA_CITIES = [c['name'] + ', CA' for c in SERVING_CITIES] + [
-        'Oakland, CA', 'Berkeley, CA', 'Walnut Creek, CA', 'San Rafael, CA',
-        'Sonoma, CA', 'Napa, CA', 'Half Moon Bay, CA',
-    ]
-    results     = None
-    imported    = 0
-    duplicates  = 0
-    search_meta = {}
-
     if request.method == 'POST':
         city         = request.form.get('search_city', '').strip()
         partner_type = request.form.get('partner_type', 'hotel')
@@ -320,22 +355,63 @@ def agents_partner_search():
         max_results  = int(request.form.get('max_results', 20))
 
         if not city or not channel_desc:
-            flash('City and channel description are required.', 'warning')
-        else:
-            search_meta = {'city': city, 'partner_type': partner_type,
-                           'channel_description': channel_desc}
-            from app.agents.partner.search import run_partner_search
-            results, imported, duplicates = run_partner_search(
-                city=city, partner_type=partner_type,
-                channel_description=channel_desc, max_results=max_results,
-            )
-            if results is None:
-                flash('Search failed — check server logs for details.', 'danger')
-            else:
-                flash(f'{imported} new partner(s) added to CRM; {duplicates} already existed.', 'success')
+            return jsonify({'error': 'City and channel description are required.'}), 400
+
+        job_id      = str(uuid.uuid4())
+        search_meta = {'city': city, 'partner_type': partner_type,
+                       'channel_description': channel_desc}
+        with _partner_jobs_lock:
+            _partner_jobs[job_id] = {'status': 'running'}
+
+        app = current_app._get_current_object()
+        threading.Thread(
+            target=_partner_search_worker,
+            args=(app, job_id, city, partner_type, channel_desc, max_results, search_meta),
+            daemon=True,
+        ).start()
+
+        return jsonify({'job_id': job_id})
 
     return render_template('admin/agents/partner_search.html',
-                           bay_area_cities=BAY_AREA_CITIES,
+                           bay_area_cities=_partner_search_cities(),
+                           results=None, imported=0, duplicates=0, search_meta={},
+                           agent_meta=AGENT_META)
+
+
+@admin_bp.route('/agents/partners/search/status/<job_id>')
+@login_required
+@admin_required
+def agents_partner_search_status(job_id):
+    with _partner_jobs_lock:
+        job = _partner_jobs.get(job_id)
+    if not job:
+        return jsonify({'status': 'not_found'}), 404
+    return jsonify({'status': job['status']})
+
+
+@admin_bp.route('/agents/partners/search/results/<job_id>')
+@login_required
+@admin_required
+def agents_partner_search_results(job_id):
+    with _partner_jobs_lock:
+        job = _partner_jobs.pop(job_id, None)
+
+    if not job or job.get('status') != 'done':
+        flash('Search results not found or expired. Please run a new search.', 'warning')
+        return redirect(url_for('admin.agents_partner_search'))
+
+    results    = job.get('results')
+    imported   = job.get('imported', 0)
+    duplicates = job.get('duplicates', 0)
+    search_meta = job.get('search_meta', {})
+
+    if results is None:
+        flash('Search failed — check server logs for details.', 'danger')
+    else:
+        flash(f'{imported} new partner(s) added to CRM; {duplicates} already existed.', 'success')
+
+    return render_template('admin/agents/partner_search.html',
+                           bay_area_cities=_partner_search_cities(),
                            results=results, imported=imported,
                            duplicates=duplicates, search_meta=search_meta,
                            agent_meta=AGENT_META)
