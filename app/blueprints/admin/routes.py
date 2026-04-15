@@ -175,6 +175,22 @@ def edit_experience(experience_id):
                            existing_cities=existing_cities)
 
 
+@admin_bp.route('/experiences/<experience_id>/regenerate-sample', methods=['POST'])
+@login_required
+@admin_required
+def regenerate_sample_itinerary(experience_id):
+    """Synchronous sample itinerary regeneration — admin only."""
+    from app.itinerary.sample import generate_sample_itinerary, store_sample_itinerary
+    exp = Experience.query.get_or_404(experience_id)
+    data = generate_sample_itinerary(exp)
+    if data:
+        store_sample_itinerary(experience_id, data)
+        flash('Sample itinerary regenerated successfully.', 'success')
+    else:
+        flash('Generation failed — Claude API error. Please try again.', 'warning')
+    return redirect(url_for('admin.edit_experience', experience_id=experience_id))
+
+
 @admin_bp.route('/experiences/<experience_id>/delete', methods=['POST'])
 @login_required
 @admin_required

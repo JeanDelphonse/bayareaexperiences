@@ -1,0 +1,91 @@
+{#
+  _sample_itinerary.html
+  Requires: sample_itinerary (dict or None), sample_generating (bool), experience
+  BAE-PRD-SAMPLE-ITINERARY-v1.0
+#}
+
+{# ── Skeleton state — shown on first load while Claude generates ── #}
+{% if sample_generating %}
+<section class="bae-sample-itinerary bae-sample-skeleton">
+  <div class="container">
+    <div class="bae-si-header">
+      <div>
+        <div class="bae-si-eyebrow">A Typical Day</div>
+        <h2 class="bae-si-title">
+          <span class="bae-skel-line" style="width:60%;display:block;"></span>
+        </h2>
+      </div>
+    </div>
+    <div class="bae-si-stops">
+      {% for _ in range(4) %}
+      <div class="bae-skel-stop">
+        <span class="bae-skel-line" style="width:30%;display:block;"></span>
+        <span class="bae-skel-line" style="width:80%;display:block;margin-top:8px;"></span>
+        <span class="bae-skel-line" style="width:70%;display:block;margin-top:4px;"></span>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="bae-si-generating-note">
+      Preparing your sample itinerary&hellip;
+      <a href="javascript:location.reload()" style="color:#2E7D8C;">Refresh to view</a>
+    </p>
+  </div>
+</section>
+
+{# ── Populated state — served from DB cache ── #}
+{% elif sample_itinerary %}
+<section class="bae-sample-itinerary" id="sampleItinerary">
+  <div class="container">
+
+    <div class="bae-si-header">
+      <div>
+        <div class="bae-si-eyebrow">A Typical Day</div>
+        <h2 class="bae-si-title">{{ sample_itinerary.title }}</h2>
+        <p class="bae-si-intro">{{ sample_itinerary.intro }}</p>
+      </div>
+      <div class="bae-si-meta">
+        <span class="bae-si-duration-chip">&#9201; {{ sample_itinerary.duration }}</span>
+        <span class="bae-si-pickup-note">&#128205; {{ sample_itinerary.pickup_note }}</span>
+      </div>
+    </div>
+
+    <div class="bae-si-stops">
+      {% for stop in sample_itinerary.stops %}
+      <div class="bae-si-stop">
+
+        <div class="bae-si-time-col">
+          <div class="bae-si-time">{{ stop.time }}</div>
+          {% if not loop.last %}
+          <div class="bae-si-connector"></div>
+          {% endif %}
+        </div>
+
+        <div class="bae-si-stop-body">
+          <div class="bae-si-stop-header">
+            <div class="bae-si-dot"></div>
+            <h3 class="bae-si-stop-name">{{ stop.name }}</h3>
+            <span class="bae-si-stop-duration">{{ stop.duration }}</span>
+          </div>
+          <p class="bae-si-stop-desc">{{ stop.description }}</p>
+          <div class="bae-si-highlight">
+            <span class="bae-si-highlight-icon">&#11088;</span>
+            {{ stop.highlight }}
+          </div>
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="bae-si-return">&#127968; {{ sample_itinerary.return_note }}</div>
+
+    <div class="bae-si-disclaimer">
+      <span class="bae-si-disclaimer-icon">&#8505;&#65039;</span>
+      {{ sample_itinerary.disclaimer }}
+      <a href="{{ url_for('booking.book', experience_id=experience.experience_id) }}"
+         class="bae-si-disclaimer-link">Book to receive yours</a>
+    </div>
+
+  </div>
+</section>
+{% endif %}

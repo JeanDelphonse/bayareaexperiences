@@ -1,3 +1,4 @@
+import json
 import os
 import random
 from datetime import datetime, timezone, date, timedelta
@@ -189,6 +190,20 @@ def experience_detail(slug):
     except Exception:
         pass
 
+    # ── Sample itinerary (BAE-PRD-SAMPLE-ITINERARY-v1.0) ─────────────────────
+    sample_itinerary  = None
+    sample_generating = False
+    if exp.sample_itinerary:
+        try:
+            sample_itinerary = json.loads(exp.sample_itinerary)
+        except (json.JSONDecodeError, TypeError):
+            sample_itinerary = None
+    else:
+        from app.itinerary.sample import generate_and_store_async
+        generate_and_store_async(current_app._get_current_object(),
+                                 exp.experience_id)
+        sample_generating = True
+
     min_reviews = int(os.environ.get('MIN_REVIEWS_TO_DISPLAY', 3))
     reviews = ExperienceReview.query.filter_by(
         experience_id=exp.experience_id,
@@ -219,7 +234,9 @@ def experience_detail(slug):
                            reviews=reviews,
                            star_counts=star_counts,
                            has_more_reviews=has_more_reviews,
-                           min_reviews=min_reviews)
+                           min_reviews=min_reviews,
+                           sample_itinerary=sample_itinerary,
+                           sample_generating=sample_generating)
 
 
 @main_bp.route('/sitemap.xml')

@@ -108,6 +108,10 @@ class Experience(db.Model):
     # Mystery Tour
     is_mystery       = db.Column(db.Boolean,     nullable=False, default=False)
 
+    # Sample itinerary — AI-generated marketing preview (BAE-PRD-SAMPLE-ITINERARY-v1.0)
+    sample_itinerary    = db.Column(db.Text,     nullable=True)
+    sample_itinerary_at = db.Column(db.DateTime, nullable=True)
+
     # Promotional discount (BAE-PRD-DISCOUNT-v1.0)
     discount_percent  = db.Column(db.Enum('10', '15', '20'), nullable=True)
     discounted_price  = db.Column(db.Numeric(10, 2), nullable=True)

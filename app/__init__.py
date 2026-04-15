@@ -254,6 +254,20 @@ def create_app(config_name='default'):
         except Exception:
             pass
 
+        # Sample itinerary migration: add sample_itinerary + sample_itinerary_at to experiences
+        try:
+            from sqlalchemy import text, inspect as sa_inspect
+            _insp = sa_inspect(db.engine)
+            _ecols = [c['name'] for c in _insp.get_columns('experiences')]
+            with db.engine.connect() as _conn:
+                if 'sample_itinerary' not in _ecols:
+                    _conn.execute(text('ALTER TABLE experiences ADD COLUMN sample_itinerary TEXT NULL'))
+                if 'sample_itinerary_at' not in _ecols:
+                    _conn.execute(text('ALTER TABLE experiences ADD COLUMN sample_itinerary_at DATETIME NULL'))
+                _conn.commit()
+        except Exception:
+            pass
+
         # UserPrefs migration: add preference_source to booking_preferences if not yet present
         try:
             from sqlalchemy import text, inspect as sa_inspect
