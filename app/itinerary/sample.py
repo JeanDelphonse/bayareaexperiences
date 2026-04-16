@@ -10,6 +10,7 @@ import logging
 import os
 import threading
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
 import anthropic
 
@@ -119,11 +120,25 @@ def generate_and_store_async(app, experience_id: str):
     """
     def _run():
         with app.app_context():
+            from app.extensions import db
             from app.models import Experience
             exp = Experience.query.get(experience_id)
             if not exp:
                 return
-            data = generate_sample_itinerary(exp)
+            # Snapshot needed fields as plain values, then release the DB
+            # connection before the Anthropic API call — prevents holding a
+            # pool connection open for the full 2-4s generation time.
+            snapshot = SimpleNamespace(
+                experience_id  = exp.experience_id,
+                name           = exp.name,
+                category       = exp.category,
+                duration_hours = exp.duration_hours,
+                description    = exp.description,
+                core_stops     = exp.core_stops,
+            )
+            db.session.remove()
+
+            data = generate_sample_itinerary(snapshot)
             if data:
                 store_sample_itinerary(experience_id, data)
 
