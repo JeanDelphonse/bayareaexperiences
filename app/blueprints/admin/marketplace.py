@@ -121,7 +121,7 @@ def admin_provider_search():
             system     = _SEARCH_SYSTEM,
             tools      = [{'type': 'web_search_20250305', 'name': 'web_search'}],
             messages   = [{'role': 'user', 'content': user_prompt}],
-            betas      = ['web-search-2025-03-05'],
+            extra_headers = {'anthropic-beta': 'web-search-2025-03-05'},
         )
 
         raw = ''.join(
