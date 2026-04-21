@@ -235,6 +235,7 @@ def experience_detail(slug):
             Experience.is_active     == True,
             Experience.is_mystery    == False,
             Experience.experience_id != exp.experience_id,
+            Experience.category      == exp.category,
         )
         .order_by(Experience.sort_order.asc())
         .all()
