@@ -1,0 +1,60 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Audit Log — {{ provider.business_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('admin.admin_provider_edit', provider_id=provider.provider_id) }}"
+     class="btn btn-outline-secondary me-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <div>
+    <h1 class="fw-bold mb-0">Audit Log</h1>
+    <div style="font-size:13px;color:#5A6A7A;">{{ provider.business_name }}</div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-3">
+    {% if audit_log %}
+    <table class="table table-sm" style="font-size:13px;">
+      <thead style="background:#F2F5F8;">
+        <tr>
+          <th style="color:#5A6A7A;font-weight:500;">When</th>
+          <th style="color:#5A6A7A;font-weight:500;">Action</th>
+          <th style="color:#5A6A7A;font-weight:500;">Field</th>
+          <th style="color:#5A6A7A;font-weight:500;">Old</th>
+          <th style="color:#5A6A7A;font-weight:500;">New</th>
+          <th style="color:#5A6A7A;font-weight:500;">By</th>
+          <th style="color:#5A6A7A;font-weight:500;">Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in audit_log %}
+        <tr>
+          <td style="color:#5A6A7A;font-size:11px;white-space:nowrap;">
+            {{ entry.created_at.strftime('%b %d, %Y %H:%M') }}
+          </td>
+          <td>
+            <span style="font-weight:500;color:#1A3557;">
+              {{ entry.action | replace('_',' ') | title }}
+            </span>
+          </td>
+          <td style="color:#5A6A7A;">{{ entry.field_name or '' }}</td>
+          <td style="color:#B03A2E;font-size:12px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            {{ entry.old_value or '' }}
+          </td>
+          <td style="color:#2D7A4F;font-size:12px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            {{ entry.new_value or '' }}
+          </td>
+          <td style="color:#5A6A7A;">{{ entry.admin.first_name if entry.admin else 'Admin' }}</td>
+          <td style="color:#5A6A7A;font-size:12px;">{{ entry.notes or '' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted text-center py-4">No audit entries yet.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

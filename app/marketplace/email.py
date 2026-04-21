@@ -61,6 +61,29 @@ def send_performance_rate_lost(provider):
         pass
 
 
+def send_provider_welcome(provider):
+    """Welcome email sent to a newly created/approved provider."""
+    try:
+        from app.extensions import mail as _mail
+        first_name = provider.user.first_name if provider.user else 'there'
+        body_html = (
+            f'<p>Hi {first_name},</p>'
+            f'<p>Welcome to the Bay Area Experiences provider network! '
+            f'Your account for <strong>{provider.business_name}</strong> is ready.</p>'
+            f'<p>Log in to your <a href="/provider/dashboard">Provider Dashboard</a> '
+            f'to create your first experience listing.</p>'
+            f'<p>Bay Area Experiences</p>'
+        )
+        send_email(
+            _mail,
+            subject=f'Welcome to Bay Area Experiences, {provider.business_name}!',
+            recipients=[provider.user.email],
+            body_html=body_html,
+        )
+    except Exception:
+        pass
+
+
 def send_provider_referral_credit_notification(referrer, referred_provider, credit: float):
     """Email sent to the referring provider when their referral earns credit."""
     try:

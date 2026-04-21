@@ -19,6 +19,25 @@ def _admin_required(f):
     return decorated
 
 
+# ── Audit log helper ──────────────────────────────────────────────────────────
+
+def _log_provider(provider_id, action, field_name=None,
+                  old_value=None, new_value=None, notes=None):
+    from app.models import ProviderAuditLog
+    from app.utils import generate_pk
+    db.session.add(ProviderAuditLog(
+        log_id        = generate_pk(),
+        provider_id   = provider_id,
+        admin_user_id = current_user.user_id,
+        action        = action,
+        field_name    = field_name,
+        old_value     = old_value,
+        new_value     = new_value,
+        notes         = notes,
+        created_at    = datetime.now(timezone.utc),
+    ))
+
+
 # ── Provider List ─────────────────────────────────────────────────────────────
 
 @admin_bp.route('/providers')
@@ -26,23 +45,298 @@ def _admin_required(f):
 @_admin_required
 def admin_providers():
     from app.models import Provider
-    page        = request.args.get('page', 1, type=int)
-    status      = request.args.get('status', '')
-    tier_filter = request.args.get('tier', '')
+    providers = Provider.query.order_by(Provider.applied_at.desc()).all()
+    return render_template('admin/providers/list.html', providers=providers)
 
-    q = Provider.query
-    if status == 'pending':
-        q = q.filter_by(can_list_experiences=False, is_active=True)
-    elif status == 'active':
-        q = q.filter_by(can_list_experiences=True, is_active=True)
-    elif status == 'inactive':
-        q = q.filter_by(is_active=False)
-    if tier_filter:
-        q = q.filter_by(tier=tier_filter)
 
-    providers = q.order_by(Provider.applied_at.desc()).paginate(page=page, per_page=20)
-    return render_template('admin/marketplace/providers.html',
-                           providers=providers, status=status, tier_filter=tier_filter)
+# ── Create Provider ───────────────────────────────────────────────────────────
+
+@admin_bp.route('/providers/new', methods=['GET', 'POST'])
+@login_required
+@_admin_required
+def admin_provider_new():
+    from app.models import Provider, User
+    from app.utils import generate_pk
+    from flask_bcrypt import Bcrypt
+    import secrets, re
+
+    if request.method == 'GET':
+        return render_template('admin/providers/form.html', provider=None, audit_log=[])
+
+    email       = request.form.get('email', '').strip().lower()
+    contact_raw = request.form.get('contact_name', '').strip()
+    biz_name    = request.form.get('business_name', '').strip()
+
+    if not email or not biz_name:
+        flash('Business name and email are required.', 'danger')
+        return render_template('admin/providers/form.html', provider=None, audit_log=[])
+
+    # Find or create user
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        parts = contact_raw.split(' ', 1)
+        first = parts[0] or 'Provider'
+        last  = parts[1] if len(parts) > 1 else 'Account'
+        bcrypt = Bcrypt()
+        tmp_pw = secrets.token_urlsafe(16)
+        user = User(
+            user_id       = generate_pk(),
+            first_name    = first,
+            last_name     = last,
+            email         = email,
+            password_hash = bcrypt.generate_password_hash(tmp_pw).decode('utf-8'),
+        )
+        db.session.add(user)
+        db.session.flush()
+
+    # Check not already a provider
+    existing = Provider.query.filter_by(user_id=user.user_id).first()
+    if existing:
+        flash(f'User {email} is already linked to provider "{existing.business_name}".', 'warning')
+        return redirect(url_for('admin.admin_provider_edit', provider_id=existing.provider_id))
+
+    # Generate unique slug from business name
+    slug_base = re.sub(r'[^a-z0-9]+', '-', biz_name.lower()).strip('-')
+    slug = slug_base
+    counter = 1
+    while Provider.query.filter_by(business_slug=slug).first():
+        slug = f'{slug_base}-{counter}'
+        counter += 1
+
+    now  = datetime.now(timezone.utc)
+    tier = request.form.get('tier', 'free')
+    provider = Provider(
+        provider_id          = generate_pk(),
+        user_id              = user.user_id,
+        business_name        = biz_name,
+        business_slug        = slug,
+        bio                  = request.form.get('description', '').strip() or None,
+        phone                = request.form.get('phone', '').strip() or None,
+        website              = request.form.get('website', '').strip() or None,
+        tier                 = tier,
+        commission_rate      = Decimal('5.00') if tier == 'pro' else Decimal('20.00'),
+        stripe_account_id    = request.form.get('stripe_account_id', '').strip() or None,
+        is_active            = request.form.get('is_active') == '1',
+        is_verified          = request.form.get('is_verified') == '1',
+        can_list_experiences = request.form.get('is_verified') == '1',
+        admin_notes          = request.form.get('admin_notes', '').strip() or None,
+        approved_at          = now,
+        applied_at           = now,
+    )
+
+    override = request.form.get('performance_commission_rate', '').strip()
+    if override:
+        try:
+            provider.performance_commission_rate = Decimal(override)
+        except Exception:
+            pass
+
+    if provider.is_verified:
+        provider.approved_at = now
+        provider.approved_by = current_user.user_id
+
+    db.session.add(provider)
+    db.session.flush()
+    _log_provider(provider.provider_id, 'created',
+                  notes=f'Admin-created: {biz_name}')
+    db.session.commit()
+
+    flash(f'Provider "{biz_name}" created successfully.', 'success')
+    return redirect(url_for('admin.admin_provider_edit', provider_id=provider.provider_id))
+
+
+# ── Edit Provider ─────────────────────────────────────────────────────────────
+
+@admin_bp.route('/providers/<provider_id>/edit', methods=['GET', 'POST'])
+@login_required
+@_admin_required
+def admin_provider_edit(provider_id):
+    from app.models import Provider, ProviderAuditLog
+
+    provider  = Provider.query.get_or_404(provider_id)
+    audit_log = (ProviderAuditLog.query
+                 .filter_by(provider_id=provider_id)
+                 .order_by(ProviderAuditLog.created_at.desc())
+                 .limit(10).all())
+
+    if request.method == 'GET':
+        return render_template('admin/providers/form.html',
+                               provider=provider, audit_log=audit_log)
+
+    now           = datetime.now(timezone.utc)
+    change_reason = request.form.get('change_reason', '').strip() or None
+
+    def _update(field, new_val, old_val=None):
+        old = str(old_val if old_val is not None else getattr(provider, field, ''))
+        new = str(new_val) if new_val is not None else ''
+        if old != new:
+            _log_provider(provider_id, 'field_updated',
+                          field_name=field, old_value=old, new_value=new, notes=change_reason)
+            setattr(provider, field, new_val if new_val != '' else None)
+
+    # Business fields
+    biz_name = request.form.get('business_name', '').strip()
+    if biz_name and biz_name != provider.business_name:
+        _log_provider(provider_id, 'field_updated', field_name='business_name',
+                      old_value=provider.business_name, new_value=biz_name, notes=change_reason)
+        provider.business_name = biz_name
+
+    _update('bio',              request.form.get('description', '').strip() or None)
+    _update('phone',            request.form.get('phone', '').strip() or None)
+    _update('website',          request.form.get('website', '').strip() or None)
+    _update('stripe_account_id', request.form.get('stripe_account_id', '').strip() or None)
+    _update('admin_notes',      request.form.get('admin_notes', '').strip() or None)
+
+    # Update linked user email + name
+    contact_raw = request.form.get('contact_name', '').strip()
+    email_raw   = request.form.get('email', '').strip().lower()
+    if provider.user:
+        if email_raw and email_raw != provider.user.email:
+            _log_provider(provider_id, 'field_updated', field_name='email',
+                          old_value=provider.user.email, new_value=email_raw, notes=change_reason)
+            provider.user.email = email_raw
+        if contact_raw and contact_raw != provider.user.full_name:
+            parts = contact_raw.split(' ', 1)
+            provider.user.first_name = parts[0]
+            provider.user.last_name  = parts[1] if len(parts) > 1 else ''
+
+    # Tier change
+    new_tier = request.form.get('tier', provider.tier)
+    if new_tier != provider.tier:
+        _log_provider(provider_id, 'tier_changed', field_name='tier',
+                      old_value=provider.tier, new_value=new_tier, notes=change_reason)
+        provider.tier            = new_tier
+        provider.commission_rate = Decimal('5.00') if new_tier == 'pro' else Decimal('20.00')
+
+    # Commission override
+    override_raw = request.form.get('performance_commission_rate', '').strip()
+    new_override = Decimal(override_raw) if override_raw else None
+    if new_override != provider.performance_commission_rate:
+        _log_provider(provider_id, 'commission_override', field_name='performance_commission_rate',
+                      old_value=str(provider.performance_commission_rate),
+                      new_value=str(new_override), notes=change_reason)
+        provider.performance_commission_rate = new_override
+
+    # Active toggle
+    new_active = request.form.get('is_active') == '1'
+    if new_active != provider.is_active:
+        action = 'activated' if new_active else 'deactivated'
+        _log_provider(provider_id, action, notes=change_reason)
+        provider.is_active = new_active
+
+    # Verified toggle
+    new_verified = request.form.get('is_verified') == '1'
+    if new_verified != provider.is_verified:
+        action = 'verified' if new_verified else 'unverified'
+        _log_provider(provider_id, action, notes=change_reason)
+        provider.is_verified = new_verified
+        if new_verified:
+            provider.approved_at = now
+            provider.approved_by = current_user.user_id
+
+    provider.updated_at = now if hasattr(provider, 'updated_at') else None
+    db.session.commit()
+    flash('Provider updated successfully.', 'success')
+    return redirect(url_for('admin.admin_provider_edit', provider_id=provider_id))
+
+
+# ── Verify toggle ─────────────────────────────────────────────────────────────
+
+@admin_bp.route('/providers/<provider_id>/verify', methods=['POST'])
+@login_required
+@_admin_required
+def admin_provider_verify(provider_id):
+    from app.models import Provider
+    provider = Provider.query.get_or_404(provider_id)
+    provider.is_verified = not provider.is_verified
+    if provider.is_verified:
+        provider.approved_at = datetime.now(timezone.utc)
+        provider.approved_by = current_user.user_id
+    action = 'verified' if provider.is_verified else 'unverified'
+    _log_provider(provider_id, action,
+                  notes=request.form.get('reason', 'Quick toggle'))
+    db.session.commit()
+    flash(f'Provider marked as {action}.', 'success')
+    return redirect(request.referrer or url_for('admin.admin_providers'))
+
+
+# ── Deactivate ────────────────────────────────────────────────────────────────
+
+@admin_bp.route('/providers/<provider_id>/deactivate', methods=['POST'])
+@login_required
+@_admin_required
+def admin_provider_deactivate(provider_id):
+    from app.models import Provider
+    provider = Provider.query.get_or_404(provider_id)
+    provider.is_active = False
+    _log_provider(provider_id, 'deactivated',
+                  notes=request.form.get('reason', ''))
+    db.session.commit()
+    flash('Provider deactivated.', 'warning')
+    return redirect(request.referrer or url_for('admin.admin_providers'))
+
+
+# ── Send welcome email ────────────────────────────────────────────────────────
+
+@admin_bp.route('/providers/<provider_id>/send-welcome', methods=['POST'])
+@login_required
+@_admin_required
+def admin_provider_send_welcome(provider_id):
+    from app.models import Provider
+    from app.marketplace.email import send_provider_welcome
+    provider = Provider.query.get_or_404(provider_id)
+    send_provider_welcome(provider)
+    _log_provider(provider_id, 'welcome_email_sent')
+    db.session.commit()
+    flash('Welcome email sent.', 'success')
+    return redirect(request.referrer or url_for('admin.admin_provider_edit', provider_id=provider_id))
+
+
+# ── Add credit balance ────────────────────────────────────────────────────────
+
+@admin_bp.route('/providers/<provider_id>/add-credit', methods=['POST'])
+@login_required
+@_admin_required
+def admin_provider_add_credit(provider_id):
+    from app.models import Provider
+    provider = Provider.query.get_or_404(provider_id)
+    try:
+        amount = Decimal(request.form.get('amount', '0').strip())
+    except Exception:
+        flash('Invalid amount.', 'danger')
+        return redirect(url_for('admin.admin_provider_edit', provider_id=provider_id))
+
+    if amount <= 0:
+        flash('Amount must be greater than zero.', 'danger')
+        return redirect(url_for('admin.admin_provider_edit', provider_id=provider_id))
+
+    old_balance = provider.referral_credit_balance or Decimal('0.00')
+    provider.referral_credit_balance = old_balance + amount
+    reason = request.form.get('reason', '').strip() or None
+    _log_provider(provider_id, 'credit_added',
+                  field_name='referral_credit_balance',
+                  old_value=str(old_balance),
+                  new_value=str(provider.referral_credit_balance),
+                  notes=reason)
+    db.session.commit()
+    flash(f'${amount:.2f} added to credit balance.', 'success')
+    return redirect(url_for('admin.admin_provider_edit', provider_id=provider_id))
+
+
+# ── Audit log page ────────────────────────────────────────────────────────────
+
+@admin_bp.route('/providers/<provider_id>/audit')
+@login_required
+@_admin_required
+def admin_provider_audit_log(provider_id):
+    from app.models import Provider, ProviderAuditLog
+    provider  = Provider.query.get_or_404(provider_id)
+    audit_log = (ProviderAuditLog.query
+                 .filter_by(provider_id=provider_id)
+                 .order_by(ProviderAuditLog.created_at.desc())
+                 .all())
+    return render_template('admin/providers/audit.html',
+                           provider=provider, audit_log=audit_log)
 
 
 # ── Provider Detail / Review ──────────────────────────────────────────────────

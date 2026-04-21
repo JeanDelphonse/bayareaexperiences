@@ -268,6 +268,42 @@ def create_app(config_name='default'):
         except Exception:
             pass
 
+        # Provider admin: add admin_notes to providers, create provider_audit_log table
+        try:
+            from sqlalchemy import text, inspect as sa_inspect
+            _insp = sa_inspect(db.engine)
+            _prcols = [c['name'] for c in _insp.get_columns('providers')]
+            with db.engine.connect() as _conn:
+                if 'admin_notes' not in _prcols:
+                    _conn.execute(text('ALTER TABLE providers ADD COLUMN admin_notes TEXT NULL'))
+                _conn.commit()
+        except Exception:
+            pass
+
+        try:
+            from sqlalchemy import text, inspect as sa_inspect
+            _insp = sa_inspect(db.engine)
+            if 'provider_audit_log' not in _insp.get_table_names():
+                with db.engine.connect() as _conn:
+                    _conn.execute(text(
+                        'CREATE TABLE provider_audit_log ('
+                        '  log_id VARCHAR(9) NOT NULL PRIMARY KEY,'
+                        '  provider_id VARCHAR(9) NOT NULL,'
+                        '  admin_user_id VARCHAR(9),'
+                        '  action VARCHAR(50) NOT NULL,'
+                        '  field_name VARCHAR(100),'
+                        '  old_value TEXT,'
+                        '  new_value TEXT,'
+                        '  notes TEXT,'
+                        '  created_at DATETIME NOT NULL,'
+                        '  FOREIGN KEY (provider_id) REFERENCES providers(provider_id),'
+                        '  FOREIGN KEY (admin_user_id) REFERENCES users(user_id)'
+                        ')'
+                    ))
+                    _conn.commit()
+        except Exception:
+            pass
+
         # UserPrefs migration: add preference_source to booking_preferences if not yet present
         try:
             from sqlalchemy import text, inspect as sa_inspect

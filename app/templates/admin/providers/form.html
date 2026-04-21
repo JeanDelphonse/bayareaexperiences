@@ -1,0 +1,334 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}{{ 'Edit' if provider else 'New' }} Provider{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('admin.admin_providers') }}" class="btn btn-outline-secondary me-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h1 class="fw-bold mb-0">{{ 'Edit Provider' if provider else 'Add Provider' }}</h1>
+</div>
+
+<div class="row g-4">
+  {# ── Left: Form ────────────────────────────────────────────────────────── #}
+  <div class="{{ 'col-md-8' if provider else 'col-12' }}">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <form method="POST"
+              action="{{ url_for('admin.admin_provider_edit', provider_id=provider.provider_id) if provider else url_for('admin.admin_provider_new') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          {# Business Information #}
+          <div style="font-size:11px;font-weight:500;letter-spacing:.06em;color:#5A6A7A;margin-bottom:12px;">
+            BUSINESS INFORMATION
+          </div>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Business Name <span class="text-danger">*</span></label>
+              <input type="text" name="business_name" class="form-control"
+                     value="{{ provider.business_name if provider else '' }}"
+                     required maxlength="200"
+                     style="border-color:#D0D8E0;border-radius:10px;">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Contact Name</label>
+              <input type="text" name="contact_name" class="form-control"
+                     value="{{ provider.contact_name if provider else '' }}"
+                     maxlength="150"
+                     style="border-color:#D0D8E0;border-radius:10px;">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Email <span class="text-danger">*</span></label>
+              <input type="email" name="email" class="form-control"
+                     value="{{ provider.email if provider else '' }}"
+                     required maxlength="150"
+                     style="border-color:#D0D8E0;border-radius:10px;">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Phone</label>
+              <input type="text" name="phone" class="form-control"
+                     value="{{ provider.phone if provider else '' }}"
+                     style="border-color:#D0D8E0;border-radius:10px;">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Website</label>
+              <input type="url" name="website" class="form-control"
+                     value="{{ provider.website if provider else '' }}"
+                     placeholder="https://"
+                     style="border-color:#D0D8E0;border-radius:10px;">
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Bio / Description</label>
+              <textarea name="description" class="form-control" rows="3" maxlength="1000"
+                        placeholder="Shown on marketplace listing pages..."
+                        style="border-color:#D0D8E0;border-radius:10px;resize:none;">{{- provider.bio if provider else '' -}}</textarea>
+            </div>
+          </div>
+
+          {# Tier & Commission #}
+          <div style="font-size:11px;font-weight:500;letter-spacing:.06em;color:#5A6A7A;margin-bottom:12px;">
+            TIER &amp; COMMISSION
+          </div>
+          <div class="row g-3 mb-4">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Tier</label>
+              <select name="tier" class="form-select" style="border-color:#D0D8E0;border-radius:10px;">
+                <option value="free" {{ 'selected' if not provider or provider.tier=='free' }}>Free (20% commission)</option>
+                <option value="pro"  {{ 'selected' if provider and provider.tier=='pro' }}>Pro ($149/mo · 5%)</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">
+                Commission Override
+                <span style="font-weight:400;color:#5A6A7A;font-size:11px;">(blank = standard)</span>
+              </label>
+              <div class="input-group">
+                <input type="number" name="performance_commission_rate" class="form-control"
+                       value="{{ provider.performance_commission_rate if provider and provider.performance_commission_rate else '' }}"
+                       min="0" max="100" step="0.01" placeholder="e.g. 12.00"
+                       style="border-color:#D0D8E0;border-radius:10px 0 0 10px;">
+                <span class="input-group-text" style="border-color:#D0D8E0;background:#F2F5F8;">%</span>
+              </div>
+              {% if provider and provider.performance_locked_in %}
+              <div style="font-size:11px;color:#2D7A4F;margin-top:4px;">&#128274; Rate is locked in (earned)</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Stripe Connect Account ID</label>
+              <input type="text" name="stripe_account_id" class="form-control"
+                     value="{{ provider.stripe_account_id if provider else '' }}"
+                     placeholder="acct_..."
+                     style="border-color:#D0D8E0;border-radius:10px;font-family:monospace;font-size:13px;">
+            </div>
+          </div>
+
+          {# Status & Verification #}
+          <div style="font-size:11px;font-weight:500;letter-spacing:.06em;color:#5A6A7A;margin-bottom:12px;">
+            STATUS &amp; VERIFICATION
+          </div>
+          <div class="row g-3 mb-4">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Account Status</label>
+              <div class="d-flex gap-3 mt-1">
+                <label class="d-flex align-items-center gap-2">
+                  <input type="radio" name="is_active" value="1"
+                         {{ 'checked' if not provider or provider.is_active }}>
+                  <span style="color:#2D7A4F;font-weight:500;">Active</span>
+                </label>
+                <label class="d-flex align-items-center gap-2">
+                  <input type="radio" name="is_active" value="0"
+                         {{ 'checked' if provider and not provider.is_active }}>
+                  <span style="color:#B03A2E;font-weight:500;">Inactive</span>
+                </label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold">Verification</label>
+              <div class="d-flex gap-3 mt-1">
+                <label class="d-flex align-items-center gap-2">
+                  <input type="radio" name="is_verified" value="1"
+                         {{ 'checked' if provider and provider.is_verified }}>
+                  <span style="color:#2D7A4F;font-weight:500;">Verified</span>
+                </label>
+                <label class="d-flex align-items-center gap-2">
+                  <input type="radio" name="is_verified" value="0"
+                         {{ 'checked' if not provider or not provider.is_verified }}>
+                  <span style="color:#5A6A7A;font-weight:500;">Unverified</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {# Internal Notes #}
+          <div style="font-size:11px;font-weight:500;letter-spacing:.06em;color:#5A6A7A;margin-bottom:12px;">
+            INTERNAL NOTES
+          </div>
+          <textarea name="admin_notes" class="form-control mb-1" rows="3"
+                    placeholder="Internal notes — not visible to the provider..."
+                    style="border-color:#D0D8E0;border-radius:10px;resize:vertical;">{{- provider.admin_notes if provider else '' -}}</textarea>
+          <div style="font-size:11px;color:#5A6A7A;margin-bottom:20px;">Not shown to the provider. Logged in audit trail on save.</div>
+
+          {# Change reason (edit only) #}
+          {% if provider %}
+          <div style="font-size:11px;font-weight:500;letter-spacing:.06em;color:#5A6A7A;margin-bottom:8px;">
+            CHANGE REASON (AUDIT LOG)
+          </div>
+          <input type="text" name="change_reason" class="form-control mb-4"
+                 placeholder="Brief reason for this edit..."
+                 maxlength="200"
+                 style="border-color:#D0D8E0;border-radius:10px;">
+          {% endif %}
+
+          <div class="d-flex gap-3 align-items-center">
+            <button type="submit"
+                    style="background:#1A3557;color:#fff;border:none;
+                           padding:11px 28px;border-radius:9999px;
+                           font-size:14px;font-weight:500;cursor:pointer;">
+              {{ 'Create Provider' if not provider else 'Save Changes' }}
+            </button>
+            <a href="{{ url_for('admin.admin_providers') }}" style="font-size:13px;color:#5A6A7A;">Cancel</a>
+            {% if provider %}
+            <a href="{{ url_for('admin.admin_provider_audit_log', provider_id=provider.provider_id) }}"
+               style="font-size:13px;color:#2E7D8C;margin-left:auto;">
+              View audit log &rarr;
+            </a>
+            {% endif %}
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {# ── Right: Sidebar (edit only) ──────────────────────────────────────────── #}
+  {% if provider %}
+  <div class="col-md-4">
+
+    {# Stats #}
+    <div class="card border-0 mb-3" style="border:0.5px solid #D0D8E0!important;border-radius:12px;">
+      <div class="card-body" style="padding:16px;">
+        <div style="font-size:11px;font-weight:500;letter-spacing:.06em;color:#5A6A7A;margin-bottom:10px;">PROVIDER STATS</div>
+        <table style="width:100%;font-size:13px;">
+          <tr>
+            <td style="color:#5A6A7A;padding:4px 0;">Effective commission</td>
+            <td style="text-align:right;font-weight:500;color:#2D7A4F;">{{ provider.effective_commission_rate }}%</td>
+          </tr>
+          <tr>
+            <td style="color:#5A6A7A;padding:4px 0;">Credit balance</td>
+            <td style="text-align:right;color:#1A3557;">${{ '%.2f'|format(provider.referral_credit_balance or 0) }}</td>
+          </tr>
+          <tr>
+            <td style="color:#5A6A7A;padding:4px 0;">Member since</td>
+            <td style="text-align:right;color:#5A6A7A;font-size:12px;">{{ provider.applied_at.strftime('%b %d, %Y') }}</td>
+          </tr>
+          {% if provider.approved_at %}
+          <tr>
+            <td style="color:#5A6A7A;padding:4px 0;">Approved</td>
+            <td style="text-align:right;color:#5A6A7A;font-size:12px;">{{ provider.approved_at.strftime('%b %d, %Y') }}</td>
+          </tr>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+
+    {# Referral code #}
+    {% if provider.referral_code %}
+    <div class="card border-0 mb-3" style="border:0.5px solid #D0D8E0!important;border-radius:12px;">
+      <div class="card-body" style="padding:14px;">
+        <div style="font-size:11px;font-weight:500;letter-spacing:.06em;color:#5A6A7A;margin-bottom:8px;">REFERRAL CODE</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <code style="font-size:12px;color:#1A3557;background:#EFF4F9;padding:4px 10px;border-radius:6px;flex:1;">
+            {{ provider.referral_code }}
+          </code>
+          <button onclick="navigator.clipboard.writeText('{{ provider.referral_code }}')"
+                  style="background:#1A3557;color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;">
+            Copy
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {# Add credit balance #}
+    <div class="card border-0 mb-3" style="border:0.5px solid #D0D8E0!important;border-radius:12px;">
+      <div class="card-body" style="padding:14px;">
+        <div style="font-size:11px;font-weight:500;letter-spacing:.06em;color:#5A6A7A;margin-bottom:10px;">ADD CREDIT BALANCE</div>
+        <form method="POST"
+              action="{{ url_for('admin.admin_provider_add_credit', provider_id=provider.provider_id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="input-group input-group-sm mb-2">
+            <span class="input-group-text" style="border-color:#D0D8E0;">$</span>
+            <input type="number" name="amount" class="form-control" placeholder="0.00"
+                   min="0.01" step="0.01" required
+                   style="border-color:#D0D8E0;">
+          </div>
+          <input type="text" name="reason" class="form-control form-control-sm mb-2"
+                 placeholder="Reason (optional)"
+                 style="border-color:#D0D8E0;border-radius:6px;">
+          <button type="submit"
+                  style="width:100%;background:#2D7A4F;color:#fff;border:none;
+                         border-radius:8px;padding:7px;font-size:12px;cursor:pointer;">
+            Add Credit
+          </button>
+        </form>
+      </div>
+    </div>
+
+    {# Quick actions #}
+    <div class="card border-0 mb-3" style="border:0.5px solid #D0D8E0!important;border-radius:12px;">
+      <div class="card-body" style="padding:14px;">
+        <div style="font-size:11px;font-weight:500;letter-spacing:.06em;color:#5A6A7A;margin-bottom:10px;">QUICK ACTIONS</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+
+          <form method="POST"
+                action="{{ url_for('admin.admin_provider_verify', provider_id=provider.provider_id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit"
+                    style="width:100%;background:{{ '#EAF4EE' if provider.is_verified else '#FDF6EC' }};
+                           color:{{ '#1A5230' if provider.is_verified else '#8B6419' }};
+                           border:0.5px solid #D0D8E0;border-radius:8px;
+                           padding:7px;font-size:12px;cursor:pointer;">
+              {{ '&#10003; Verified — Click to unverify' if provider.is_verified else '&#9675; Mark as Verified' }}
+            </button>
+          </form>
+
+          <form method="POST"
+                action="{{ url_for('admin.admin_provider_send_welcome', provider_id=provider.provider_id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit"
+                    style="width:100%;background:#EFF4F9;color:#1A3557;
+                           border:0.5px solid #D0D8E0;border-radius:8px;
+                           padding:7px;font-size:12px;cursor:pointer;">
+              &#9993; Send Welcome Email
+            </button>
+          </form>
+
+          {% if provider.is_active %}
+          <form method="POST"
+                action="{{ url_for('admin.admin_provider_deactivate', provider_id=provider.provider_id) }}"
+                onsubmit="return confirm('Deactivate {{ provider.business_name }}? Their experiences will no longer be bookable.')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit"
+                    style="width:100%;background:#FAECEA;color:#B03A2E;
+                           border:0.5px solid #F5C0C0;border-radius:8px;
+                           padding:7px;font-size:12px;cursor:pointer;">
+              Deactivate Provider
+            </button>
+          </form>
+          {% endif %}
+
+          <a href="{{ url_for('admin.admin_provider_audit_log', provider_id=provider.provider_id) }}"
+             style="text-align:center;display:block;font-size:12px;color:#2E7D8C;padding:6px;">
+            View full audit log &rarr;
+          </a>
+
+        </div>
+      </div>
+    </div>
+
+    {# Recent audit entries #}
+    {% if audit_log %}
+    <div class="card border-0" style="border:0.5px solid #D0D8E0!important;border-radius:12px;">
+      <div class="card-body" style="padding:14px;">
+        <div style="font-size:11px;font-weight:500;letter-spacing:.06em;color:#5A6A7A;margin-bottom:10px;">RECENT CHANGES</div>
+        {% for entry in audit_log[:5] %}
+        <div style="font-size:11px;padding:5px 0;border-bottom:0.5px solid #E8ECF0;">
+          <span style="color:#1A3557;font-weight:500;">{{ entry.action | replace('_',' ') | title }}</span>
+          {% if entry.field_name %}
+          <span style="color:#5A6A7A;"> &middot; {{ entry.field_name }}</span>
+          {% endif %}
+          <br>
+          <span style="color:#9AABBF;">
+            {{ entry.created_at.strftime('%b %d %H:%M') }}
+            &middot; {{ entry.admin.first_name if entry.admin else 'Admin' }}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

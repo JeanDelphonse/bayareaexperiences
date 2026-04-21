@@ -1,0 +1,166 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Providers{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h1 class="fw-bold mb-0">Providers</h1>
+  <a href="{{ url_for('admin.admin_provider_new') }}"
+     class="btn btn-sm"
+     style="background:#1A3557;color:#fff;border-radius:8px;font-size:13px;padding:8px 18px;">
+    + Add Provider
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-3">
+
+    <div class="row g-2 mb-3">
+      <div class="col-md-4">
+        <input type="text" id="providerSearch" class="form-control form-control-sm"
+               placeholder="Search business name, email, contact..."
+               oninput="filterProviders()"
+               style="border-color:#D0D8E0;border-radius:8px;">
+      </div>
+      <div class="col-md-2">
+        <select id="tierFilter" class="form-select form-select-sm" onchange="filterProviders()"
+                style="border-color:#D0D8E0;border-radius:8px;">
+          <option value="">All tiers</option>
+          <option value="free">Free</option>
+          <option value="pro">Pro</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select id="statusFilter" class="form-select form-select-sm" onchange="filterProviders()"
+                style="border-color:#D0D8E0;border-radius:8px;">
+          <option value="">All status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="verified">Verified</option>
+          <option value="unverified">Unverified</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select id="sortBy" class="form-select form-select-sm" onchange="filterProviders()"
+                style="border-color:#D0D8E0;border-radius:8px;">
+          <option value="name">Sort: Name</option>
+          <option value="created" selected>Sort: Newest</option>
+        </select>
+      </div>
+      <div class="col-md-2 text-end">
+        <span id="rowCount" class="text-muted" style="font-size:12px;line-height:31px;">
+          {{ providers | length }} providers
+        </span>
+      </div>
+    </div>
+
+    <table class="table table-sm" id="providerTable" style="font-size:13px;">
+      <thead style="background:#1A3557;color:#fff;">
+        <tr>
+          <th>Business</th>
+          <th>Contact</th>
+          <th>Tier</th>
+          <th>Commission</th>
+          <th>Status</th>
+          <th>Verified</th>
+          <th>Joined</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in providers %}
+        <tr data-name="{{ p.business_name | lower }}"
+            data-email="{{ p.email | lower }}"
+            data-contact="{{ p.contact_name | lower }}"
+            data-tier="{{ p.tier }}"
+            data-active="{{ 'active' if p.is_active else 'inactive' }}"
+            data-verified="{{ 'verified' if p.is_verified else 'unverified' }}"
+            data-created="{{ p.applied_at.isoformat() }}">
+          <td>
+            <a href="{{ url_for('admin.admin_provider_edit', provider_id=p.provider_id) }}"
+               style="color:#1A3557;font-weight:500;">
+              {{ p.business_name }}
+            </a>
+          </td>
+          <td>
+            {{ p.contact_name or '—' }}<br>
+            <span style="color:#5A6A7A;font-size:11px;">{{ p.email }}</span>
+          </td>
+          <td>
+            <span style="background:{{ '#EAF4EE' if p.tier=='pro' else '#EFF4F9' }};
+                         color:{{ '#1A5230' if p.tier=='pro' else '#1A3557' }};
+                         font-size:11px;font-weight:500;padding:2px 8px;border-radius:9999px;">
+              {{ p.tier | upper }}
+            </span>
+          </td>
+          <td style="font-weight:500;color:#1A3557;">
+            {{ p.performance_commission_rate or p.commission_rate }}%
+            {% if p.performance_locked_in %}
+            <span style="font-size:10px;color:#2D7A4F;">&#128274;</span>
+            {% endif %}
+          </td>
+          <td>
+            <span style="color:{{ '#2D7A4F' if p.is_active else '#B03A2E' }};font-size:11px;">
+              {{ 'Active' if p.is_active else 'Inactive' }}
+            </span>
+          </td>
+          <td>
+            {% if p.is_verified %}
+            <span style="color:#2D7A4F;">&#10003;</span>
+            {% else %}
+            <span style="color:#B03A2E;">&#8213;</span>
+            {% endif %}
+          </td>
+          <td style="color:#5A6A7A;font-size:11px;">
+            {{ p.applied_at.strftime('%b %d, %Y') }}
+          </td>
+          <td>
+            <a href="{{ url_for('admin.admin_provider_edit', provider_id=p.provider_id) }}"
+               style="font-size:11px;color:#2E7D8C;">Edit</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-center text-muted py-4">No providers yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterProviders() {
+  var q       = document.getElementById('providerSearch').value.toLowerCase();
+  var tier    = document.getElementById('tierFilter').value;
+  var status  = document.getElementById('statusFilter').value;
+  var sortBy  = document.getElementById('sortBy').value;
+  var rows    = Array.from(document.querySelectorAll('#providerTable tbody tr[data-name]'));
+  var visible = 0;
+
+  rows.forEach(function(row) {
+    var name    = row.dataset.name    || '';
+    var email   = row.dataset.email   || '';
+    var contact = row.dataset.contact || '';
+    var matchQ  = !q || name.includes(q) || email.includes(q) || contact.includes(q);
+    var matchT  = !tier   || row.dataset.tier === tier;
+    var matchS  = !status || row.dataset.active === status || row.dataset.verified === status;
+    var show    = matchQ && matchT && matchS;
+    row.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+
+  document.getElementById('rowCount').textContent = visible + ' provider' + (visible !== 1 ? 's' : '');
+
+  // Sort visible rows
+  var tbody = document.querySelector('#providerTable tbody');
+  var sorted = rows.filter(function(r) { return r.style.display !== 'none'; });
+  sorted.sort(function(a, b) {
+    if (sortBy === 'name')    return a.dataset.name.localeCompare(b.dataset.name);
+    if (sortBy === 'created') return b.dataset.created.localeCompare(a.dataset.created);
+    return 0;
+  });
+  sorted.forEach(function(r) { tbody.appendChild(r); });
+}
+</script>
+{% endblock %}

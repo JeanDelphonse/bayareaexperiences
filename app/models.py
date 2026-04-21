@@ -609,6 +609,9 @@ class Provider(db.Model):
     referral_code            = db.Column(db.String(40),   nullable=True,  unique=True)
     referral_credit_balance  = db.Column(db.Numeric(10, 2), nullable=False, default=0.00)
 
+    # Admin
+    admin_notes             = db.Column(db.Text,          nullable=True)
+
     # Timestamps
     applied_at              = db.Column(db.DateTime,      nullable=False, default=lambda: datetime.now(timezone.utc))
     approved_at             = db.Column(db.DateTime,      nullable=True)
@@ -639,6 +642,33 @@ class Provider(db.Model):
     @property
     def is_enhanced_verified(self):
         return self.verification_level == 'enhanced' and self.tier == 'pro'
+
+    @property
+    def email(self):
+        return self.user.email if self.user else ''
+
+    @property
+    def contact_name(self):
+        return self.user.full_name if self.user else ''
+
+
+# ── Marketplace: Provider Audit Log ───────────────────────────────────────────
+
+class ProviderAuditLog(db.Model):
+    __tablename__ = 'provider_audit_log'
+
+    log_id        = db.Column(db.String(9),   primary_key=True, default=generate_pk)
+    provider_id   = db.Column(db.String(9),   db.ForeignKey('providers.provider_id'), nullable=False)
+    admin_user_id = db.Column(db.String(9),   db.ForeignKey('users.user_id'), nullable=True)
+    action        = db.Column(db.String(50),  nullable=False)
+    field_name    = db.Column(db.String(100), nullable=True)
+    old_value     = db.Column(db.Text,        nullable=True)
+    new_value     = db.Column(db.Text,        nullable=True)
+    notes         = db.Column(db.Text,        nullable=True)
+    created_at    = db.Column(db.DateTime,    nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    provider = db.relationship('Provider', backref='audit_logs')
+    admin    = db.relationship('User', foreign_keys=[admin_user_id])
 
 
 # ── Marketplace: Provider Verification Documents ──────────────────────────────
