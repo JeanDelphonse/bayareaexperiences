@@ -251,8 +251,11 @@ async function runProviderSearch() {
     var resp = await fetch(url);
     var text = await resp.text();
     var data;
+    console.log('Provider search response:', resp.status, text.substring(0, 500));
     try { data = JSON.parse(text); } catch (_) {
-      results.innerHTML = '<p style="color:#B03A2E;font-size:13px;">Server error (non-JSON response). Check app logs.</p>';
+      results.innerHTML = '<p style="color:#B03A2E;font-size:13px;">'
+        + 'Server error (HTTP ' + resp.status + '). '
+        + 'Open browser console (F12 → Console) to see the response body.</p>';
       return;
     }
 
