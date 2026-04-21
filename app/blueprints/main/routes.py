@@ -229,6 +229,17 @@ def experience_detail(slug):
     for rating, count in rows:
         star_counts[rating] = count
 
+    related_experiences = (
+        Experience.query
+        .filter(
+            Experience.is_active     == True,
+            Experience.is_mystery    == False,
+            Experience.experience_id != exp.experience_id,
+        )
+        .order_by(Experience.sort_order.asc())
+        .all()
+    )
+
     return render_template('main/experience_detail.html',
                            experience=exp,
                            reviews=reviews,
@@ -236,7 +247,8 @@ def experience_detail(slug):
                            has_more_reviews=has_more_reviews,
                            min_reviews=min_reviews,
                            sample_itinerary=sample_itinerary,
-                           sample_generating=sample_generating)
+                           sample_generating=sample_generating,
+                           related_experiences=related_experiences)
 
 
 @main_bp.route('/sitemap.xml')
@@ -246,12 +258,12 @@ def sitemap():
 
     # Static pages: (path, changefreq, priority)
     static_urls = [
-        ('/',             'weekly',  '1.0'),
-        ('/experiences',  'weekly',  '0.9'),
-        ('/contact',      'monthly', '0.6'),
-        ('/login',        'monthly', '0.4'),
-        ('/register',     'monthly', '0.5'),
-        ('/join/provider','monthly', '0.5'),
+        ('/',                  'weekly',  '1.0'),
+        ('/experiences',       'weekly',  '0.9'),
+        ('/contact',           'monthly', '0.6'),
+        ('/providers/apply',   'monthly', '0.5'),
+        ('/register',          'monthly', '0.5'),
+        ('/login',             'monthly', '0.4'),
     ]
 
     # Dynamic: active experiences

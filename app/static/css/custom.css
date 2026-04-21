@@ -1265,3 +1265,200 @@ textarea:focus-visible {
   .bae-si-time   { font-size: 11px; }
   .bae-si-stop-name { font-size: 15px; }
 }
+
+/* ============================================================
+   BAY AREA EXPERIENCES — Related Experiences Section
+   BAE-PRD-RELATED-EXP-v1.0
+   Placement: experience detail page, below reviews
+   ============================================================ */
+
+.bae-related-section {
+  background: #ffffff;
+  padding: 52px 0 60px;
+  border-top: 1px solid #D0D8E0;
+}
+
+.bae-related-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.bae-related-eyebrow {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #C9952A;
+  margin-bottom: 6px;
+}
+.bae-related-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #1A3557;
+  margin: 0;
+  line-height: 1.2;
+}
+.bae-related-title-em {
+  font-style: italic;
+  color: #2E7D8C;
+}
+.bae-related-viewall {
+  font-size: 13px;
+  font-weight: 500;
+  color: #2E7D8C;
+  text-decoration: none;
+  border-bottom: 1px solid #2E7D8C;
+  padding-bottom: 1px;
+  white-space: nowrap;
+  margin-bottom: 4px;
+  opacity: .85;
+  transition: opacity .15s;
+}
+.bae-related-viewall:hover { opacity: 1; }
+
+.bae-related-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+@media (max-width: 768px) {
+  .bae-related-grid {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 14px;
+    padding-bottom: 12px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .bae-related-grid::-webkit-scrollbar { display: none; }
+  .bae-related-grid { -ms-overflow-style: none; scrollbar-width: none; }
+}
+@media (min-width: 769px) and (max-width: 1024px) {
+  .bae-related-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.bae-related-card {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 0.5px solid #D0D8E0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform .2s ease, box-shadow .2s ease;
+  min-width: 240px;
+  scroll-snap-align: start;
+}
+.bae-related-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 28px rgba(26,53,87,.09);
+}
+
+.bae-related-img-link { display: block; text-decoration: none; }
+.bae-related-img {
+  position: relative;
+  height: 160px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.bae-related-img-el {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform .35s ease;
+}
+.bae-related-card:hover .bae-related-img-el { transform: scale(1.04); }
+.bae-related-img::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(26,53,87,0) 50%, rgba(26,53,87,.45) 100%);
+  pointer-events: none;
+}
+.bae-related-duration {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(26,53,87,.82);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 20px;
+  z-index: 1;
+  backdrop-filter: blur(4px);
+}
+.bae-related-discount-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #C9952A;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+  z-index: 1;
+  letter-spacing: .02em;
+}
+
+.bae-related-body { padding: 14px 14px 0; flex: 1; }
+.bae-related-category {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #2E7D8C;
+  margin-bottom: 5px;
+}
+.bae-related-name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.bae-related-name-link { color: #1A3557; text-decoration: none; }
+.bae-related-name-link:hover { color: #2E7D8C; }
+
+.bae-related-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.bae-related-star { color: #C9952A; font-size: 12px; }
+.bae-related-rating-val { font-size: 12px; font-weight: 600; color: #1A3557; }
+.bae-related-review-count { font-size: 11px; color: #5A6A7A; }
+
+.bae-related-footer {
+  padding: 10px 14px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.bae-related-price { display: flex; flex-direction: column; }
+.bae-related-price-sub { font-size: 10px; color: #5A6A7A; margin-top: 1px; }
+.bae-related-cta {
+  display: inline-block;
+  background: #1A3557;
+  color: #fff;
+  text-decoration: none;
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background .15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.bae-related-cta:hover { background: #2E7D8C; color: #fff; }

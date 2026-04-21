@@ -4,7 +4,7 @@
 {% block title %}{{ experience.name }} — Bay Area Experiences{% endblock %}
 
 {% block meta_description %}
-<meta name="description" content="{{ experience.description[:160] if experience.description else 'Book this Bay Area experience today.' }}">
+<meta name="description" content="{{ experience.name }} — private Bay Area tour, up to 4 guests. {{ experience.duration_hours|int }}h, from ${{ experience.effective_price|int }} flat-rate. Door-to-door pickup included.">
 <meta property="og:title" content="{{ experience.name }} — Bay Area Experiences">
 <meta property="og:description" content="{{ experience.description[:160] if experience.description else 'Book this Bay Area experience today.' }}">
 <meta property="og:price:amount" content="{{ '%.2f'|format(experience.effective_price) }}">
@@ -12,6 +12,7 @@
 {% if experience.photo_url %}
 <meta property="og:image" content="{{ request.url_root.rstrip('/') }}/images/{{ experience.photo_url }}">
 {% endif %}
+<meta name="keywords" content="{{ experience.name }}, Bay Area tours, private tour San Francisco, guided experience Bay Area, book Bay Area tour, small group tour California, private Jeep tour, door-to-door tour service">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org/",
@@ -248,6 +249,9 @@
 
   </div>
 </section>
+
+{# Related Experiences — BAE-PRD-RELATED-EXP-v1.0 #}
+{% include 'partials/_related_experiences.html' %}
 
 <script>
 var _reviewPage = 2;

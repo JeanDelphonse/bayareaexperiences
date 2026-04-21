@@ -1,0 +1,78 @@
+{# templates/partials/_related_experiences.html #}
+{# Requires: related_experiences (list of Experience objects) #}
+{% from 'macros/price.html' import price_block %}
+
+{% if related_experiences %}
+<section class="bae-related-section" id="relatedExperiences">
+  <div class="container">
+
+    <div class="bae-related-header">
+      <div>
+        <div class="bae-related-eyebrow">Explore More</div>
+        <h2 class="bae-related-title">
+          Other Bay Area
+          <em class="bae-related-title-em">experiences</em>
+        </h2>
+      </div>
+      <a href="{{ url_for('main.experiences') }}" class="bae-related-viewall">
+        View all experiences &rarr;
+      </a>
+    </div>
+
+    <div class="bae-related-grid">
+      {% for exp in related_experiences %}
+      <div class="bae-related-card">
+
+        <a href="{{ url_for('main.experience_detail', slug=exp.slug) }}"
+           class="bae-related-img-link">
+          <div class="bae-related-img">
+            <img src="{{ url_for('main.image', filename=(exp.photo_url or 'jeepWrangler.webp')) }}"
+                 alt="{{ exp.name }}"
+                 class="bae-related-img-el"
+                 loading="lazy"
+                 onerror="this.onerror=null;this.src='{{ url_for('main.image', filename='jeepWrangler.webp') }}'">
+            <span class="bae-related-duration">
+              &#9201; {{ exp.duration_hours|int }}
+              hr{{- 's' if exp.duration_hours != 1 -}}
+            </span>
+            {% if exp.is_discount_live %}
+            <span class="bae-related-discount-badge">{{ exp.discount_label }}</span>
+            {% endif %}
+          </div>
+        </a>
+
+        <div class="bae-related-body">
+          <div class="bae-related-category">{{ exp.category }}</div>
+          <h3 class="bae-related-name">
+            <a href="{{ url_for('main.experience_detail', slug=exp.slug) }}"
+               class="bae-related-name-link">
+              {{ exp.name }}
+            </a>
+          </h3>
+          {% if exp.avg_star_rating and exp.avg_star_rating > 0 %}
+          <div class="bae-related-rating">
+            <span class="bae-related-star">&#9733;</span>
+            <span class="bae-related-rating-val">{{ '%.1f' | format(exp.avg_star_rating) }}</span>
+            <span class="bae-related-review-count">({{ exp.review_count }})</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="bae-related-footer">
+          <div class="bae-related-price">
+            {{ price_block(exp, size='sm') }}
+            <div class="bae-related-price-sub">up to 4 guests</div>
+          </div>
+          <a href="{{ url_for('main.experience_detail', slug=exp.slug) }}"
+             class="bae-related-cta">
+            View &rarr;
+          </a>
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</section>
+{% endif %}
