@@ -1,0 +1,332 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Add Provider{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('admin.admin_providers') }}" class="btn btn-outline-secondary me-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h1 class="fw-bold mb-0">Add Provider</h1>
+</div>
+
+{# ── Web Search Panel ──────────────────────────────────────────────────────── #}
+<div class="card border-0 shadow-sm mb-4"
+     id="providerSearchPanel"
+     style="border:0.5px solid #D0D8E0!important;border-radius:12px;">
+  <div class="card-body" style="padding:20px;">
+
+    <div style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;"
+         onclick="toggleSearchPanel()">
+      <div>
+        <div style="font-size:11px;font-weight:500;letter-spacing:.08em;color:#C9952A;margin-bottom:4px;">
+          FIND A PROVIDER ONLINE
+        </div>
+        <div style="font-size:15px;font-weight:500;color:#1A3557;">
+          Search the web to pre-fill the form
+        </div>
+      </div>
+      <span id="searchPanelToggleIcon" style="font-size:18px;color:#5A6A7A;">&#8963;</span>
+    </div>
+
+    <div id="searchPanelBody" style="margin-top:16px;">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-5">
+          <label style="font-size:12px;font-weight:500;color:#1C1C1E;display:block;margin-bottom:4px;">
+            What kind of provider?
+          </label>
+          <input type="text" id="psQuery" class="form-control"
+                 placeholder="e.g. wine tour operator, hiking guide, corporate event company"
+                 style="border-color:#D0D8E0;border-radius:10px;font-size:13px;">
+        </div>
+        <div class="col-md-3">
+          <label style="font-size:12px;font-weight:500;color:#1C1C1E;display:block;margin-bottom:4px;">
+            Bay Area city / region
+          </label>
+          <select id="psLocation" class="form-select"
+                  style="border-color:#D0D8E0;border-radius:10px;font-size:13px;">
+            <option value="San Francisco CA">San Francisco</option>
+            <option value="San Jose CA">San Jose</option>
+            <option value="Palo Alto CA">Palo Alto</option>
+            <option value="Santa Cruz CA">Santa Cruz</option>
+            <option value="Monterey CA">Monterey</option>
+            <option value="Sonoma CA">Sonoma / Wine Country</option>
+            <option value="Oakland CA">Oakland / East Bay</option>
+            <option value="Marin County CA">Marin County</option>
+            <option value="Silicon Valley CA">Silicon Valley</option>
+            <option value="Bay Area CA">Bay Area (broad)</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label style="font-size:12px;font-weight:500;color:#1C1C1E;display:block;margin-bottom:4px;">
+            Max results
+          </label>
+          <select id="psMaxResults" class="form-select"
+                  style="border-color:#D0D8E0;border-radius:10px;font-size:13px;">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button type="button" onclick="runProviderSearch()" id="psSearchBtn"
+                  style="width:100%;background:#1A3557;color:#fff;border:none;
+                         padding:9px;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;">
+            &#128269; Search
+          </button>
+        </div>
+      </div>
+      <div id="psResults" style="margin-top:16px;"></div>
+    </div>
+
+  </div>
+</div>
+
+<hr style="border-color:#D0D8E0;margin:0 0 28px;">
+
+{# ── Create Form ───────────────────────────────────────────────────────────── #}
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-4">
+    <form method="POST" action="{{ url_for('admin.admin_provider_new') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div style="font-size:11px;font-weight:500;letter-spacing:.06em;color:#5A6A7A;margin-bottom:12px;">
+        BUSINESS INFORMATION
+      </div>
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Business Name <span class="text-danger">*</span></label>
+          <input type="text" name="business_name" class="form-control"
+                 required maxlength="200"
+                 style="border-color:#D0D8E0;border-radius:10px;">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Contact Name</label>
+          <input type="text" name="contact_name" class="form-control"
+                 maxlength="150"
+                 style="border-color:#D0D8E0;border-radius:10px;">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Email <span class="text-danger">*</span></label>
+          <input type="email" name="email" class="form-control"
+                 required maxlength="150"
+                 style="border-color:#D0D8E0;border-radius:10px;">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Phone</label>
+          <input type="text" name="phone" class="form-control"
+                 style="border-color:#D0D8E0;border-radius:10px;">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Website</label>
+          <input type="url" name="website" class="form-control"
+                 placeholder="https://"
+                 style="border-color:#D0D8E0;border-radius:10px;">
+        </div>
+        <div class="col-12">
+          <label class="form-label small fw-semibold">Bio / Description</label>
+          <textarea name="description" class="form-control" rows="3" maxlength="1000"
+                    placeholder="Shown on marketplace listing pages..."
+                    style="border-color:#D0D8E0;border-radius:10px;resize:none;"></textarea>
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:500;letter-spacing:.06em;color:#5A6A7A;margin-bottom:12px;">
+        TIER &amp; COMMISSION
+      </div>
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold">Tier</label>
+          <select name="tier" class="form-select" style="border-color:#D0D8E0;border-radius:10px;">
+            <option value="free" selected>Free (20% commission)</option>
+            <option value="pro">Pro ($149/mo · 5%)</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold">
+            Commission Override
+            <span style="font-weight:400;color:#5A6A7A;font-size:11px;">(blank = standard)</span>
+          </label>
+          <div class="input-group">
+            <input type="number" name="performance_commission_rate" class="form-control"
+                   min="0" max="100" step="0.01" placeholder="e.g. 12.00"
+                   style="border-color:#D0D8E0;border-radius:10px 0 0 10px;">
+            <span class="input-group-text" style="border-color:#D0D8E0;background:#F2F5F8;">%</span>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold">Stripe Connect Account ID</label>
+          <input type="text" name="stripe_account_id" class="form-control"
+                 placeholder="acct_..."
+                 style="border-color:#D0D8E0;border-radius:10px;font-family:monospace;font-size:13px;">
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:500;letter-spacing:.06em;color:#5A6A7A;margin-bottom:12px;">
+        STATUS &amp; VERIFICATION
+      </div>
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold">Account Status</label>
+          <div class="d-flex gap-3 mt-1">
+            <label class="d-flex align-items-center gap-2">
+              <input type="radio" name="is_active" value="1" checked>
+              <span style="color:#2D7A4F;font-weight:500;">Active</span>
+            </label>
+            <label class="d-flex align-items-center gap-2">
+              <input type="radio" name="is_active" value="0">
+              <span style="color:#B03A2E;font-weight:500;">Inactive</span>
+            </label>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold">Verification</label>
+          <div class="d-flex gap-3 mt-1">
+            <label class="d-flex align-items-center gap-2">
+              <input type="radio" name="is_verified" value="1">
+              <span style="color:#2D7A4F;font-weight:500;">Verified</span>
+            </label>
+            <label class="d-flex align-items-center gap-2">
+              <input type="radio" name="is_verified" value="0" checked>
+              <span style="color:#5A6A7A;font-weight:500;">Unverified</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:500;letter-spacing:.06em;color:#5A6A7A;margin-bottom:8px;">
+        INTERNAL NOTES
+      </div>
+      <textarea name="admin_notes" class="form-control mb-1" rows="3"
+                placeholder="Internal notes — not visible to the provider..."
+                style="border-color:#D0D8E0;border-radius:10px;resize:vertical;"></textarea>
+      <div style="font-size:11px;color:#5A6A7A;margin-bottom:24px;">Not shown to the provider.</div>
+
+      <div class="d-flex gap-3 align-items-center">
+        <button type="submit"
+                style="background:#1A3557;color:#fff;border:none;
+                       padding:11px 28px;border-radius:9999px;
+                       font-size:14px;font-weight:500;cursor:pointer;">
+          Create Provider
+        </button>
+        <a href="{{ url_for('admin.admin_providers') }}" style="font-size:13px;color:#5A6A7A;">Cancel</a>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleSearchPanel() {
+  var body = document.getElementById('searchPanelBody');
+  var icon = document.getElementById('searchPanelToggleIcon');
+  var open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  icon.innerHTML     = open ? '&#8964;' : '&#8963;';
+}
+
+async function runProviderSearch() {
+  var query    = document.getElementById('psQuery').value.trim();
+  var location = document.getElementById('psLocation').value;
+  var maxR     = document.getElementById('psMaxResults').value;
+  var btn      = document.getElementById('psSearchBtn');
+  var results  = document.getElementById('psResults');
+
+  if (!query) {
+    results.innerHTML = '<p style="color:#B03A2E;font-size:13px;">Please enter a provider type to search for.</p>';
+    return;
+  }
+
+  btn.disabled    = true;
+  btn.textContent = 'Searching...';
+  results.innerHTML = '<div style="text-align:center;padding:20px;color:#5A6A7A;font-size:13px;">'
+    + '&#8987; Claude is searching the web for <strong>' + query + '</strong> in ' + location + '...'
+    + '</div>';
+
+  try {
+    var url  = '/admin/providers/search?q=' + encodeURIComponent(query)
+             + '&location=' + encodeURIComponent(location)
+             + '&max=' + maxR;
+    var resp = await fetch(url);
+    var data = await resp.json();
+
+    if (data.error) {
+      results.innerHTML = '<p style="color:#B03A2E;font-size:13px;">Error: ' + data.error + '</p>';
+      return;
+    }
+    if (!data.length) {
+      results.innerHTML = '<p style="color:#5A6A7A;font-size:13px;font-style:italic;">No results found. Try different keywords or a broader location.</p>';
+      return;
+    }
+    renderSearchResults(data);
+  } catch (e) {
+    results.innerHTML = '<p style="color:#B03A2E;font-size:13px;">Search failed. Check your connection and try again.</p>';
+  } finally {
+    btn.disabled    = false;
+    btn.innerHTML   = '&#128269; Search';
+  }
+}
+
+function renderSearchResults(businesses) {
+  window._psResults = businesses;
+  var container = document.getElementById('psResults');
+  var html = '<div style="font-size:12px;color:#5A6A7A;margin-bottom:10px;">'
+           + businesses.length + ' result(s) found. Click <strong>Use This Business</strong> to pre-fill the form.</div>';
+  businesses.forEach(function(biz, i) {
+    var meta = [biz.contact_name, biz.phone, biz.email].filter(Boolean).join(' · ');
+    var site = biz.website ? ' · <a href="' + biz.website + '" target="_blank" style="color:#2E7D8C;">' + biz.website + '</a>' : '';
+    html += '<div style="background:#fff;border:0.5px solid #D0D8E0;border-radius:12px;'
+          + 'padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;'
+          + 'align-items:flex-start;gap:14px;">'
+          + '<div style="flex:1;">'
+          + '<div style="font-size:14px;font-weight:500;color:#1A3557;margin-bottom:3px;">' + (biz.business_name || '—') + '</div>'
+          + '<div style="font-size:12px;color:#5A6A7A;margin-bottom:5px;">' + meta + site + '</div>'
+          + (biz.description ? '<div style="font-size:12px;color:#1C1C1E;line-height:1.5;margin-bottom:5px;">' + biz.description + '</div>' : '')
+          + (biz.why_good_fit ? '<div style="font-size:11px;color:#2D7A4F;font-style:italic;">' + biz.why_good_fit + '</div>' : '')
+          + '</div>'
+          + '<button type="button" onclick="prefillForm(' + i + ')" '
+          + 'style="background:#1A3557;color:#fff;border:none;padding:8px 16px;border-radius:8px;'
+          + 'font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;flex-shrink:0;">'
+          + 'Use This Business</button>'
+          + '</div>';
+  });
+  container.innerHTML = html;
+}
+
+function prefillForm(index) {
+  var biz = window._psResults[index];
+  if (!biz) return;
+  function set(name, value) {
+    var el = document.querySelector('[name="' + name + '"]');
+    if (el && value) el.value = value;
+  }
+  set('business_name', biz.business_name);
+  set('contact_name',  biz.contact_name);
+  set('email',         biz.email);
+  set('phone',         biz.phone);
+  set('website',       biz.website);
+  set('description',   biz.description);
+
+  // Scroll to form and briefly highlight pre-filled fields
+  var form = document.querySelector('form[method="POST"]');
+  if (form) {
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    form.querySelectorAll('input, textarea').forEach(function(el) {
+      if (el.value) {
+        el.style.borderColor = '#2D7A4F';
+        el.style.background  = '#EAF4EE';
+        setTimeout(function() {
+          el.style.borderColor = '#D0D8E0';
+          el.style.background  = '';
+        }, 2000);
+      }
+    });
+  }
+
+  // Collapse search panel
+  document.getElementById('searchPanelBody').style.display = 'none';
+  document.getElementById('searchPanelToggleIcon').innerHTML = '&#8964;';
+}
+</script>
+{% endblock %}

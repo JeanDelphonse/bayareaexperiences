@@ -49,6 +49,107 @@ def admin_providers():
     return render_template('admin/providers/list.html', providers=providers)
 
 
+# ── Provider Web Search (AJAX) ────────────────────────────────────────────────
+
+_SEARCH_SYSTEM = """
+You are a business research assistant for Bay Area Experiences,
+a private tour and transportation marketplace.
+Your job is to find real, currently operating businesses that
+could become providers on the BAE platform.
+
+For each business found, extract as much as possible:
+  business_name  — official business name (required)
+  contact_name   — owner or primary contact person's name
+  email          — contact email address
+  phone          — phone number, formatted (xxx) xxx-xxxx
+  website        — full URL including https://
+  description    — 2-3 sentence bio suitable for a marketplace listing.
+                   Focus on what they offer, their style, and their
+                   Bay Area expertise. First person ("We offer...").
+  why_good_fit   — 1 sentence on why this business suits BAE's marketplace.
+
+RULES:
+  - Only include real, currently operating businesses.
+  - Skip large national chains.
+  - Prefer businesses with a named contact person.
+  - If a field cannot be found, return null for that field.
+  - Do NOT invent or guess any field — only return what you find.
+  - Output ONLY a valid JSON array. No prose outside the array.
+"""
+
+
+@admin_bp.route('/providers/search')
+@login_required
+@_admin_required
+def admin_provider_search():
+    import anthropic, json, os, re as _re
+    from flask import jsonify
+
+    query       = request.args.get('q', '').strip()
+    location    = request.args.get('location', 'Bay Area CA').strip()
+    max_results = min(int(request.args.get('max', 10) or 10), 20)
+
+    if not query:
+        return jsonify({'error': 'Query is required'}), 400
+
+    user_prompt = (
+        f'Search the web for Bay Area Experiences provider candidates.\n\n'
+        f'PROVIDER TYPE: {query}\n'
+        f'LOCATION:      {location}\n'
+        f'MAX RESULTS:   {max_results}\n\n'
+        f'Search for businesses matching the provider type in {location}. '
+        f'Use multiple searches to build a comprehensive list. '
+        f'For each business, find their contact person, email, phone, '
+        f'website, and enough detail to write a 2-3 sentence bio.\n\n'
+        f'Return a JSON array of up to {max_results} businesses:\n'
+        f'[{{\n'
+        f'  "business_name": "...",\n'
+        f'  "contact_name":  "...",\n'
+        f'  "email":         "...",\n'
+        f'  "phone":         "...",\n'
+        f'  "website":       "...",\n'
+        f'  "description":   "...",\n'
+        f'  "why_good_fit":  "..."\n'
+        f'}}]'
+    )
+
+    try:
+        client   = anthropic.Anthropic(api_key=os.environ['ANTHROPIC_API_KEY'])
+        response = client.messages.create(
+            model      = 'claude-sonnet-4-6',
+            max_tokens = 4096,
+            system     = _SEARCH_SYSTEM,
+            tools      = [{'type': 'web_search_20250305', 'name': 'web_search'}],
+            messages   = [{'role': 'user', 'content': user_prompt}],
+        )
+
+        raw = ''.join(
+            block.text for block in response.content
+            if hasattr(block, 'text')
+        )
+        clean = _re.sub(r'```(?:json)?', '', raw).strip()
+        start = clean.find('[')
+        end   = clean.rfind(']') + 1
+        if start < 0:
+            return jsonify([])
+
+        businesses = json.loads(clean[start:end])
+
+        seen, dedup = set(), []
+        for biz in businesses:
+            key = (biz.get('business_name') or '').lower().strip()
+            if key and key not in seen:
+                seen.add(key)
+                dedup.append(biz)
+
+        return jsonify(dedup[:max_results])
+
+    except Exception as e:
+        import logging
+        logging.getLogger('admin').error('Provider search failed: %s', e)
+        return jsonify({'error': 'Search failed. Try again.'}), 500
+
+
 # ── Create Provider ───────────────────────────────────────────────────────────
 
 @admin_bp.route('/providers/new', methods=['GET', 'POST'])
@@ -61,7 +162,7 @@ def admin_provider_new():
     import secrets, re
 
     if request.method == 'GET':
-        return render_template('admin/providers/form.html', provider=None, audit_log=[])
+        return render_template('admin/providers/new.html')
 
     email       = request.form.get('email', '').strip().lower()
     contact_raw = request.form.get('contact_name', '').strip()
@@ -69,7 +170,7 @@ def admin_provider_new():
 
     if not email or not biz_name:
         flash('Business name and email are required.', 'danger')
-        return render_template('admin/providers/form.html', provider=None, audit_log=[])
+        return render_template('admin/providers/new.html')
 
     # Find or create user
     user = User.query.filter_by(email=email).first()
