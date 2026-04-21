@@ -92,6 +92,10 @@ def admin_provider_search():
     if not query:
         return jsonify({'error': 'Query is required'}), 400
 
+    # Release DB connection before the long-running API call — prevents
+    # MySQL "gone away" when the ~20s search holds the connection past its TTL.
+    db.session.remove()
+
     user_prompt = (
         f'Search the web for Bay Area Experiences provider candidates.\n\n'
         f'PROVIDER TYPE: {query}\n'
@@ -126,7 +130,7 @@ def admin_provider_search():
 
         raw = ''.join(
             block.text for block in response.content
-            if hasattr(block, 'text')
+            if hasattr(block, 'text') and block.text is not None
         )
         clean = _re.sub(r'```(?:json)?', '', raw).strip()
         start = clean.find('[')
