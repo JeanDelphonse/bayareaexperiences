@@ -249,19 +249,24 @@ async function runProviderSearch() {
              + '&location=' + encodeURIComponent(location)
              + '&max=' + maxR;
     var resp = await fetch(url);
-    var data = await resp.json();
-
-    if (data.error) {
-      results.innerHTML = '<p style="color:#B03A2E;font-size:13px;">Error: ' + data.error + '</p>';
+    var text = await resp.text();
+    var data;
+    try { data = JSON.parse(text); } catch (_) {
+      results.innerHTML = '<p style="color:#B03A2E;font-size:13px;">Server error (non-JSON response). Check app logs.</p>';
       return;
     }
-    if (!data.length) {
+
+    if (data.error) {
+      results.innerHTML = '<p style="color:#B03A2E;font-size:13px;"><strong>Error:</strong> ' + data.error + '</p>';
+      return;
+    }
+    if (!Array.isArray(data) || !data.length) {
       results.innerHTML = '<p style="color:#5A6A7A;font-size:13px;font-style:italic;">No results found. Try different keywords or a broader location.</p>';
       return;
     }
     renderSearchResults(data);
   } catch (e) {
-    results.innerHTML = '<p style="color:#B03A2E;font-size:13px;">Search failed. Check your connection and try again.</p>';
+    results.innerHTML = '<p style="color:#B03A2E;font-size:13px;">Network error: ' + e.message + '</p>';
   } finally {
     btn.disabled    = false;
     btn.innerHTML   = '&#128269; Search';

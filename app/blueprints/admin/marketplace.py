@@ -121,6 +121,7 @@ def admin_provider_search():
             system     = _SEARCH_SYSTEM,
             tools      = [{'type': 'web_search_20250305', 'name': 'web_search'}],
             messages   = [{'role': 'user', 'content': user_prompt}],
+            betas      = ['web-search-2025-03-05'],
         )
 
         raw = ''.join(
@@ -145,9 +146,9 @@ def admin_provider_search():
         return jsonify(dedup[:max_results])
 
     except Exception as e:
-        import logging
-        logging.getLogger('admin').error('Provider search failed: %s', e)
-        return jsonify({'error': 'Search failed. Try again.'}), 500
+        import logging, traceback
+        logging.getLogger('admin').error('Provider search failed: %s\n%s', e, traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
 
 
 # ── Create Provider ───────────────────────────────────────────────────────────
