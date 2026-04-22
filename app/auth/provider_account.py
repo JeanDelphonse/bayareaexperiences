@@ -7,9 +7,9 @@ import logging
 from datetime import datetime, timezone
 
 from flask import url_for
-from flask_mail import Message
 
-from app.extensions import db, bcrypt, mail
+from app.extensions import db, bcrypt
+from app.utils import send_email
 
 log = logging.getLogger('provider_account')
 
@@ -110,13 +110,8 @@ call us at (408) 831-2101.
 </div>
 </body></html>"""
 
-    msg = Message(
-        subject    = subject,
-        recipients = [user.email],
-        body       = body_text,
-        html       = body_html,
-    )
-    mail.send(msg)
+    from app.extensions import mail
+    send_email(mail, subject, [user.email], body_html, body_text)
 
 
 def reset_provider_credentials(provider) -> str:
