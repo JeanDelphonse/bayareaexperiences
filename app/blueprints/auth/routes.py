@@ -1,4 +1,5 @@
 import os
+import logging
 import requests
 from datetime import datetime, timezone, timedelta
 from flask import render_template, redirect, url_for, flash, request, current_app
@@ -9,6 +10,8 @@ from app.extensions import db, bcrypt, mail
 from app.models import User
 from app.utils import generate_pk, send_email
 
+log = logging.getLogger('auth')
+
 
 def get_serializer():
     return URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
@@ -18,13 +21,22 @@ def verify_recaptcha(token):
     secret = current_app.config.get('RECAPTCHA_SECRET_KEY', '')
     if not secret:
         return True  # Skip in dev if not configured
-    resp = requests.post(
-        'https://www.google.com/recaptcha/api/siteverify',
-        data={'secret': secret, 'response': token},
-        timeout=5,
-    )
-    result = resp.json()
-    return result.get('success') and result.get('score', 0) >= 0.5
+    if not token:
+        log.warning('reCAPTCHA: empty token received — site key may not be configured or JS failed to load')
+        return False
+    try:
+        resp = requests.post(
+            'https://www.google.com/recaptcha/api/siteverify',
+            data={'secret': secret, 'response': token},
+            timeout=5,
+        )
+        result = resp.json()
+        log.info('reCAPTCHA result: success=%s score=%s errors=%s',
+                 result.get('success'), result.get('score'), result.get('error-codes'))
+        return result.get('success') and result.get('score', 0) >= 0.3
+    except Exception as e:
+        log.error('reCAPTCHA request failed: %s', e)
+        return True  # Allow through if Google is unreachable
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
