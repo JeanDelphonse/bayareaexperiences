@@ -4,6 +4,59 @@
 {% block content %}
 <h2 class="fw-bold mb-4">Edit Profile</h2>
 
+{% if show_change_banner %}
+<div style="background:#FDF6EC;border:0.5px solid #E8D5A3;border-radius:10px;
+            padding:14px 18px;margin-bottom:24px;display:flex;align-items:flex-start;gap:12px;">
+  <span style="font-size:20px;">&#9888;</span>
+  <div>
+    <div style="font-size:14px;font-weight:500;color:#8B6419;margin-bottom:4px;">
+      Please set a permanent password to continue.
+    </div>
+    <div style="font-size:13px;color:#5A6A7A;">
+      You signed in with a temporary password. Set a permanent one below before
+      accessing your provider dashboard.
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ── Password change form ───────────────────────────────────────────────── #}
+<div class="card border-0 mb-4" style="border:0.5px solid #D0D8E0!important;border-radius:12px;">
+  <div class="card-body" style="padding:22px;">
+    <div style="font-size:11px;font-weight:500;letter-spacing:.06em;color:#5A6A7A;margin-bottom:14px;">
+      {{ 'SET YOUR PASSWORD' if show_change_banner else 'CHANGE PASSWORD' }}
+    </div>
+    <form method="POST" novalidate>
+      {{ form.hidden_tag() }}
+      <input type="hidden" name="action" value="change_password">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px;color:#1C1C1E;">
+            New Password
+          </label>
+          <input type="password" name="new_password" class="form-control"
+                 minlength="8" placeholder="Minimum 8 characters"
+                 style="border-color:#D0D8E0;border-radius:10px;" required>
+        </div>
+        <div class="col-md-6">
+          <label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px;color:#1C1C1E;">
+            Confirm Password
+          </label>
+          <input type="password" name="confirm_password" class="form-control"
+                 minlength="8" style="border-color:#D0D8E0;border-radius:10px;" required>
+        </div>
+        <div class="col-12">
+          <button type="submit"
+                  style="background:#1A3557;color:#fff;border:none;padding:10px 24px;
+                         border-radius:9999px;font-size:14px;font-weight:500;cursor:pointer;">
+            {{ 'Set My Password' if show_change_banner else 'Update Password' }}
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="row g-4">
   <div class="col-lg-7">
     <div class="card shadow-sm border-0">

@@ -163,8 +163,8 @@ def admin_provider_search():
 def admin_provider_new():
     from app.models import Provider, User
     from app.utils import generate_pk
-    from flask_bcrypt import Bcrypt
-    import secrets, re
+    from app.auth.provider_account import generate_temp_password, send_provider_welcome_email
+    import re
 
     if request.method == 'GET':
         return render_template('admin/providers/new.html')
@@ -178,22 +178,27 @@ def admin_provider_new():
         return render_template('admin/providers/new.html')
 
     # Find or create user
+    new_user     = False
+    tmp_pw       = None
     user = User.query.filter_by(email=email).first()
     if not user:
-        parts = contact_raw.split(' ', 1)
-        first = parts[0] or 'Provider'
-        last  = parts[1] if len(parts) > 1 else 'Account'
-        bcrypt = Bcrypt()
-        tmp_pw = secrets.token_urlsafe(16)
+        parts      = contact_raw.split(' ', 1)
+        first      = parts[0] or 'Provider'
+        last       = parts[1] if len(parts) > 1 else 'Account'
+        tmp_pw     = generate_temp_password()
+        from app.extensions import bcrypt as _bcrypt
         user = User(
-            user_id       = generate_pk(),
-            first_name    = first,
-            last_name     = last,
-            email         = email,
-            password_hash = bcrypt.generate_password_hash(tmp_pw).decode('utf-8'),
+            user_id              = generate_pk(),
+            first_name           = first,
+            last_name            = last,
+            email                = email,
+            password_hash        = _bcrypt.generate_password_hash(tmp_pw).decode('utf-8'),
+            email_verified       = True,
+            must_change_password = True,
         )
         db.session.add(user)
         db.session.flush()
+        new_user = True
 
     # Check not already a provider
     existing = Provider.query.filter_by(user_id=user.user_id).first()
@@ -243,11 +248,30 @@ def admin_provider_new():
 
     db.session.add(provider)
     db.session.flush()
+
     _log_provider(provider.provider_id, 'created',
-                  notes=f'Admin-created: {biz_name}')
+                  notes=f'Admin-created: {biz_name}. User: {user.user_id}')
+
+    if new_user and tmp_pw:
+        try:
+            send_provider_welcome_email(provider, user, tmp_pw)
+            _log_provider(provider.provider_id, 'account_created',
+                          notes=f'User {user.user_id} created. Welcome email sent to {user.email}.')
+        except Exception as e:
+            import logging
+            logging.getLogger('admin').error(f'Welcome email failed: {e}')
+            _log_provider(provider.provider_id, 'account_created',
+                          notes=f'User {user.user_id} created. Email failed: {e}')
+    elif not new_user:
+        _log_provider(provider.provider_id, 'account_linked',
+                      notes=f'Linked to existing user {user.user_id}.')
+
     db.session.commit()
 
-    flash(f'Provider "{biz_name}" created successfully.', 'success')
+    if new_user:
+        flash(f'Provider "{biz_name}" created. Login credentials sent to {email}.', 'success')
+    else:
+        flash(f'Provider "{biz_name}" created and linked to existing account {email}.', 'success')
     return redirect(url_for('admin.admin_provider_edit', provider_id=provider.provider_id))
 
 
@@ -396,6 +420,23 @@ def admin_provider_send_welcome(provider_id):
     db.session.commit()
     flash('Welcome email sent.', 'success')
     return redirect(request.referrer or url_for('admin.admin_provider_edit', provider_id=provider_id))
+
+
+# ── Resend credentials ───────────────────────────────────────────────────────
+
+@admin_bp.route('/providers/<provider_id>/resend-credentials', methods=['POST'])
+@login_required
+@_admin_required
+def admin_provider_resend_credentials(provider_id):
+    from app.models import Provider
+    from app.auth.provider_account import reset_provider_credentials
+    provider = Provider.query.get_or_404(provider_id)
+    reset_provider_credentials(provider)
+    _log_provider(provider_id, 'credentials_resent',
+                  notes=f'New temp password generated. Email sent to {provider.user.email}.')
+    db.session.commit()
+    flash(f'New credentials sent to {provider.user.email}.', 'success')
+    return redirect(url_for('admin.admin_provider_edit', provider_id=provider_id))
 
 
 # ── Add credit balance ────────────────────────────────────────────────────────

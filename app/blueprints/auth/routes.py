@@ -43,6 +43,9 @@ def login():
                 track_event('user_logged_in', category='auth', target_id=user.user_id, target_type='user')
             except Exception:
                 pass
+            if getattr(user, 'must_change_password', False) and user.provider:
+                flash('Welcome! Please set a permanent password to continue.', 'warning')
+                return redirect(url_for('providers.dashboard_profile'))
             next_page = request.args.get('next')
             flash('Welcome back!', 'success')
             return redirect(next_page or url_for('main.index'))

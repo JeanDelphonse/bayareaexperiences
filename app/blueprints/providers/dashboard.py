@@ -3,13 +3,28 @@ import re
 from decimal import Decimal
 from datetime import datetime, timezone, date
 from flask import (render_template, redirect, url_for, flash, request,
-                   current_app, abort)
+                   current_app, abort, session)
 from flask_login import login_required, current_user
 from app.blueprints.providers import providers_bp
 from app.blueprints.providers.forms import ProviderExperienceForm, ProviderProfileForm, ProviderDocUploadForm
 from app.blueprints.providers.decorators import provider_required, provider_active_required, current_provider
-from app.extensions import db
+from app.extensions import db, bcrypt
 from app.utils import generate_pk
+
+
+@providers_bp.before_request
+def enforce_password_change():
+    if not current_user.is_authenticated:
+        return
+    if not getattr(current_user, 'must_change_password', False):
+        return
+    allowed = {'providers.dashboard_profile', 'static', 'auth.logout'}
+    if request.endpoint in allowed:
+        return
+    if request.endpoint and not request.endpoint.startswith('providers.dashboard_'):
+        return
+    flash('Please set a permanent password before continuing.', 'warning')
+    return redirect(url_for('providers.dashboard_profile'))
 
 
 def _slugify_exp(name):
@@ -304,18 +319,50 @@ def dashboard_earnings():
 @provider_required
 def dashboard_profile():
     p = current_provider()
+    show_change_banner = getattr(current_user, 'must_change_password', False)
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        if action == 'change_password':
+            new_pw  = request.form.get('new_password', '')
+            confirm = request.form.get('confirm_password', '')
+            if len(new_pw) < 8:
+                flash('Password must be at least 8 characters.', 'danger')
+            elif new_pw != confirm:
+                flash('Passwords do not match.', 'danger')
+            else:
+                current_user.password_hash        = bcrypt.generate_password_hash(new_pw).decode('utf-8')
+                current_user.must_change_password = False
+                current_user.updated_at           = datetime.now(timezone.utc)
+                session.pop('must_change_password', None)
+                db.session.commit()
+                flash('Password updated. Welcome to Bay Area Experiences!', 'success')
+                return redirect(url_for('providers.dashboard'))
+            return render_template('providers/dashboard/profile.html',
+                                   provider=p, form=ProviderProfileForm(obj=p),
+                                   show_change_banner=show_change_banner)
+
+        # Profile update
+        form = ProviderProfileForm(obj=p)
+        if form.validate_on_submit():
+            p.business_name    = form.business_name.data
+            p.bio              = form.bio.data
+            p.website          = form.website.data or None
+            p.instagram        = form.instagram.data or None
+            p.languages_spoken = form.languages_spoken.data or None
+            p.years_experience = form.years_experience.data
+            db.session.commit()
+            flash('Profile updated.', 'success')
+            return redirect(url_for('providers.dashboard_profile'))
+        return render_template('providers/dashboard/profile.html',
+                               provider=p, form=form,
+                               show_change_banner=show_change_banner)
+
     form = ProviderProfileForm(obj=p)
-    if form.validate_on_submit():
-        p.business_name    = form.business_name.data
-        p.bio              = form.bio.data
-        p.website          = form.website.data or None
-        p.instagram        = form.instagram.data or None
-        p.languages_spoken = form.languages_spoken.data or None
-        p.years_experience = form.years_experience.data
-        db.session.commit()
-        flash('Profile updated.', 'success')
-        return redirect(url_for('providers.dashboard_profile'))
-    return render_template('providers/dashboard/profile.html', provider=p, form=form)
+    return render_template('providers/dashboard/profile.html',
+                           provider=p, form=form,
+                           show_change_banner=show_change_banner)
 
 
 # ── Subscription ──────────────────────────────────────────────────────────────
