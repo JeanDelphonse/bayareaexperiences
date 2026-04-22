@@ -360,6 +360,7 @@ def admin_provider_edit(provider_id):
         action = 'verified' if new_verified else 'unverified'
         _log_provider(provider_id, action, notes=change_reason)
         provider.is_verified = new_verified
+        provider.can_list_experiences = new_verified
         if new_verified:
             provider.approved_at = now
             provider.approved_by = current_user.user_id
@@ -379,6 +380,7 @@ def admin_provider_verify(provider_id):
     from app.models import Provider
     provider = Provider.query.get_or_404(provider_id)
     provider.is_verified = not provider.is_verified
+    provider.can_list_experiences = provider.is_verified
     if provider.is_verified:
         provider.approved_at = datetime.now(timezone.utc)
         provider.approved_by = current_user.user_id
