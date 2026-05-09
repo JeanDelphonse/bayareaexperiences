@@ -244,7 +244,10 @@ def timeslots():
     all_exps  = Experience.query.filter_by(is_active=True).order_by(Experience.sort_order).all()
     slots_q   = (Timeslot.query
                  .join(Experience)
-                 .order_by(Timeslot.slot_date.desc(), Timeslot.start_time))
+                 .filter(Timeslot.slot_date >= date.today(),
+                         Timeslot.is_available.is_(True),
+                         Timeslot.booked_count < Timeslot.capacity)
+                 .order_by(Timeslot.slot_date.asc(), Timeslot.start_time))
     all_slots = paginate(slots_q)
     return render_template('admin/timeslots.html', experiences=all_exps, timeslots=all_slots)
 
