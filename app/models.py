@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from flask_login import UserMixin
 from app.extensions import db, login_manager
 from app.utils import generate_pk
+from app.utils.luxury import get_vehicle_display
 
 
 @login_manager.user_loader
@@ -121,6 +122,15 @@ class Experience(db.Model):
     discount_start    = db.Column(db.DateTime, nullable=True)
     discount_end      = db.Column(db.DateTime, nullable=True)
 
+    # Luxury tier (BAE-PRD-LUXURY-v1.0)
+    is_premium            = db.Column(db.Boolean, nullable=False, default=False)
+    luxury_vehicle_type   = db.Column(db.Enum(
+        'cadillac_escalade', 'lincoln_navigator', 'mercedes_sprinter',
+        'mercedes_s_class', 'bmw_7_series', 'luxury_suv_custom',
+        name='luxury_vehicle_type_enum'), nullable=True)
+    luxury_vehicle_custom = db.Column(db.String(150), nullable=True)
+    driver_notes          = db.Column(db.Text, nullable=True)
+
     @property
     def is_discount_live(self) -> bool:
         if not self.discount_active or not self.discounted_price:
@@ -144,6 +154,14 @@ class Experience(db.Model):
         if self.discount_label:
             return self.discount_label
         return f'{self.discount_percent}% OFF' if self.discount_percent else ''
+
+    @property
+    def vehicle_display(self):
+        return get_vehicle_display(self)
+
+    @property
+    def tier_label(self):
+        return 'Luxury' if self.is_premium else 'Economy'
 
     staff        = db.relationship('StaffMember', backref='experiences')
     timeslots    = db.relationship('Timeslot', backref='experience', lazy='dynamic')

@@ -101,7 +101,13 @@ def send_email(mail, subject, recipients, body_html, body_text=None):
             timeout=15,
         )
         if resp.status_code not in (200, 202):
-            raise RuntimeError(f'SendGrid error {resp.status_code}: {resp.text}')
+            import logging
+            logging.getLogger('mail').warning(
+                f'SendGrid error {resp.status_code}: {resp.text} — falling back to SMTP'
+            )
+            from flask_mail import Message
+            msg = Message(subject=subject, recipients=recipients, html=body_html, body=body_text or '')
+            mail.send(msg)
     else:
         from flask_mail import Message
         msg = Message(subject=subject, recipients=recipients, html=body_html, body=body_text or '')

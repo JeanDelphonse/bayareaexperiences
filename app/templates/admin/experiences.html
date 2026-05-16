@@ -28,7 +28,22 @@
         {% for exp in experiences.items %}
         <tr data-id="{{ exp.experience_id }}" style="cursor: grab;">
           <td><i class="bi bi-grip-vertical text-muted"></i></td>
-          <td class="fw-semibold">{{ exp.name }}</td>
+          <td class="fw-semibold">
+            {{ exp.name }}
+            {% if exp.is_premium %}
+            <span style="background:#0D1A2A;color:#C9952A;font-size:10px;
+                   font-weight:600;padding:2px 8px;border-radius:9999px;
+                   margin-left:8px;letter-spacing:.04em;">
+              ✦ LUXURY
+            </span>
+            {% else %}
+            <span style="background:#EFF4F9;color:#2E7D8C;font-size:10px;
+                   font-weight:500;padding:2px 8px;border-radius:9999px;
+                   margin-left:8px;">
+              Economy
+            </span>
+            {% endif %}
+          </td>
           <td><span class="badge bg-warning text-dark">{{ exp.category }}</span></td>
           <td>{{ exp.duration_hours }}h</td>
           <td>

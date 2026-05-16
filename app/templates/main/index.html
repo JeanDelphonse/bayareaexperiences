@@ -183,50 +183,100 @@ document.addEventListener('DOMContentLoaded', initWeather);
 {# 3. Featured Experiences — randomly selected with live availability #}
 {% include 'partials/_featured_experiences.html' %}
 
-<!-- ── Experience Grid ─────────────────────────────────────────────────────── -->
+<!-- ── Experience Grid + Tab Switcher ─────────────────────────────────────── -->
 <section class="py-5">
   <div class="container">
     <h2 class="text-center fw-bold mb-2">Our Experiences</h2>
-    <p class="text-center text-muted mb-5">Choose your Bay Area adventure</p>
+    <p class="text-center text-muted mb-4">Choose your Bay Area adventure</p>
 
-    {% for category, exps in grouped_experiences.items() %}
-    <h3 class="fw-semibold mb-3 mt-2">{{ category }}</h3>
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-5 justify-content-center">
-      {% for exp in exps %}
-      <div class="col">
-        <div class="card h-100 shadow-sm border-0 experience-card">
-          <img src="{{ url_for('main.image', filename=(exp.photo_url or 'sun_rise_set.jpg')) }}"
-               class="card-img-top experience-card-img"
-               alt="{{ exp.name }}"
-               onerror="this.onerror=null;this.src='{{ url_for('main.image', filename='sun_rise_set.jpg') }}'">
-          <div class="card-body d-flex flex-column">
-            <h5 class="card-title fw-bold">{{ exp.name }}</h5>
-            <p class="card-text text-muted flex-grow-1">
-              {{ exp.description[:140] ~ '...' if exp.description and exp.description|length > 140 else exp.description }}
-            </p>
-            <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
-              <span class="text-muted small"><i class="bi bi-clock me-1"></i>{{ exp.duration_hours|int }}{% if exp.duration_hours % 1 %}.{{ ((exp.duration_hours % 1) * 10)|int }}{% endif %} hours</span>
-              <div class="d-flex flex-column align-items-end gap-1">
-                {% if exp.review_count >= 3 %}
-                <div style="font-size:12px;color:#1C1C1E;display:flex;align-items:center;gap:3px;">
-                  <span style="color:#C9952A;">&#9733;</span>
-                  <span style="font-weight:500;">{{ '%.1f' | format(exp.avg_star_rating) }}</span>
-                  <span style="color:#5A6A7A;">({{ exp.review_count }})</span>
+    {# Two-tab switcher: Experiences (economy) | Luxury #}
+    <div class="bae-tab-switcher" id="experienceTabSwitcher">
+      <div class="bae-tab-bar">
+        <button class="bae-tab active" id="tabEconomy"
+                onclick="switchTab('economy')"
+                aria-selected="true">
+          <span class="bae-tab-icon">🧭</span>
+          Experiences
+        </button>
+        <button class="bae-tab" id="tabLuxury"
+                onclick="switchTab('luxury')"
+                aria-selected="false">
+          <span class="bae-tab-icon">✦</span>
+          Luxury
+          <span class="bae-tab-badge">Premium</span>
+        </button>
+      </div>
+
+      {# Economy grid #}
+      <div id="gridEconomy" class="bae-tab-panel">
+        {% for category, exps in grouped_experiences.items() %}
+        <h3 class="fw-semibold mb-3 mt-2">{{ category }}</h3>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-5 justify-content-center">
+          {% for exp in exps %}
+          <div class="col">
+            <div class="card h-100 shadow-sm border-0 experience-card">
+              <img src="{{ url_for('main.image', filename=(exp.photo_url or 'sun_rise_set.jpg')) }}"
+                   class="card-img-top experience-card-img"
+                   alt="{{ exp.name }}"
+                   onerror="this.onerror=null;this.src='{{ url_for('main.image', filename='sun_rise_set.jpg') }}'">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title fw-bold">{{ exp.name }}</h5>
+                <p class="card-text text-muted flex-grow-1">
+                  {{ exp.description[:140] ~ '...' if exp.description and exp.description|length > 140 else exp.description }}
+                </p>
+                <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+                  <span class="text-muted small"><i class="bi bi-clock me-1"></i>{{ exp.duration_hours|int }}{% if exp.duration_hours % 1 %}.{{ ((exp.duration_hours % 1) * 10)|int }}{% endif %} hours</span>
+                  <div class="d-flex flex-column align-items-end gap-1">
+                    {% if exp.review_count >= 3 %}
+                    <div style="font-size:12px;color:#1C1C1E;display:flex;align-items:center;gap:3px;">
+                      <span style="color:#C9952A;">&#9733;</span>
+                      <span style="font-weight:500;">{{ '%.1f' | format(exp.avg_star_rating) }}</span>
+                      <span style="color:#5A6A7A;">({{ exp.review_count }})</span>
+                    </div>
+                    {% endif %}
+                    {{ price_block(exp) }}
+                  </div>
                 </div>
-                {% endif %}
-                {{ price_block(exp) }}
+                <a href="{{ url_for('main.experience_detail', slug=exp.slug) }}"
+                   class="btn btn-warning w-100 fw-semibold">Book Now</a>
               </div>
             </div>
-            <a href="{{ url_for('main.experience_detail', slug=exp.slug) }}"
-               class="btn btn-warning w-100 fw-semibold">Book Now</a>
           </div>
+          {% endfor %}
         </div>
+        {% endfor %}
+      </div>{# /gridEconomy #}
+
+      {# Luxury grid #}
+      <div id="gridLuxury" class="bae-tab-panel" style="display:none;">
+        {% include 'partials/_luxury_tab.html' %}
       </div>
-      {% endfor %}
-    </div>
-    {% endfor %}
+
+    </div>{# /bae-tab-switcher #}
   </div>
 </section>
+
+<script>
+function switchTab(tab) {
+  var tabs   = document.querySelectorAll('.bae-tab');
+  tabs.forEach(function(t) {
+    t.classList.toggle('active', t.id === 'tab' + capitalise(tab));
+    t.setAttribute('aria-selected', t.id === 'tab' + capitalise(tab));
+  });
+  document.getElementById('gridEconomy').style.display = tab === 'economy' ? 'block' : 'none';
+  document.getElementById('gridLuxury').style.display  = tab === 'luxury'  ? 'block' : 'none';
+  try { sessionStorage.setItem('bae_active_tab', tab); } catch(e) {}
+}
+
+function capitalise(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    var saved = sessionStorage.getItem('bae_active_tab');
+    if (saved === 'luxury') switchTab('luxury');
+  } catch(e) {}
+});
+</script>
 
 <script>
 (function () {

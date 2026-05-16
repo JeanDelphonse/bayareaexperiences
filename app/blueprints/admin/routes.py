@@ -12,6 +12,7 @@ from app.models import (Experience, ExperiencePickupLocation, Timeslot,
                         Booking, StaffMember, User, ContactSubmission,
                         ChatSession, ChatMessage)
 from app.utils import admin_required, generate_pk, paginate, send_email
+from app.utils.luxury import VEHICLE_CHOICES
 
 PICKUP_CITIES = [
     'Cupertino, CA', 'Fremont, CA', 'Los Gatos, CA', 'Menlo Park, CA',
@@ -105,7 +106,8 @@ def experiences():
     all_staff = StaffMember.query.filter_by(is_active=True).all()
     return render_template('admin/experiences.html',
                            experiences=all_exps, staff=all_staff,
-                           pickup_cities=PICKUP_CITIES)
+                           pickup_cities=PICKUP_CITIES,
+                           vehicle_choices=VEHICLE_CHOICES)
 
 
 @admin_bp.route('/experiences/<experience_id>/edit', methods=['GET', 'POST'])
@@ -160,6 +162,24 @@ def edit_experience(experience_id):
         exp.discount_start   = _parse_dt(request.form.get('discount_start', '').strip())
         exp.discount_end     = _parse_dt(request.form.get('discount_end', '').strip())
 
+        # Luxury fields
+        exp.is_premium = request.form.get('is_premium') == '1'
+        if exp.is_premium:
+            vtype = request.form.get('luxury_vehicle_type', '').strip()
+            if not vtype:
+                flash('Vehicle type is required for Luxury experiences.', 'danger')
+                return redirect(request.url)
+            exp.luxury_vehicle_type = vtype
+            exp.luxury_vehicle_custom = (
+                request.form.get('luxury_vehicle_custom', '').strip() or None
+                if vtype == 'luxury_suv_custom' else None
+            )
+            exp.driver_notes = request.form.get('driver_notes', '').strip() or None
+        else:
+            exp.luxury_vehicle_type   = None
+            exp.luxury_vehicle_custom = None
+            exp.driver_notes          = None
+
         # Update pickup locations
         ExperiencePickupLocation.query.filter_by(experience_id=experience_id).delete()
         for city in request.form.getlist('pickup_cities'):
@@ -172,7 +192,8 @@ def edit_experience(experience_id):
 
     return render_template('admin/experience_form.html', experience=exp,
                            staff=all_staff, pickup_cities=PICKUP_CITIES,
-                           existing_cities=existing_cities)
+                           existing_cities=existing_cities,
+                           vehicle_choices=VEHICLE_CHOICES)
 
 
 @admin_bp.route('/experiences/<experience_id>/regenerate-sample', methods=['POST'])

@@ -1,0 +1,31 @@
+{# templates/partials/_luxury_tab.html #}
+{# Requires: luxury_experiences (list of Experience objects) passed from index() #}
+{% from 'macros/price.html' import price_block %}
+
+{% if luxury_experiences %}
+
+<div class="bae-luxury-header">
+  <div>
+    <div class="bae-luxury-eyebrow">Private Chauffeur Experiences</div>
+    <h2 class="bae-luxury-title">
+      Arrive in <em>Style</em>
+    </h2>
+    <p class="bae-luxury-desc">
+      Professional drivers. Luxury vehicles. Door-to-door service.
+      The same personalized Bay Area experience — elevated.
+    </p>
+  </div>
+</div>
+
+<div class="bae-luxury-grid">
+  {% for exp in luxury_experiences %}
+    {% include 'partials/_luxury_card.html' %}
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="bae-luxury-empty">
+  <p>Luxury experiences coming soon.</p>
+  <a href="tel:4088312101">Call us to arrange a custom luxury experience &rarr;</a>
+</div>
+{% endif %}

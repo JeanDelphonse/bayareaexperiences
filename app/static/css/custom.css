@@ -1462,3 +1462,247 @@ textarea:focus-visible {
   flex-shrink: 0;
 }
 .bae-related-cta:hover { background: #2E7D8C; color: #fff; }
+
+
+/* ─── BAE Luxury — Tab Switcher ─────────────────────────────────────────────── */
+.bae-tab-bar {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #D0D8E0;
+  margin-bottom: 36px;
+}
+.bae-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #5A6A7A;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.bae-tab:hover { color: #1A3557; }
+.bae-tab.active {
+  color: #1A3557;
+  border-bottom-color: #1A3557;
+  font-weight: 600;
+}
+.bae-tab#tabLuxury.active {
+  color: #C9952A;
+  border-bottom-color: #C9952A;
+}
+.bae-tab-icon { font-size: 16px; }
+.bae-tab-badge {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  background: #C9952A;
+  color: #fff;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  margin-left: 4px;
+}
+.bae-tab-panel { display: block; }
+
+
+/* ─── BAE Luxury — Section Header ───────────────────────────────────────────── */
+.bae-luxury-header { margin-bottom: 36px; }
+.bae-luxury-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: #C9952A;
+  margin-bottom: 8px;
+}
+.bae-luxury-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 30px;
+  font-weight: 700;
+  color: #1A3557;
+  margin: 0 0 10px;
+}
+.bae-luxury-title em { font-style: italic; color: #C9952A; }
+.bae-luxury-desc {
+  font-size: 15px;
+  color: #5A6A7A;
+  max-width: 520px;
+  line-height: 1.6;
+}
+.bae-luxury-empty {
+  padding: 40px 0;
+  color: #5A6A7A;
+  font-size: 15px;
+}
+.bae-luxury-empty a { color: #C9952A; }
+
+
+/* ─── BAE Luxury — Grid ─────────────────────────────────────────────────────── */
+.bae-luxury-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+@media (max-width: 768px) {
+  .bae-luxury-grid {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 16px;
+    padding-bottom: 12px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .bae-luxury-grid::-webkit-scrollbar { display: none; }
+}
+@media (min-width: 769px) and (max-width: 1024px) {
+  .bae-luxury-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+
+/* ─── BAE Luxury — Card ─────────────────────────────────────────────────────── */
+.bae-lux-card {
+  background: #0D1A2A;
+  border-radius: 14px;
+  border: 0.5px solid rgba(201,149,42,.27);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 260px;
+  scroll-snap-align: start;
+  transition: transform .22s ease, box-shadow .22s ease;
+}
+.bae-lux-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(201,149,42,.18);
+}
+
+.bae-lux-img-link { display: block; text-decoration: none; }
+.bae-lux-img { position: relative; height: 180px; overflow: hidden; }
+.bae-lux-img-el {
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform .38s ease;
+  filter: brightness(.85) saturate(.9);
+}
+.bae-lux-card:hover .bae-lux-img-el { transform: scale(1.05); }
+.bae-lux-img-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgba(13,26,42,0) 40%, rgba(13,26,42,.75) 100%);
+}
+
+.bae-lux-vehicle-badge {
+  position: absolute;
+  bottom: 10px; left: 10px;
+  background: rgba(201,149,42,.92);
+  color: #0D1A2A;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.bae-lux-vehicle-icon { font-size: 12px; }
+.bae-lux-duration {
+  position: absolute;
+  bottom: 10px; right: 10px;
+  background: rgba(13,26,42,.82);
+  color: rgba(255,255,255,.85);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 20px;
+  z-index: 1;
+  backdrop-filter: blur(4px);
+}
+
+.bae-lux-body { padding: 16px 16px 0; flex: 1; }
+.bae-lux-category {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #C9952A;
+  margin-bottom: 6px;
+}
+.bae-lux-name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.bae-lux-name-link { color: #F0E8D8; text-decoration: none; }
+.bae-lux-name-link:hover { color: #C9952A; }
+.bae-lux-rating {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 12px; color: rgba(255,255,255,.65);
+}
+.bae-lux-star { color: #C9952A; }
+.bae-lux-review-ct { color: rgba(255,255,255,.4); }
+
+.bae-lux-footer {
+  padding: 12px 16px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 0.5px solid rgba(201,149,42,.25);
+  gap: 8px;
+}
+.bae-price-lux { color: #C9952A; font-size: 22px; font-weight: 700; }
+.bae-lux-price-sub { font-size: 10px; color: rgba(255,255,255,.35); margin-top: 2px; }
+.bae-lux-cta {
+  display: inline-block;
+  background: #C9952A;
+  color: #0D1A2A;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  transition: background .15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.bae-lux-cta:hover { background: #E8B84B; color: #0D1A2A; }
+
+
+/* ─── BAE Luxury — Detail Page Vehicle Block ─────────────────────────────────── */
+.bae-lux-vehicle-block {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #0D1A2A;
+  border-left: 4px solid #C9952A;
+  padding: 16px 20px;
+  border-radius: 0 8px 8px 0;
+  margin: 20px 0 0;
+}
+.bae-lux-vb-icon  { font-size: 28px; }
+.bae-lux-vb-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #C9952A; }
+.bae-lux-vb-name  { font-size: 18px; font-weight: 600; color: #F0E8D8; }
+.bae-lux-vb-sub   { font-size: 12px; color: rgba(255,255,255,.45); margin-top: 2px; }
+
+/* Detail page luxury CTA button */
+.bae-lux-book-btn {
+  background: #C9952A;
+  color: #0D1A2A;
+  border: none;
+}
+.bae-lux-book-btn:hover { background: #E8B84B; color: #0D1A2A; }

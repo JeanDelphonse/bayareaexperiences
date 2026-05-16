@@ -117,6 +117,160 @@
   </div>
 </div>
 
+{# ── Tier & Vehicle (Luxury) ──────────────────────────────────────────────── #}
+<div class="card border-0 mt-4 bae-admin-section-luxury" id="tierSection"
+     style="border:0.5px solid #D0D8E0!important;border-radius:12px;">
+  <div class="card-body" style="padding:20px;">
+    <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+         color:#C9952A;margin-bottom:16px;">TIER &amp; VEHICLE</div>
+
+    <div class="row g-3 mb-2">
+      <div class="col-12">
+        <label style="font-size:13px;font-weight:500;color:#1C1C1E;display:block;margin-bottom:8px;">
+          Experience Tier
+        </label>
+        <div class="d-flex gap-3 flex-wrap">
+
+          <label class="bae-tier-option" id="tierEconomy"
+                 style="border-color: {{ '#1A3557' if experience and not experience.is_premium else '#D0D8E0' }};">
+            <input type="radio" name="is_premium" value="0"
+                   {{ 'checked' if not experience or not experience.is_premium }}
+                   onchange="onTierChange(false)"
+                   style="display:none;">
+            <div class="bae-tier-icon">🧭</div>
+            <div>
+              <div class="bae-tier-label">Economy</div>
+              <div class="bae-tier-sub">Standard BAE experience · Jeep Wrangler</div>
+            </div>
+          </label>
+
+          <label class="bae-tier-option bae-tier-option-lux" id="tierLuxury"
+                 style="border-color: {{ '#C9952A' if experience and experience.is_premium else '#D0D8E0' }};
+                        background: {{ '#0D1A2A' if experience and experience.is_premium else '#fff' }};">
+            <input type="radio" name="is_premium" value="1"
+                   {{ 'checked' if experience and experience.is_premium }}
+                   onchange="onTierChange(true)"
+                   style="display:none;">
+            <div class="bae-tier-icon">✦</div>
+            <div>
+              <div class="bae-tier-label bae-tier-label-lux">Luxury</div>
+              <div class="bae-tier-sub bae-tier-sub-lux">
+                Premium pricing · Professional chauffeur · Luxury vehicle
+              </div>
+            </div>
+          </label>
+
+        </div>
+      </div>
+    </div>
+
+    <div id="luxuryFields"
+         style="display:{{ 'block' if experience and experience.is_premium else 'none' }};margin-top:16px;">
+      <div class="row g-3">
+
+        <div class="col-md-5">
+          <label style="font-size:12px;font-weight:500;display:block;margin-bottom:4px;">
+            Luxury Vehicle Type <span style="color:#B03A2E;">*</span>
+          </label>
+          <select name="luxury_vehicle_type"
+                  id="vehicleTypeSelect"
+                  class="form-select"
+                  onchange="onVehicleChange()"
+                  style="border-color:#D0D8E0;border-radius:10px;font-size:13px;">
+            <option value="">— Select vehicle —</option>
+            {% for value, label in vehicle_choices %}
+            <option value="{{ value }}"
+              {{ 'selected' if experience and experience.luxury_vehicle_type == value }}>
+              {{ label }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-7" id="customVehicleField"
+             style="display:{{ 'block' if experience and experience.luxury_vehicle_type == 'luxury_suv_custom' else 'none' }};">
+          <label style="font-size:12px;font-weight:500;display:block;margin-bottom:4px;">
+            Custom Vehicle Description
+          </label>
+          <input type="text" name="luxury_vehicle_custom"
+                 class="form-control"
+                 value="{{ experience.luxury_vehicle_custom or '' if experience else '' }}"
+                 placeholder="e.g. Rolls-Royce Phantom, Tesla Model S"
+                 maxlength="150"
+                 style="border-color:#D0D8E0;border-radius:10px;font-size:13px;">
+        </div>
+
+        <div class="col-12">
+          <label style="font-size:12px;font-weight:500;display:block;margin-bottom:4px;">
+            Chauffeur / Driver Notes
+            <span style="font-weight:400;color:#5A6A7A;font-size:11px;">
+              (internal — shown on staff briefing for luxury bookings only)
+            </span>
+          </label>
+          <textarea name="driver_notes" class="form-control" rows="2"
+                    maxlength="500"
+                    placeholder="Dress code, client greeting protocol, special requirements..."
+                    style="border-color:#D0D8E0;border-radius:10px;resize:none;font-size:13px;">{{- experience.driver_notes or '' if experience else '' -}}</textarea>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.bae-tier-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border: 2px solid #D0D8E0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  min-width: 220px;
+  background: #fff;
+}
+.bae-tier-option:hover { border-color: #A8B4C0; }
+.bae-tier-icon { font-size: 22px; }
+.bae-tier-label { font-size: 14px; font-weight: 600; color: #1C1C1E; }
+.bae-tier-sub   { font-size: 11px; color: #5A6A7A; margin-top: 2px; }
+.bae-tier-label-lux { color: #C9952A; }
+.bae-tier-sub-lux   { color: rgba(255,255,255,.5); }
+</style>
+
+<script>
+(function(){
+  window.onTierChange = function(isLuxury) {
+    var luxFields   = document.getElementById('luxuryFields');
+    var tierEconomy = document.getElementById('tierEconomy');
+    var tierLuxury  = document.getElementById('tierLuxury');
+    var vSelect     = document.getElementById('vehicleTypeSelect');
+
+    luxFields.style.display = isLuxury ? 'block' : 'none';
+
+    tierEconomy.style.borderColor = isLuxury ? '#D0D8E0' : '#1A3557';
+    tierEconomy.style.background  = '#ffffff';
+
+    tierLuxury.style.borderColor  = isLuxury ? '#C9952A' : '#D0D8E0';
+    tierLuxury.style.background   = isLuxury ? '#0D1A2A' : '#ffffff';
+
+    vSelect.required = isLuxury;
+
+    if (!isLuxury) {
+      vSelect.value = '';
+      document.getElementById('customVehicleField').style.display = 'none';
+    }
+  };
+
+  window.onVehicleChange = function() {
+    var val = document.getElementById('vehicleTypeSelect').value;
+    document.getElementById('customVehicleField').style.display =
+      val === 'luxury_suv_custom' ? 'block' : 'none';
+  };
+})();
+</script>
+
 {# ── Promotional Discount ──────────────────────────────────────────────────── #}
 <div class="card border-0 mt-4" style="border:0.5px solid #D0D8E0!important;border-radius:12px;">
   <div class="card-body" style="padding:20px;">

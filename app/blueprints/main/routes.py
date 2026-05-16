@@ -49,7 +49,9 @@ def _get_featured_experiences():
         .filter(
             Experience.experience_id.in_(available_ids),
             Experience.is_active == True,
+            Experience.listing_status == 'active',
             Experience.is_mystery == False,
+            Experience.is_premium == False,
         )
         .all()
     )
@@ -110,14 +112,32 @@ def _group_by_category(experiences):
 
 @main_bp.route('/')
 def index():
-    experiences = (Experience.query
-                   .filter_by(is_active=True)
-                   .order_by(Experience.sort_order)
-                   .all())
+    economy_experiences = (
+        Experience.query
+        .filter(
+            Experience.is_active == True,
+            Experience.listing_status == 'active',
+            Experience.is_premium == False,
+        )
+        .order_by(Experience.sort_order)
+        .all()
+    )
+    luxury_experiences = (
+        Experience.query
+        .filter(
+            Experience.is_active == True,
+            Experience.listing_status == 'active',
+            Experience.is_premium == True,
+        )
+        .order_by(Experience.sort_order)
+        .all()
+    )
     from app.weather.cities import SERVING_CITIES
     serving_cities = SERVING_CITIES if current_app.config.get('WEATHER_ENABLED', True) else []
     return render_template('main/index.html',
-                           grouped_experiences=_group_by_category(experiences),
+                           grouped_experiences=_group_by_category(economy_experiences),
+                           economy_experiences=economy_experiences,
+                           luxury_experiences=luxury_experiences,
                            serving_cities=serving_cities,
                            featured=_get_featured_experiences())
 
@@ -163,7 +183,7 @@ def featured_experiences():
 @main_bp.route('/experiences')
 def experiences():
     experiences = (Experience.query
-                   .filter_by(is_active=True)
+                   .filter(Experience.is_active == True, Experience.listing_status == 'active')
                    .order_by(Experience.sort_order)
                    .all())
     grouped = _group_by_category(experiences)
@@ -182,7 +202,7 @@ def ride_redirect():
 
 @main_bp.route('/experience/<slug>')
 def experience_detail(slug):
-    exp = Experience.query.filter_by(slug=slug, is_active=True).first_or_404()
+    exp = Experience.query.filter_by(slug=slug, is_active=True, listing_status='active').first_or_404()
     try:
         from app.tracking.events import track_event
         track_event('experience_viewed', category='experience',
@@ -232,10 +252,12 @@ def experience_detail(slug):
     related_experiences = (
         Experience.query
         .filter(
-            Experience.is_active     == True,
-            Experience.is_mystery    == False,
-            Experience.experience_id != exp.experience_id,
-            Experience.category      == exp.category,
+            Experience.is_active      == True,
+            Experience.listing_status == 'active',
+            Experience.is_mystery     == False,
+            Experience.experience_id  != exp.experience_id,
+            Experience.category       == exp.category,
+            Experience.is_premium     == exp.is_premium,
         )
         .order_by(Experience.sort_order.asc())
         .all()
@@ -269,7 +291,7 @@ def sitemap():
 
     # Dynamic: active experiences
     experiences = (Experience.query
-                   .filter_by(is_active=True)
+                   .filter(Experience.is_active == True, Experience.listing_status == 'active')
                    .with_entities(Experience.slug, Experience.updated_at)
                    .all())
 

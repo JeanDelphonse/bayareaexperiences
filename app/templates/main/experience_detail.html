@@ -43,11 +43,30 @@
        alt="{{ experience.name }}"
        onerror="this.onerror=null;this.src='{{ url_for('main.image', filename='sun_rise_set.jpg') }}'">
   <div class="position-absolute top-0 start-0 w-100 h-100" style="background: rgba(0,0,0,0.40);"></div>
+  {% if experience.is_premium %}
+  <div class="position-absolute top-0 end-0 p-3">
+    <span style="background:rgba(201,149,42,.92);color:#0D1A2A;font-size:11px;font-weight:700;
+           letter-spacing:.06em;text-transform:uppercase;padding:5px 14px;border-radius:9999px;">
+      ✦ Luxury Experience
+    </span>
+  </div>
+  {% endif %}
   <div class="position-absolute bottom-0 start-0 p-4 text-white">
     <span class="badge bg-warning text-dark mb-2 fs-6">{{ experience.category }}</span>
     <h1 class="fw-bold display-5">{{ experience.name }}</h1>
   </div>
 </div>
+
+{% if experience.is_premium %}
+<div class="bae-lux-vehicle-block">
+  <div class="bae-lux-vb-icon">🚗</div>
+  <div>
+    <div class="bae-lux-vb-label">Your Vehicle</div>
+    <div class="bae-lux-vb-name">{{ experience.vehicle_display or 'Luxury Vehicle' }}</div>
+    <div class="bae-lux-vb-sub">Professional chauffeur &nbsp;·&nbsp; Door-to-door pickup</div>
+  </div>
+</div>
+{% endif %}
 
 <section class="py-5">
   <div class="container">
@@ -124,8 +143,8 @@
               <div class="alert alert-secondary py-2 text-center small">Pay offline — reserve your spot today</div>
             {% endif %}
             <a href="{{ url_for('booking.book', experience_id=experience.experience_id) }}"
-               class="btn btn-warning w-100 btn-lg fw-bold">
-              Book This Experience
+               class="btn btn-lg w-100 fw-bold{% if experience.is_premium %} bae-lux-book-btn{% else %} btn-warning{% endif %}">
+              {% if experience.is_premium %}Reserve Your Experience{% else %}Book This Experience{% endif %}
             </a>
             <hr>
             <ul class="list-unstyled small text-muted">

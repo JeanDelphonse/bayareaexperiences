@@ -1,0 +1,59 @@
+{# templates/partials/_luxury_card.html #}
+{# Requires: exp (Experience object with is_premium=True) #}
+{% from 'macros/price.html' import price_block %}
+
+<div class="bae-lux-card">
+
+  {# Card image with vehicle badge overlay #}
+  <a href="{{ url_for('main.experience_detail', slug=exp.slug) }}"
+     class="bae-lux-img-link">
+    <div class="bae-lux-img">
+      <img src="{{ url_for('main.image', filename=(exp.photo_url or 'jeepWrangler.webp')) }}"
+           alt="{{ exp.name }}"
+           loading="lazy"
+           class="bae-lux-img-el"
+           onerror="this.onerror=null;this.src='{{ url_for('main.image', filename='jeepWrangler.webp') }}'">
+      <div class="bae-lux-img-overlay"></div>
+      <div class="bae-lux-vehicle-badge">
+        <span class="bae-lux-vehicle-icon">🚗</span>
+        {{ exp.vehicle_display or 'Luxury Vehicle' }}
+      </div>
+      <span class="bae-lux-duration">
+        {{ exp.duration_hours|int }}
+        {%- if exp.duration_hours % 1 %}.{{ ((exp.duration_hours % 1) * 10)|int }}{% endif %} hr
+        {{- 's' if exp.duration_hours != 1 -}}
+      </span>
+    </div>
+  </a>
+
+  {# Card body #}
+  <div class="bae-lux-body">
+    <div class="bae-lux-category">{{ exp.category }}</div>
+    <h3 class="bae-lux-name">
+      <a href="{{ url_for('main.experience_detail', slug=exp.slug) }}"
+         class="bae-lux-name-link">
+        {{ exp.name }}
+      </a>
+    </h3>
+    {% if exp.avg_star_rating and exp.avg_star_rating > 0 and exp.review_count >= 3 %}
+    <div class="bae-lux-rating">
+      <span class="bae-lux-star">★</span>
+      <span>{{ '%.1f'|format(exp.avg_star_rating) }}</span>
+      <span class="bae-lux-review-ct">({{ exp.review_count }})</span>
+    </div>
+    {% endif %}
+  </div>
+
+  {# Card footer: price + CTA #}
+  <div class="bae-lux-footer">
+    <div>
+      <div class="bae-price-lux">${{ exp.effective_price|int }}</div>
+      <div class="bae-lux-price-sub">up to {{ exp.max_guests }} guests</div>
+    </div>
+    <a href="{{ url_for('main.experience_detail', slug=exp.slug) }}"
+       class="bae-lux-cta">
+      Reserve &rarr;
+    </a>
+  </div>
+
+</div>
